@@ -11,7 +11,6 @@ import os
 from config import ARGS
 from network.util_network import ScheduledOptim, NoamOpt
 
-
 class NoamOptimizer:
     def __init__(self, model, lr, model_size, warmup):
         self._adam = torch.optim.Adam(model.parameters(), lr=lr)
@@ -54,11 +53,11 @@ class Trainer:
     # train model and choose weight with max auc on validation dataset
     def train(self):
         train_gen = data.DataLoader(
-            dataset=self._train_data, shuffle=True,
-            batch_size=ARGS.train_batch, num_workers=ARGS.num_workers)
+            dataset=self._train_data, shuffle=True, pin_memory=False if no_cuda else True,
+            batch_size=ARGS.train_batch, num_workers=ARGS.num_workers, collate_fn=self._train_data.get_sequence)
         val_gen = data.DataLoader(
-            dataset=self._val_data, shuffle=False,
-            batch_size=ARGS.test_batch, num_workers=ARGS.num_workers)
+            dataset=self._val_data, shuffle=False, pin_memory=False if no_cuda else True,
+            batch_size=ARGS.test_batch, num_workers=ARGS.num_workers, collate_fn=self._val_data.get_sequence)
 
         # will train self._num_epochs copies of train data
         to_train = chain.from_iterable(repeat(train_gen, self._num_epochs))
@@ -74,7 +73,7 @@ class Trainer:
 
             # take num_steps batches from to_train stream
             train_batches = islice(to_train, num_steps)
-            print(f'Step: {self.step}')
+            print(f'Step: {self.step} / {total_steps}')
             self._train(train_batches, num_steps)
 
             cur_weight = self._model.state_dict()
@@ -90,8 +89,8 @@ class Trainer:
     # get test results
     def test(self, weight_num):
         test_gen = data.DataLoader(
-            dataset=self._test_data, shuffle=False,
-            batch_size=ARGS.test_batch, num_workers=ARGS.num_workers)
+            dataset=self._test_data, shuffle=False, pin_memory=False if no_cuda else True,
+            batch_size=ARGS.test_batch, num_workers=ARGS.num_workers, collate_fn=self._test_data.get_sequence)
 
         # load best weight
         if self.max_step != 0:
@@ -139,7 +138,9 @@ class Trainer:
             outs.extend(out.squeeze(-1).data.cpu().numpy())
 
         acc = num_corrects / num_total
-        auc = roc_auc_score(labels, outs)
+        try: auc = roc_auc_score(labels, outs)
+        except ValueError: auc = 0.0
+        
         loss = np.mean(losses)
         training_time = time.time() - start_time
 

@@ -3,6 +3,10 @@ import random
 import torch
 import sys
 import os
+import numpy as np
+
+import time
+from datetime import datetime
 
 parser = argparse.ArgumentParser()
 
@@ -36,12 +40,17 @@ def get_args():
     torch.cuda.manual_seed(params.random_seed)
     torch.cuda.manual_seed_all(params.random_seed)
     random.seed(params.random_seed)
+    np.random.seed(params.random_seed)
 
     if torch.cuda.is_available():
         params.device = 'cuda'
-        params.gpu = list(range(len(params.gpu.split(','))))
-        if params.gpu is not None:
-            torch.cuda.set_device(params.gpu[0])
+        if params.gpu is not "none": # use only one gpu
+            params.gpu = int(params.gpu)
+            torch.cuda.set_device(params.gpu)
+        else: # use multiple gpu
+            num_gpus = torch.cuda.device_count()
+            # if num_gpus > 1 :
+            #     network = nn.DataParallel(network)
 
     params.weight_path = f'weight/{params.name}/'
     os.makedirs(params.weight_path, exist_ok=True)
@@ -62,17 +71,19 @@ def print_args(params):
     info += '└─────────────────────────────────────────────────────\n'
     print(info)
 
+now = datetime.now()
+now_str = f'{now.day:02}{now.hour:02}{now.minute:02}'
 
 dataset_list = ['ASSISTments2009', 'ASSISTments2012', 'ASSISTments2015', 'ASSISTmentsChall',
                 'STATICS', 'KDDCup', 'Junyi', 'EdNet-KT1']
 
 base_args = parser.add_argument_group('Base args')
-base_args.add_argument('--name', type=str, default="name")
+base_args.add_argument('--name', type=str, default=f"best_{now_str}")
 base_args.add_argument('--device', type=str, default='cpu')
 base_args.add_argument('--gpu', type=str, default='none')
-base_args.add_argument('--num_workers', type=int, default=1)
-base_args.add_argument('--base_path', type=str, default='/shared/benchmarks/')
-base_args.add_argument('--weight_path', type=str)
+base_args.add_argument('--num_workers', type=int, default=8)
+#base_args.add_argument('--base_path', type=str, default='/shared/benchmarks/')
+base_args.add_argument('--weight_path', type=str, default=f"{now_str}")
 base_args.add_argument('--dataset_name', type=str, default='ASSISTments2009', choices=dataset_list)
 
 model_list = ['DKT', 'DKVMN', 'NPA', 'SAKT']

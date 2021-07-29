@@ -1,7 +1,10 @@
 import csv
 import glob
 import os
-
+import pickle
+from tqdm import tqdm 
+import numpy as np
+from config import ARGS
 
 def create_full_path(user_base_path, user_path):
     u0 = user_path[0]
@@ -41,7 +44,7 @@ def get_sample_info(user_base_path, data_path):
 # Do not use this anymore
 def get_data_tl(data_path):
     # for triple line format data
-    data_list = []
+    sample_data = []
     with open(data_path, 'r') as f:
         lines = f.readlines()
         num_of_users = len(lines) // 3
@@ -52,25 +55,44 @@ def get_data_tl(data_path):
             assert user_interaction_len == len(qid_list) == len(is_correct_list), 'length is different'
 
             for j in range(user_interaction_len):
-                data_list.append((qid_list[:j+1], is_correct_list[:j+1]))
+                sample_data.append((qid_list[:j+1], is_correct_list[:j+1]))
 
-    return data_list, num_of_users
+    return sample_data, num_of_users
 
 
-def get_data_user_sep(data_path):
-    # almost same as get_sample_info
-    # for user separated format data
-    sample_infos = []
+def get_data_user_sep(user_base_path, mode):
+    data_path = user_base_path + mode
+    sample_data_name = f"{user_base_path}/{mode.split('/')[-2]}_{ARGS.seq_size}_data.npz"
+
     # get list of all files
     user_path_list = os.listdir(data_path)
     num_of_users = len(user_path_list)
 
-    for user_path in user_path_list:
-        with open(data_path + user_path, 'rb') as f:
-            lines = f.readlines()
-            lines = lines[1:]
-            num_of_interactions = len(lines)
-            for end_index in range(num_of_interactions):
-                sample_infos.append((data_path + user_path, end_index))
-
-    return sample_infos, num_of_users
+    if os.path.isfile(sample_data_name):
+        print(f"Loading {sample_data_name}...")
+        sample_dataset = dict(np.load(sample_data_name, allow_pickle = True))
+    else:
+        # almost same as get_sample_info
+        # for user separated format data
+        sample_data = []
+        num_interacts = []
+        
+        for idx, user_path in enumerate(tqdm(user_path_list, total=num_of_users)):
+            with open(data_path + user_path, 'r') as f:
+                lines = f.readlines()
+                lines = lines[1:]  # header exists
+                num_of_interactions = len(lines) # sequence length 
+                for end_index in range(5,num_of_interactions):
+                    sliced_lines = lines[:end_index+1]
+                    user_data_length = len(sliced_lines)
+                    if user_data_length > ARGS.seq_size + 1:
+                        sliced_lines = sliced_lines[-(ARGS.seq_size + 1):]
+                        user_data_length = ARGS.seq_size + 1
+                    sample_data.append(sliced_lines)
+                    num_interacts.append(user_data_length)
+            #if idx > 100 : break
+            
+        np.savez_compressed(sample_data_name, data=sample_data, num_of_interactions=num_interacts)
+        sample_dataset = {"data":sample_data, "num_of_interactions":num_interacts}
+        
+    return sample_dataset, num_of_users

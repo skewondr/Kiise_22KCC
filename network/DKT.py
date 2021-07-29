@@ -34,7 +34,7 @@ class DKT(nn.Module):
         batch_size = input.shape[0]
         hidden = self.init_hidden(batch_size)
         input = self._encoder(input)
-        output, _ = self._lstm(input, (hidden[0].detach(), hidden[1].detach()))
+        output, _ = self._lstm(input, (hidden[0], hidden[1]))
         output = self._decoder(output[:, -1, :])
-        output = torch.gather(output, -1, target_id)
+        output = torch.gather(output, -1, target_id-1)
         return output

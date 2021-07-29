@@ -8,52 +8,63 @@ class UserSepDataset(Dataset):
 
     def __init__(self, name, sample_infos, dataset_name='ASSISTments2009'):
         self._name = name # train, val, test
-        self._sample_infos = sample_infos # list of (user_path, target_index)
+        self._sample_infos = sample_infos # {"data":sample_data, "num_of_interactions":num_interacts}
         self._dataset_name = dataset_name
 
-    def get_sequence(self, sample):
-        user_path, target_index = sample
-        with open(user_path, 'r') as f:
-            data = f.readlines()[1:] # header exists
-            data = data[:target_index+1]
-            user_data_length = len(data)
+    def __repr__(self):
+        return f'{self._name}: # of samples: {len(self._sample_infos["num_of_interactions"])}'
 
-        if user_data_length > ARGS.seq_size + 1:
-            data = data[-(ARGS.seq_size + 1):]
-            pad_counts = 0
-        else:
-            pad_counts = ARGS.seq_size + 1 - user_data_length
+    def __len__(self):
+        return len(self._sample_infos["num_of_interactions"])
 
-        input_list = []
-        for idx, line in enumerate(data):
-            line = line.rstrip().split(',')
-            tag_id = int(line[0])
-            is_correct = int(line[1])
-
-            if idx == len(data) - 1:
-                last_is_correct = is_correct
-                target_id = tag_id
+    def __getitem__(self, index):
+        return {
+            "data": self._sample_infos["data"][index],
+            "num_of_interactions": self._sample_infos["num_of_interactions"][index]
+            }
+       
+    def get_sequence(self, batch):
+        batch_data = [b['data'] for b in batch]
+        batch_num_interacts = [b['num_of_interactions'] for b in batch]
+        
+        labels = []
+        input_lists = []
+        target_ids = []
+        for data, num_of_interactions in zip(batch_data, batch_num_interacts):
+            
+            if num_of_interactions == ARGS.seq_size + 1:
+                pad_counts = 0
             else:
+                pad_counts = ARGS.seq_size + 1 - num_of_interactions
+
+            input_list = []
+            correct_list = []
+            for idx, line in enumerate(data):
+                line = line.rstrip().split(',')
+                tag_id = int(line[0])
+                is_correct = int(line[1])
+
+                if idx == len(data) - 1:
+                    target_id = tag_id
+                
                 if is_correct:
                     input_list.append(tag_id)
                 else:
                     input_list.append(tag_id + QUESTION_NUM[self._dataset_name])
+            
+            correct_list.append(is_correct)
 
-        paddings = [PAD_INDEX] * pad_counts
-        input_list = paddings + input_list
-        assert len(input_list) == ARGS.seq_size, "sequence size error"
+            paddings = [PAD_INDEX] * pad_counts
+            input_list = paddings + input_list
+            correct_list = paddings + correct_list 
+            assert len(input_list) == ARGS.seq_size + 1, "sequence size error"
 
+            labels.append([correct_list[-1]])
+            input_lists.append(input_list[:-1])
+            target_ids.append([target_id])
+        
         return {
-            'label': torch.Tensor([last_is_correct]).long(),
-            'input': torch.Tensor(input_list).long(),
-            'target_id': torch.Tensor([target_id - 1]).long()
+            'label': torch.as_tensor(labels),
+            'input': torch.as_tensor(input_lists),
+            'target_id': torch.as_tensor(target_ids)
         }
-
-    def __repr__(self):
-        return f'{self._name}: # of samples: {len(self._sample_infos)}'
-
-    def __len__(self):
-        return len(self._sample_infos)
-
-    def __getitem__(self, index):
-        return self.get_sequence(self._sample_infos[index])
