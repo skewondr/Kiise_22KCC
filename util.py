@@ -60,9 +60,9 @@ def get_data_tl(data_path):
     return sample_data, num_of_users
 
 
-def get_data_user_sep(user_base_path, mode):
-    data_path = user_base_path + mode
-    sample_data_name = f"{user_base_path}/{mode.split('/')[-2]}_{ARGS.seq_size}_data.npz"
+def get_data_user_sep(user_base_path, i, mode):
+    data_path = f"{user_base_path}/{i}/{mode}/"
+    sample_data_name = f"{user_base_path}/{i}/{mode}_{ARGS.dataset_name}_{ARGS.seq_size}_data.npz"
 
     # get list of all files
     user_path_list = os.listdir(data_path)
@@ -82,14 +82,23 @@ def get_data_user_sep(user_base_path, mode):
                 lines = f.readlines()
                 lines = lines[1:]  # header exists
                 num_of_interactions = len(lines) # sequence length 
-                for end_index in range(5,num_of_interactions):
-                    sliced_lines = lines[:end_index+1]
-                    user_data_length = len(sliced_lines)
-                    if user_data_length > ARGS.seq_size + 1:
-                        sliced_lines = sliced_lines[-(ARGS.seq_size + 1):]
-                        user_data_length = ARGS.seq_size + 1
+                if mode == 'train':
+                    for end_index in range(5,num_of_interactions):
+                        sliced_lines = lines[:end_index+1]
+                        user_data_length = len(sliced_lines)
+                        if user_data_length > ARGS.seq_size + 1:
+                            sliced_lines = sliced_lines[-(ARGS.seq_size + 1):]
+                            user_data_length = ARGS.seq_size + 1
+                        sample_data.append(sliced_lines)
+                        num_interacts.append(user_data_length)
+                else:
+                    if num_of_interactions > ARGS.seq_size + 1:
+                        sliced_lines = lines[-(ARGS.seq_size + 1):]
+                        num_of_interactions = ARGS.seq_size + 1
+                    else: sliced_lines = lines
                     sample_data.append(sliced_lines)
-                    num_interacts.append(user_data_length)
+                    num_interacts.append(num_of_interactions)
+
             #if idx > 100 : break
             
         np.savez_compressed(sample_data_name, data=sample_data, num_of_interactions=num_interacts)

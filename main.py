@@ -44,11 +44,14 @@ def run(i):
     """
     i: single integer represents dataset number
     """
+   
+
     user_base_path = f'../dataset/{ARGS.dataset_name}/processed'
 
-    train_sample_data, num_of_train_user = get_data_user_sep(user_base_path, f'/{i}/train/')
-    val_sample_data, num_of_val_user = get_data_user_sep(user_base_path, f'/{i}/val/')
-    test_sample_data, num_of_test_user = get_data_user_sep(user_base_path, f'/{i}/test/')
+    train_sample_data, num_of_train_user = get_data_user_sep(user_base_path, i, 'train')
+    val_sample_data, num_of_val_user = get_data_user_sep(user_base_path, i, 'val')
+    test_sample_data, num_of_test_user = get_data_user_sep(user_base_path, i, 'test')
+    #import IPython; IPython.embed(); exit(1);
 
     train_data = UserSepDataset('train', train_sample_data, ARGS.dataset_name)
     val_data = UserSepDataset('val', val_sample_data, ARGS.dataset_name)

@@ -53,10 +53,10 @@ class Trainer:
     # train model and choose weight with max auc on validation dataset
     def train(self):
         train_gen = data.DataLoader(
-            dataset=self._train_data, shuffle=True, pin_memory=False if no_cuda else True,
+            dataset=self._train_data, shuffle=True, pin_memory=False if ARGS.device == 'cpu' else True,
             batch_size=ARGS.train_batch, num_workers=ARGS.num_workers, collate_fn=self._train_data.get_sequence)
         val_gen = data.DataLoader(
-            dataset=self._val_data, shuffle=False, pin_memory=False if no_cuda else True,
+            dataset=self._val_data, shuffle=False, pin_memory=False if ARGS.device == 'cpu' else True,
             batch_size=ARGS.test_batch, num_workers=ARGS.num_workers, collate_fn=self._val_data.get_sequence)
 
         # will train self._num_epochs copies of train data
@@ -89,7 +89,7 @@ class Trainer:
     # get test results
     def test(self, weight_num):
         test_gen = data.DataLoader(
-            dataset=self._test_data, shuffle=False, pin_memory=False if no_cuda else True,
+            dataset=self._test_data, shuffle=False, pin_memory=False if ARGS.device == 'cpu' else True,
             batch_size=ARGS.test_batch, num_workers=ARGS.num_workers, collate_fn=self._test_data.get_sequence)
 
         # load best weight

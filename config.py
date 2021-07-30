@@ -41,17 +41,11 @@ def get_args():
     torch.cuda.manual_seed_all(params.random_seed)
     random.seed(params.random_seed)
     np.random.seed(params.random_seed)
-
     if torch.cuda.is_available():
         params.device = 'cuda'
-        if params.gpu is not "none": # use only one gpu
-            params.gpu = int(params.gpu)
-            torch.cuda.set_device(params.gpu)
-        else: # use multiple gpu
-            num_gpus = torch.cuda.device_count()
-            # if num_gpus > 1 :
-            #     network = nn.DataParallel(network)
-
+        params.gpu = list(range(len(params.gpu.split(','))))
+        if params.gpu is not None:
+            torch.cuda.set_device(params.gpu[0])
     params.weight_path = f'weight/{params.name}/'
     os.makedirs(params.weight_path, exist_ok=True)
 
