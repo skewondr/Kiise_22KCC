@@ -57,9 +57,9 @@ def run(i):
     val_data = UserSepDataset('val', val_sample_data, ARGS.dataset_name)
     test_data = UserSepDataset('test', test_sample_data, ARGS.dataset_name)
 
-    print(f'Train: # of users: {num_of_train_user}, # of samples: {len(train_sample_data["data"])}')
-    print(f'Validation: # of users: {num_of_val_user}, # of samples: {len(val_sample_data["data"])}')
-    print(f'Test: # of users: {num_of_test_user}, # of samples: {len(test_sample_data["data"])}')
+    print(f'Train: # of users: {num_of_train_user}, # of samples: {len(train_sample_data["data_path"])}')
+    print(f'Validation: # of users: {num_of_val_user}, # of samples: {len(val_sample_data["data_path"])}')
+    print(f'Test: # of users: {num_of_test_user}, # of samples: {len(test_sample_data["data_path"])}')
     
     model, d_model = get_model()
 

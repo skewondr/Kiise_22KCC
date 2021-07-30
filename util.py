@@ -62,7 +62,8 @@ def get_data_tl(data_path):
 
 def get_data_user_sep(user_base_path, i, mode):
     data_path = f"{user_base_path}/{i}/{mode}/"
-    sample_data_name = f"{user_base_path}/{i}/{mode}_{ARGS.dataset_name}_{ARGS.seq_size}_data.npz"
+    #sample_data_name = f"{user_base_path}/{i}/{mode}_{ARGS.dataset_name}_{ARGS.seq_size}_data.npz"
+    sample_data_name = f"{user_base_path}/{i}/{mode}_{ARGS.dataset_name}_{ARGS.seq_size}_sample.npz"
 
     # get list of all files
     user_path_list = os.listdir(data_path)
@@ -78,11 +79,18 @@ def get_data_user_sep(user_base_path, i, mode):
         num_interacts = []
         
         for idx, user_path in enumerate(tqdm(user_path_list, total=num_of_users)):
-            with open(data_path + user_path, 'r') as f:
+            with open(data_path + user_path, 'rb') as f:
                 lines = f.readlines()
                 lines = lines[1:]  # header exists
                 num_of_interactions = len(lines) # sequence length 
                 if mode == 'train':
+                    for end_index in range(5,num_of_interactions):
+                        sample_data.append(data_path + user_path)
+                        num_interacts.append(end_index)
+                else:
+                    sample_data.append(data_path + user_path)
+                    num_interacts.append(num_of_interactions)
+                """if mode == 'train':
                     for end_index in range(5,num_of_interactions):
                         sliced_lines = lines[:end_index+1]
                         user_data_length = len(sliced_lines)
@@ -97,11 +105,11 @@ def get_data_user_sep(user_base_path, i, mode):
                         num_of_interactions = ARGS.seq_size + 1
                     else: sliced_lines = lines
                     sample_data.append(sliced_lines)
-                    num_interacts.append(num_of_interactions)
+                    num_interacts.append(num_of_interactions)"""
 
             #if idx > 100 : break
             
-        np.savez_compressed(sample_data_name, data=sample_data, num_of_interactions=num_interacts)
-        sample_dataset = {"data":sample_data, "num_of_interactions":num_interacts}
+        np.savez_compressed(sample_data_name, data_path=sample_data, num_of_interactions=num_interacts)
+        sample_dataset = {"data_path":sample_data, "num_of_interactions":num_interacts}
         
     return sample_dataset, num_of_users
