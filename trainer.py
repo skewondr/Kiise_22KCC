@@ -7,6 +7,7 @@ from tqdm import tqdm
 from sklearn.metrics import roc_auc_score
 from itertools import repeat, chain, islice
 import os
+from logzero import logger
 
 from config import ARGS
 from network.util_network import ScheduledOptim, NoamOpt
@@ -63,7 +64,6 @@ class Trainer:
         to_train = chain.from_iterable(repeat(train_gen, self._num_epochs))
         # consisting of total_steps batches
         total_steps = len(train_gen) * self._num_epochs
-        print(total_steps)
 
         self.step = 0
         while self.step < total_steps:
@@ -73,13 +73,13 @@ class Trainer:
 
             # take num_steps batches from to_train stream
             train_batches = islice(to_train, num_steps)
-            print(f'Step: {self.step} / {total_steps}')
+            logger.info(f'\nStep: {self.step} / {total_steps}')
             self._train(train_batches, num_steps)
 
             cur_weight = self._model.state_dict()
             torch.save(cur_weight, f'{self._weight_path}{self.step}.pt')
             self._test('Validation', val_gen)
-            print(f'Current best weight: {self.max_step}.pt, best auc: {self.max_auc:.4f}')
+            logger.info(f'Current best weight: {self.max_step}.pt, best auc: {self.max_auc:.4f}')
             # remove all weight file except {self.max_step}.pt
             weight_list = os.listdir(self._weight_path)
             for w in weight_list:
@@ -96,7 +96,7 @@ class Trainer:
         if self.max_step != 0:
             weight_num = self.max_step
         weight_path = f'{ARGS.weight_path}{weight_num}.pt'
-        print(f'best weight: {weight_path}')
+        logger.info(f'best weight: {weight_path}')
         self._model.load_state_dict(torch.load(weight_path))
         self._test('Test', test_gen)
 
@@ -144,8 +144,8 @@ class Trainer:
         loss = np.mean(losses)
         training_time = time.time() - start_time
 
-        print(f'correct: {num_corrects}, total: {num_total}')
-        print(f'[Train]     time: {training_time:.2f}, loss: {loss:.4f}, acc: {acc:.4f}, auc: {auc:.4f}')
+        logger.info(f'correct: {num_corrects}, total: {num_total}')
+        logger.info(f'[Train]     time: {training_time:.2f}, loss: {loss:.4f}, acc: {acc:.4f}, auc: {auc:.4f}')
 
     # takes iterable
     def _test(self, name, batches):
@@ -175,8 +175,8 @@ class Trainer:
         loss = np.mean(losses)
         training_time = time.time() - start_time
 
-        print(f'correct: {num_corrects}, total: {num_total}')
-        print(f'[{name}]      time: {training_time:.2f}, loss: {loss:.4f}, acc: {acc:.4f}, auc: {auc:.4f}')
+        logger.info(f'correct: {num_corrects}, total: {num_total}')
+        logger.info(f'[{name}]      time: {training_time:.2f}, loss: {loss:.4f}, acc: {acc:.4f}, auc: {auc:.4f}')
 
         if name == 'Validation':
             if self.max_auc < auc:

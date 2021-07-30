@@ -10,13 +10,15 @@ from datetime import datetime
 
 parser = argparse.ArgumentParser()
 
+def script_path(script_file):
+    return os.path.join(os.getcwd(),script_file) if script_file is not None else None 
 
-def get_run_script():
-    run_script = 'python'
+def get_run():
+    run = 'python'
     for e in sys.argv:
-        run_script += (' ' + e)
+        run += (' ' + e)
 
-    return run_script
+    return run
 
 
 def str2bool(v):
@@ -30,23 +32,11 @@ def str2bool(v):
 
 def get_args():
     params = parser.parse_args()
-    params.run_script = get_run_script()
+    params.run = get_run()
+    params.run_script = script_path(params.run_script)
 
-    if params.gpu != 'none':
-        os.environ["CUDA_VISIBLE_DEVICES"] = params.gpu
-
-    # random_seed
-    torch.manual_seed(params.random_seed)
-    torch.cuda.manual_seed(params.random_seed)
-    torch.cuda.manual_seed_all(params.random_seed)
-    random.seed(params.random_seed)
-    np.random.seed(params.random_seed)
-    if torch.cuda.is_available():
-        params.device = 'cuda'
-        params.gpu = list(range(len(params.gpu.split(','))))
-        if params.gpu is not None:
-            torch.cuda.set_device(params.gpu[0])
-    params.weight_path = f'weight/{params.name}/'
+    params.ckpt_path = os.path.join(params.ckpt_path, params.ckpt_name) #./checkpoint/{ckpt_name}
+    params.weight_path = os.path.join(params.weight_path, params.weight_name) #./weight/{weight_name}
     os.makedirs(params.weight_path, exist_ok=True)
 
     return params
@@ -72,13 +62,22 @@ dataset_list = ['ASSISTments2009', 'ASSISTments2012', 'ASSISTments2015', 'ASSIST
                 'STATICS', 'KDDCup', 'Junyi', 'EdNet-KT1']
 
 base_args = parser.add_argument_group('Base args')
-base_args.add_argument('--name', type=str, default=f"best_{now_str}")
-base_args.add_argument('--device', type=str, default='cpu')
-base_args.add_argument('--gpu', type=str, default='none')
+
+base_args.add_argument('--device', type=str, default='cpu', help='automatically using GPU if you have cuda.')
+base_args.add_argument('--gpu', type=str, default='none', help='using single gpu.')
 base_args.add_argument('--num_workers', type=int, default=8)
 #base_args.add_argument('--base_path', type=str, default='/shared/benchmarks/')
-base_args.add_argument('--weight_path', type=str, default=f"{now_str}")
+
+base_args.add_argument('--weight_path', type=str, default=f"./weight", help="saved model path")
+base_args.add_argument('--weight_name', type=str, default=f"best_{now_str}", help="saved model name")
+base_args.add_argument('--ckpt_path', type=str, default=f"./checkpoint", help="checkpoint path")
+base_args.add_argument('--ckpt_name', type=str, required=True, help="checkpoint name")
+base_args.add_argument('--run_script', type=str, help="Run script file path to log")
+
 base_args.add_argument('--dataset_name', type=str, default='ASSISTments2009', choices=dataset_list)
+base_args.add_argument('--test_run', type=bool, default=False)
+base_args.add_argument('--test_only', type=bool, default=False)
+base_args.add_argument('--resume', type=bool, default=False)
 
 model_list = ['DKT', 'DKVMN', 'NPA', 'SAKT']
 

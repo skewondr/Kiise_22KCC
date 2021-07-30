@@ -12,20 +12,17 @@ class UserSepDataset(Dataset):
         self._dataset_name = dataset_name
 
     def __repr__(self):
-        return f'{self._name}: # of samples: {len(self._sample_infos["num_of_interactions"])}'
+        return f'{self._name}: # of samples: {len(self._sample_infos)}'
 
     def __len__(self):
-        return len(self._sample_infos["num_of_interactions"])
+        return len(self._sample_infos)
 
     def __getitem__(self, index):
-        return {
-            "data_path": self._sample_infos["data_path"][index],
-            "num_of_interactions": self._sample_infos["num_of_interactions"][index]
-            }
+        return self._sample_infos[index]
        
     def get_sequence(self, batch):
-        batch_data_path = [b['data_path'] for b in batch]
-        batch_num_interacts = [b['num_of_interactions'] for b in batch]
+        batch_data_path = [b[0] for b in batch]
+        batch_num_interacts = [b[1] for b in batch]
         
         labels = []
         input_lists = []

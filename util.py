@@ -63,7 +63,7 @@ def get_data_tl(data_path):
 def get_data_user_sep(user_base_path, i, mode):
     data_path = f"{user_base_path}/{i}/{mode}/"
     #sample_data_name = f"{user_base_path}/{i}/{mode}_{ARGS.dataset_name}_{ARGS.seq_size}_data.npz"
-    sample_data_name = f"{user_base_path}/{i}/{mode}_{ARGS.dataset_name}_{ARGS.seq_size}_sample.npz"
+    sample_data_name = f"{user_base_path}/{i}/{mode}_{ARGS.dataset_name}_{ARGS.seq_size}_sample.pickle"
 
     # get list of all files
     user_path_list = os.listdir(data_path)
@@ -71,13 +71,13 @@ def get_data_user_sep(user_base_path, i, mode):
 
     if os.path.isfile(sample_data_name):
         print(f"Loading {sample_data_name}...")
-        sample_dataset = dict(np.load(sample_data_name, allow_pickle = True))
+        with open(sample_data_name, 'rb') as f: 
+            sample_infos = pickle.load(f)
     else:
         # almost same as get_sample_info
         # for user separated format data
-        sample_data = []
-        num_interacts = []
-        
+      
+        sample_infos = []
         for idx, user_path in enumerate(tqdm(user_path_list, total=num_of_users)):
             with open(data_path + user_path, 'rb') as f:
                 lines = f.readlines()
@@ -85,11 +85,9 @@ def get_data_user_sep(user_base_path, i, mode):
                 num_of_interactions = len(lines) # sequence length 
                 if mode == 'train':
                     for end_index in range(5,num_of_interactions):
-                        sample_data.append(data_path + user_path)
-                        num_interacts.append(end_index)
+                        sample_infos.append((data_path + user_path,end_index))
                 else:
-                    sample_data.append(data_path + user_path)
-                    num_interacts.append(num_of_interactions)
+                    sample_infos.append((data_path + user_path, num_of_interactions-1))
                 """if mode == 'train':
                     for end_index in range(5,num_of_interactions):
                         sliced_lines = lines[:end_index+1]
@@ -109,7 +107,6 @@ def get_data_user_sep(user_base_path, i, mode):
 
             #if idx > 100 : break
             
-        np.savez_compressed(sample_data_name, data_path=sample_data, num_of_interactions=num_interacts)
-        sample_dataset = {"data_path":sample_data, "num_of_interactions":num_interacts}
+        with open(sample_data_name, 'wb') as f: pickle.dump(sample_infos, f)
         
-    return sample_dataset, num_of_users
+    return sample_infos, num_of_users
