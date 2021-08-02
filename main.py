@@ -117,16 +117,16 @@ def run(i):
         else:
             logger.info("CPU mode")
 
-    trainer = Trainer(model, ARGS.device, ARGS.warm_up_step_count,
+    trainer = Trainer(model, ARGS.device, ARGS.warm_up_step_count, ARGS.eval_steps, 
                       d_model, ARGS.num_epochs, ARGS.weight_path,
-                      ARGS.lr, train_data, val_data, test_data)
+                      ARGS.lr, ARGS.es_patience, train_data, val_data, test_data)
     start_time = time.time()
     logger.info("Training")
     trainer.train()
     total_time = time.time() - start_time
     logger.info(f"elapsed time: {total_time:.2f}s, {timedelta(seconds=total_time)}")
-    logger.info("Evaluation")
-    trainer.test(0)
+    logger.info("Testing")
+    trainer.test()
     return trainer.test_acc, trainer.test_auc
 
 

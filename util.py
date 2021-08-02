@@ -78,7 +78,7 @@ def get_data_user_sep(user_base_path, i, mode):
         # for user separated format data
       
         sample_infos = []
-        for idx, user_path in enumerate(tqdm(user_path_list, total=num_of_users)):
+        for idx, user_path in enumerate(tqdm(user_path_list, total=num_of_users, ncols=100)):
             with open(data_path + user_path, 'rb') as f:
                 lines = f.readlines()
                 lines = lines[1:]  # header exists
@@ -88,22 +88,6 @@ def get_data_user_sep(user_base_path, i, mode):
                         sample_infos.append((data_path + user_path,end_index))
                 else:
                     sample_infos.append((data_path + user_path, num_of_interactions-1))
-                """if mode == 'train':
-                    for end_index in range(5,num_of_interactions):
-                        sliced_lines = lines[:end_index+1]
-                        user_data_length = len(sliced_lines)
-                        if user_data_length > ARGS.seq_size + 1:
-                            sliced_lines = sliced_lines[-(ARGS.seq_size + 1):]
-                            user_data_length = ARGS.seq_size + 1
-                        sample_data.append(sliced_lines)
-                        num_interacts.append(user_data_length)
-                else:
-                    if num_of_interactions > ARGS.seq_size + 1:
-                        sliced_lines = lines[-(ARGS.seq_size + 1):]
-                        num_of_interactions = ARGS.seq_size + 1
-                    else: sliced_lines = lines
-                    sample_data.append(sliced_lines)
-                    num_interacts.append(num_of_interactions)"""
 
             #if idx > 100 : break
             
