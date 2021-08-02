@@ -47,8 +47,8 @@ class EarlyStopping:
             if self.counter >= self.patience:
                 self.early_stop = True
         else:
-            self.best_score = score
             self.save_checkpoint(score, model, os.path.join(self.path, 'best_ckpt.pt'))
+            self.best_score = score
             self.counter = 0
 
     def save_checkpoint(self, score, model, path):
@@ -131,7 +131,7 @@ class Trainer:
                 train_loss = self._get_loss(label, out)
                 losses.append(train_loss.item())
                 if batch_idx % 100 == 0:    
-                    logger.info(f'{epoch} {batch_idx * ARGS.test_batch} early stop: {self.early_stopping.counter}/{self.es_patience}, loss: {train_loss:.4f}')
+                    logger.info(f'{epoch} {batch_idx * ARGS.train_batch}/{len(train_gen) * ARGS.train_batch} early stop: {self.early_stopping.counter}/{self.es_patience}, loss: {train_loss:.4f}')
 
                 self._opt.step(train_loss)
 
@@ -141,7 +141,7 @@ class Trainer:
                 labels.extend(label.squeeze(-1).data.cpu().numpy())
                 outs.extend(out.squeeze(-1).data.cpu().numpy())
 
-                if batch_idx * ARGS.test_batch % self.eval_steps == 0:
+                if batch_idx * ARGS.train_batch % self.eval_steps == 0 and batch_idx != 0:
                     self._test('Validation', val_gen, epoch)
                     
                 if self.early_stopping.early_stop: break
