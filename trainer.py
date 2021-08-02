@@ -219,6 +219,11 @@ class Trainer:
         
         if name == 'Validation':
             self.early_stopping(auc, self._model)
+
+        elif name == 'Test':
+            self.test_acc = acc
+            self.test_auc = auc
+            
         logger.info(f'[{name}] (total) early stop: {self.early_stopping.counter}/{self.es_patience}, loss: {loss:.4f}, acc: {acc:.4f}, auc: {auc:.4f}, time: {training_time:.2f}')
         
 
