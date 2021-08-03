@@ -83,7 +83,7 @@ def get_data_user_sep(user_base_path, i, mode):
                 lines = f.readlines()
                 lines = lines[1:]  # header exists
                 num_of_interactions = len(lines) # sequence length 
-                if mode == 'train':
+                if mode != 'val' :
                     for end_index in range(5,num_of_interactions):
                         sample_infos.append((data_path + user_path,end_index))
                 else:

@@ -154,7 +154,7 @@ class SAKT(nn.Module):
 
         for layer in self._layers:
             x = layer(query=question_vector, key=x, mask=mask)
-
-        output = self._prediction(x)
-        output = output[:, -1, :]
+        with torch.cuda.amp.autocast():
+            output = self._prediction(x)
+            output = output[:, -1, :]
         return output
