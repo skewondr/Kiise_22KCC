@@ -10,31 +10,42 @@ from constant import PAD_INDEX
 from config import ARGS
 from network.util_network import get_pad_mask, get_subsequent_mask, clones
 
+class ScaledDotProductAttention(nn.Module):
+    def __init__(self, attn_dropout=0.1):
+        "Compute 'Scaled Dot Product Attention'"
+        super().__init__()
+        self.dropout = nn.Dropout(attn_dropout)
 
-def attention(query, key, value, mask=None, dropout=None):
-    "Compute 'Scaled Dot Product Attention'"
-    d_k = query.size(-1)
-    scores = torch.matmul(query, key.transpose(-2, -1)) \
-             / math.sqrt(d_k)
-    if mask is not None:
-        scores = scores.masked_fill(mask == 0, -1e9)
-    p_attn = F.softmax(scores, dim=-1)
-    if dropout is not None:
-        p_attn = dropout(p_attn)
-    return torch.matmul(p_attn, value), p_attn
+    def forward(self, query, key, value, mask=None):
+        d_k = query.size(-1)
+        scores = torch.matmul(query, key.transpose(-2, -1)) \
+                / math.sqrt(d_k)
+        if mask is not None:
+            scores = scores.masked_fill(mask == 0, -1e9)
+        p_attn = F.softmax(scores, dim=-1)
+        p_attn = self.dropout(p_attn)
+        return torch.matmul(p_attn, value), p_attn
 
 
 class MultiHeadedAttention(nn.Module):
-    def __init__(self, h, d_model, dropout=0.1):
+    def __init__(self, h, d_model, dk, dv, dropout=0.1):
         "Take in model size and number of heads."
         super(MultiHeadedAttention, self).__init__()
+        
         assert d_model % h == 0
         # We assume d_v always equals d_k
-        self.d_k = d_model // h
-        self.h = h
-        self.linears = clones(nn.Linear(d_model, d_model, bias=False), 4) # Q, K, V, last
-        self.attn = None
-        self.dropout = nn.Dropout(p=dropout)
+        self.d_k = dk
+        self.d_v = dv
+        self.n_head = h
+
+        self.w_qs = nn.Linear(d_model, h * dk, bias=False) # Q
+        self.w_ks = nn.Linear(d_model, h * dk, bias=False) # K
+        self.w_vs = nn.Linear(d_model, h * dv, bias=False) # V
+        self.linear = nn.Linear(h * dv, d_model, bias=False) # last
+        
+        self.attention = ScaledDotProductAttention(dropout)
+        self.dropout = nn.Dropout(dropout)
+        self.layer_norm = nn.LayerNorm(d_model, eps=1e-6) 
 
     def forward(self, query, key, value, mask=None):
         "Implements Figure 2"
@@ -44,18 +55,23 @@ class MultiHeadedAttention(nn.Module):
         nbatches = query.size(0)
 
         # 1) Do all the linear projections in batch from d_model => h x d_k
-        query, key, value = \
-            [l(x).view(nbatches, -1, self.h, self.d_k).transpose(1, 2)
-             for l, x in zip(self.linears, (query, key, value))]
-
+        residual = query ## can be erased
+        q = self.w_qs(query).view(nbatches, -1, self.n_head, self.d_k).transpose(1, 2)
+        k = self.w_ks(key).view(nbatches, -1, self.n_head, self.d_k).transpose(1, 2)
+        v = self.w_vs(value).view(nbatches, -1, self.n_head, self.d_v).transpose(1, 2)
+        
         # 2) Apply attention on all the projected vectors in batch.
-        x, self.attn = attention(query, key, value, mask=mask,
-                                 dropout=self.dropout)
+        x, self.attn =  self.attention(q, k, v, mask=mask)
 
         # 3) "Concat" using a view and apply a final linear.
         x = x.transpose(1, 2).contiguous() \
-            .view(nbatches, -1, self.h * self.d_k)
-        return self.linears[-1](x)
+            .view(nbatches, -1, self.n_head * self.d_k)
+
+        output = self.dropout(self.linear(x))  ## dropout can be erased
+        output += residual  ## can be erased
+        output = self.layer_norm(output) ## can be erased
+
+        return output
 
 
 class PositionwiseFeedForward(nn.Module):
@@ -64,11 +80,16 @@ class PositionwiseFeedForward(nn.Module):
         super(PositionwiseFeedForward, self).__init__()
         self.w_1 = nn.Linear(d_model, d_ff)
         self.w_2 = nn.Linear(d_ff, d_model)
+
+        self.layer_norm = nn.LayerNorm(d_model, eps=1e-6)
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
-        return self.w_2(self.dropout(F.relu(self.w_1(x))))
-
+        residual = x ## can be erased
+        x = self.dropout(self.w_2(F.relu(self.w_1(x))))
+        x += residual ## can be erased
+        x = self.layer_norm(x) ## can be erased
+        return x
 
 class SAKTLayer(nn.Module):
     """
@@ -76,8 +97,8 @@ class SAKTLayer(nn.Module):
     """
     def __init__(self, hidden_dim, num_head, dropout):
         super().__init__()
-        self._self_attn = MultiHeadedAttention(num_head, hidden_dim, dropout)
-        self._ffn = PositionwiseFeedForward(hidden_dim, hidden_dim, dropout)
+        self._self_attn = MultiHeadedAttention(num_head, hidden_dim, hidden_dim, hidden_dim, dropout) #hidden_dim = d_model, dk, dv
+        self._ffn = PositionwiseFeedForward(hidden_dim, hidden_dim, dropout) #hidden_dim = d_model, d_ff
         self._layernorms = clones(nn.LayerNorm(hidden_dim, eps=1e-6), 2)
 
     def forward(self, query, key, mask=None):
@@ -87,9 +108,10 @@ class SAKTLayer(nn.Module):
         """
         # self-attention block
         output = self._self_attn(query=query, key=key, value=key, mask=mask)
-        output = self._layernorms[0](key + output)
+        #output = self._layernorms[0](key + output)
         # feed-forward block
-        output = self._layernorms[1](output + self._ffn(output))
+        #output = self._layernorms[1](output + self._ffn(output))
+        output = self._ffn(output)
         return output
 
 
