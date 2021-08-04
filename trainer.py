@@ -11,6 +11,8 @@ from logzero import logger
 
 from config import ARGS
 from network.util_network import ScheduledOptim, NoamOpt
+from util import save_checkpoint
+from typing import Dict, Optional, Tuple, Union
 
 class EarlyStopping:
     #https://stats.stackexchange.com/questions/68893/area-under-curve-of-roc-vs-overall-accuracy
@@ -34,27 +36,49 @@ class EarlyStopping:
         self.delta = delta
         self.path = path
 
-    def __call__(self, val_auc, model):
+    def __call__(
+        self, 
+        val_auc, 
+        model, 
+        epoch=None, 
+        optim=None,  
+        scheduler=None, 
+    ):
 
         score = val_auc
 
         if self.best_score is None:
             self.best_score = score
-            self.save_checkpoint(score, model, os.path.join(self.path, 'best_ckpt.pt'))
         elif score < self.best_score + self.delta:
             self.counter += 1
-            self.save_checkpoint(score, model, os.path.join(self.path, 'last_ckpt.pt'))
             if self.counter >= self.patience:
                 self.early_stop = True
         else:
-            self.save_checkpoint(score, model, os.path.join(self.path, 'best_ckpt.pt'))
+            self.save_best_ckpt(score, model, os.path.join(self.path, 'best_ckpt.pt'))
             self.best_score = score
             self.counter = 0
+        self.save_last_ckpt(score, model, os.path.join(self.path, 'last_ckpt.pt'), epoch, optim, scheduler)
 
-    def save_checkpoint(self, score, model, path):
+    def save_best_ckpt(self, score, model, path):
         if self.verbose:
             logger.info(f'[Validation] AUC ({self.best_score:.6f} --> {score:.6f}). Saving model {path}')
         torch.save(model.state_dict(), path)
+
+    def save_last_ckpt(self, score, model, path, epoch, optim, scheduler):
+        if self.verbose:
+            logger.info(f'[Validation] AUC ({self.best_score:.6f} --> {score:.6f}). Saving model {path}')
+        other_states = {
+                "early": self.counter,
+                "best": self.best_score,
+            }
+        save_checkpoint(
+            path, 
+            model,
+            epoch,  
+            optim, 
+            scheduler,
+            other_states
+        )
 
 class NoamOptimizer:
     def __init__(self, model, lr, model_size, warmup):
@@ -69,10 +93,25 @@ class NoamOptimizer:
 
 
 class Trainer:
-    def __init__(self, model, device, warm_up_step_count, eval_steps,
-                 d_model, num_epochs, weight_path, lr, es_patience,
-                 train_data, val_data, test_data):
+    def __init__(
+        self, 
+        model, 
+        test_run,
+        device, 
+        eval_steps,
+        num_epochs, 
+        start_epoch,
+        optimizer,
+        scheduler, 
+        weight_path, 
+        es_patience, 
+        train_data, 
+        val_data, 
+        test_data, 
+        other_states={},
+    ):
         self._device = device
+        self._start_epochs = start_epoch
         self._num_epochs = num_epochs
         self._weight_path = weight_path
 
@@ -84,9 +123,10 @@ class Trainer:
         self._val_data = val_data
         self._test_data = test_data
 
-        self._opt = NoamOptimizer(model=model, lr=lr, model_size=d_model, warmup=warm_up_step_count)
+        #self._opt = NoamOptimizer(model=model, lr=lr, model_size=d_model, warmup=warm_up_step_count)
+        self._opt = optimizer
+        self.scheduler = scheduler
 
-        self.global_step = 0
         self._threshold = 0.5
         self.max_acc = 0.0
         self.max_auc = 0.0
@@ -96,6 +136,8 @@ class Trainer:
         self.es_patience = es_patience
         self.eval_steps = eval_steps
         self.early_stopping = EarlyStopping(patience=self.es_patience, verbose=True, path=self._weight_path)   
+        self.early_stopping.best_score = other_states.get("best", None)
+        self.early_stopping.counter = other_states.get("early", 0)
 
     # train model and choose weight with max auc on validation dataset
     def train(self):
@@ -117,7 +159,7 @@ class Trainer:
         )
 
         self._model.train()
-        for epoch in range(self._num_epochs):
+        for epoch in range(self._start_epochs, self._num_epochs):
             start_time = time.time()
             
             losses = []
@@ -126,14 +168,17 @@ class Trainer:
             labels = []
             outs = []
 
-            for batch_idx, batch in tqdm(enumerate(train_gen), total=len(train_gen), ncols=100):
+            for batch_idx, batch in enumerate(train_gen):
                 label, out, pred = self._forward(batch)
                 train_loss = self._get_loss(label, out)
                 losses.append(train_loss.item())
                 if batch_idx % 100 == 0:    
                     logger.info(f'{epoch} {batch_idx * ARGS.train_batch}/{len(train_gen) * ARGS.train_batch} early stop: {self.early_stopping.counter}/{self.es_patience}, loss: {train_loss:.4f}')
 
-                self._opt.step(train_loss)
+                #self._opt.step(train_loss)
+                self._opt.zero_grad()
+                train_loss.backward()
+                self._opt.step()
 
                 num_corrects += (pred == label).sum().item()
                 num_total += len(label)
@@ -154,7 +199,10 @@ class Trainer:
             training_time = time.time() - start_time
 
             logger.info(f'{epoch} (total) early stop: {self.early_stopping.counter}/{self.es_patience}, loss: {loss:.4f}, acc: {acc:.4f}, auc: {auc:.4f}, time: {training_time:.2f}')
-                
+            
+            if self.scheduler is not None:
+                self.scheduler.step()
+
             if self.early_stopping.early_stop: 
                 logger.info("Early stopped...")
                 break
@@ -172,9 +220,8 @@ class Trainer:
         )
         # load best weight
         self._model.load_state_dict(torch.load(os.path.join(self._weight_path, 'best_ckpt.pt')))
-        logger.info('-----------------------------------------------------------------------------------------------------------')
+        
         self._test('Test', test_gen, 0)
-        logger.info('-----------------------------------------------------------------------------------------------------------')
 
     def _forward(self, batch):
         batch = {k: t.to(self._device) for k, t in batch.items()}
@@ -218,12 +265,12 @@ class Trainer:
         training_time = time.time() - start_time
         
         if name == 'Validation':
-            self.early_stopping(auc, self._model)
+            self.early_stopping(auc, self._model, epoch, self._opt, self.scheduler)
 
         elif name == 'Test':
             self.test_acc = acc
             self.test_auc = auc
-            
-        logger.info(f'[{name}] (total) early stop: {self.early_stopping.counter}/{self.es_patience}, loss: {loss:.4f}, acc: {acc:.4f}, auc: {auc:.4f}, time: {training_time:.2f}')
-        
+        logger.info('-'*80)
+        logger.info(f'[{name}] early stop: {self.early_stopping.counter}/{self.es_patience}, loss: {loss:.4f}, acc: {acc:.4f}, auc: {auc:.4f}, time: {training_time:.2f}')
+        logger.info('-'*80)
 
