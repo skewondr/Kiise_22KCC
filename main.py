@@ -155,12 +155,6 @@ def run(i, model, start_epoch, optimizer, scheduler, other_states):
         trainer.train()
         total_time = time.time() - start_time
         logger.info(f"elapsed time: {total_time:.2f}s, {timedelta(seconds=total_time)}")
-    if ARGS.mode == "eval":
-        now = datetime.now()
-        now_str = f'{now.day:02}{now.hour:02}{now.minute:02}'
-        copy_file(#copy .pt
-                os.path.join(ARGS.ckpt_path, 'best_ckpt.pt'), os.path.join(ARGS.weight_path, f'{now_str}.pt')
-            )
     trainer.test()
     return trainer.test_acc, trainer.test_auc
 
@@ -230,7 +224,12 @@ if __name__ == '__main__':
             logger.info(f'std acc: {np.std(acc_array):.4f}, auc: {np.std(auc_array):.4f}')
 
     if ARGS.mode == "eval":
-        model.load_state_dict(torch.load(os.path.join(ARGS.ckpt_path, "best_ckpt.pt")))
+        now = datetime.now()
+        now_str = f'{now.day:02}{now.hour:02}{now.minute:02}'
+        copy_file(#copy .pt
+                os.path.join(ARGS.ckpt_path, 'best_ckpt.pt'), os.path.join(ARGS.weight_path, f'{now_str}.pt')
+            )
+        model.load_state_dict(torch.load(os.path.join(ARGS.weight_path, f'{now_str}.pt')))
         start_epoch = 0
         other_states = {}
         test_acc, test_auc = run(1, model, start_epoch, optimizer, scheduler, other_states)
