@@ -167,11 +167,13 @@ class SAKT(nn.Module):
         question_id = torch.cat([question_id[:, 1:], target_id], dim=-1)
 
         interaction_vector = self._interaction_embedding(interaction_id)
-        question_vector = self._question_embedding(question_id)
-        position_index = self._get_position_index(question_id)
+        #question_vector = self._question_embedding(question_id)
+        question_vector = self._question_embedding(target_id)
+        position_index = self._get_position_index(interaction_id)
         position_vector = self._positional_embedding(position_index)
 
-        mask = get_pad_mask(question_id, PAD_INDEX) & get_subsequent_mask(question_id)
+        #mask = get_pad_mask(question_id, PAD_INDEX) & get_subsequent_mask(question_id)
+        mask = None 
         x = interaction_vector + position_vector
 
         for layer in self._layers:
