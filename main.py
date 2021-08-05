@@ -2,12 +2,13 @@ from config import ARGS
 from util import (
     get_data_user_sep
 )
-from dataset.dataset_user_sep import UserSepDataset
+from dataset.dataset_user_sep import UserSepDataset, get_sequence, get_sequence_fm
 from util import load_checkpoint
 from network.DKT import DKT
 from network.DKVMN import DKVMN
 from network.NPA import NPA
 from network.SAKT import SAKT
+from network.KTM import FactorizationMachineModel
 from constant import QUESTION_NUM
 from trainer import Trainer
 import numpy as np
@@ -90,29 +91,33 @@ def get_model():
     if ARGS.model == 'DKT':
         model = DKT(ARGS.input_dim, ARGS.hidden_dim, ARGS.num_layers, QUESTION_NUM[ARGS.dataset_name],
                     ARGS.dropout).to(ARGS.device)
-        d_model = ARGS.hidden_dim
+        collate_fn = get_sequence
 
     elif ARGS.model == 'DKVMN':
         model = DKVMN(ARGS.key_dim, ARGS.value_dim, ARGS.summary_dim, QUESTION_NUM[ARGS.dataset_name],
                       ARGS.concept_num).to(ARGS.device)
-        d_model = ARGS.value_dim
+        collate_fn = get_sequence
 
     elif ARGS.model == 'NPA':
         model = NPA(ARGS.input_dim, ARGS.hidden_dim, ARGS.attention_dim, ARGS.fc_dim,
                     ARGS.num_layers, QUESTION_NUM[ARGS.dataset_name], ARGS.dropout).to(ARGS.device)
-        d_model = ARGS.hidden_dim
+        collate_fn = get_sequence
 
     elif ARGS.model == 'SAKT':
         model = SAKT(ARGS.hidden_dim, QUESTION_NUM[ARGS.dataset_name], ARGS.num_layers,
                      ARGS.num_head, ARGS.dropout).to(ARGS.device)
-        d_model = ARGS.hidden_dim
+        collate_fn = get_sequence
+
+    elif ARGS.model == 'KTM':
+        model = FactorizationMachineModel(QUESTION_NUM[ARGS.dataset_name]+3, ARGS.hidden_dim).to(ARGS.device)
+        collate_fn = get_sequence_fm
 
     else:
         raise NotImplementedError
 
-    return model, d_model
+    return model, collate_fn
 
-def run(i, model, start_epoch, optimizer, scheduler, other_states):
+def run(i, model, start_epoch, optimizer, scheduler, collate_fn, other_states):
     """
     i: single integer represents dataset number
     """
@@ -147,6 +152,7 @@ def run(i, model, start_epoch, optimizer, scheduler, other_states):
         train_data, 
         val_data, 
         test_data,
+        collate_fn, 
         other_states=other_states,
     )
     if ARGS.mode == "train":
@@ -168,7 +174,7 @@ if __name__ == '__main__':
     set_seed(ARGS.random_seed)
     ################################# Prepare Model ##################################
     logger.info(f"Model: {ARGS.model}")
-    model, d_model = get_model()
+    model, collate_fn = get_model()
     if torch.cuda.is_available():
         ARGS.device = 'cuda'
         num_gpus = torch.cuda.device_count()
@@ -207,14 +213,14 @@ if __name__ == '__main__':
             other_states = {}
         ################################### Start Training #####################################
         if ARGS.cross_validation is False:
-            test_acc, test_auc = run(1, model, start_epoch, optimizer, scheduler, other_states)
+            test_acc, test_auc = run(1, model, start_epoch, optimizer, scheduler, collate_fn, other_states)
         else:
             acc_list = []
             auc_list = []
 
             for i in range(1, 6):
                 logger.info(f'{i}th dataset')
-                test_acc, test_auc = run(i, model, start_epoch, optimizer, scheduler, other_states)
+                test_acc, test_auc = run(i, model, start_epoch, optimizer, scheduler, collate_fn, other_states)
                 acc_list.append(test_acc)
                 auc_list.append(test_auc)
 
@@ -232,5 +238,5 @@ if __name__ == '__main__':
         model.load_state_dict(torch.load(os.path.join(ARGS.weight_path, f'{now_str}.pt')))
         start_epoch = 0
         other_states = {}
-        test_acc, test_auc = run(1, model, start_epoch, optimizer, scheduler, other_states)
+        test_acc, test_auc = run(1, model, start_epoch, optimizer, scheduler, collate_fn, other_states)
         

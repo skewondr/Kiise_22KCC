@@ -40,7 +40,7 @@ def get_args():
     if params.mode == 'train' and not params.ckpt_resume: 
         if os.path.exists(params.ckpt_path): #기존 폴더가 있으면 지우고 새로 생성함. 
             shutil.rmtree(params.ckpt_path)
-            os.makedirs(params.ckpt_path, exist_ok=False)
+        os.makedirs(params.ckpt_path, exist_ok=False)
     #params.weight_path = os.path.join(params.weight_path, params.weight_name) #./weight/{weight_name}
     os.makedirs(params.weight_path, exist_ok=True)
 
@@ -86,7 +86,7 @@ base_args.add_argument('--dataset_name', type=str, default='ASSISTments2009', ch
 base_args.add_argument('--test_run', type=str2bool, default='0')
 base_args.add_argument('--es_patience', type=int, default=10)
 
-model_list = ['DKT', 'DKVMN', 'NPA', 'SAKT']
+model_list = ['DKT', 'DKVMN', 'NPA', 'SAKT', 'KTM']
 
 model_args = parser.add_argument_group('Model args')
 model_args.add_argument('--model', type=str, default='DKT', choices=model_list)

@@ -108,6 +108,7 @@ class Trainer:
         train_data, 
         val_data, 
         test_data, 
+        collate_fn, 
         other_states={},
     ):
         self._device = device
@@ -122,6 +123,7 @@ class Trainer:
         self._train_data = train_data
         self._val_data = val_data
         self._test_data = test_data
+        self._collate_fn = collate_fn
 
         #self._opt = NoamOptimizer(model=model, lr=lr, model_size=d_model, warmup=warm_up_step_count)
         self._opt = optimizer
@@ -147,7 +149,7 @@ class Trainer:
             pin_memory=False if ARGS.device == 'cpu' else True,
             batch_size=ARGS.train_batch, 
             num_workers=ARGS.num_workers, 
-            collate_fn=self._train_data.get_sequence
+            collate_fn=self._collate_fn
         )
         val_gen = data.DataLoader(
             dataset=self._val_data, 
@@ -155,7 +157,7 @@ class Trainer:
             pin_memory=False if ARGS.device == 'cpu' else True,
             batch_size=ARGS.test_batch, 
             num_workers=ARGS.num_workers, 
-            collate_fn=self._val_data.get_sequence
+            collate_fn=self._collate_fn
         )
 
         self._model.train()
@@ -216,7 +218,7 @@ class Trainer:
             pin_memory=False if ARGS.device == 'cpu' else True,
             batch_size=ARGS.test_batch, 
             num_workers=ARGS.num_workers, 
-            collate_fn=self._test_data.get_sequence
+            collate_fn=self._collate_fn
         )
         # load best weight
         self._model.load_state_dict(torch.load(os.path.join(self._weight_path, 'best_ckpt.pt')))
