@@ -4,7 +4,7 @@ from torch.utils.data import Dataset
 from config import ARGS
 from constant import *
 import numpy as np
-
+from constant import QUESTION_NUM
 
 class UserSepDataset(Dataset):
 
@@ -80,8 +80,9 @@ def get_sequence_fm(batch):
     batch_num_interacts = [b[1] for b in batch]
     
     labels = []
-    input_lists = []
-    target_ids = []
+    wins = []
+    fails = []
+    x = []
     for data_path, num_of_interactions in zip(batch_data_path, batch_num_interacts):
         with open(data_path, 'r') as f:
             data = f.readlines()
@@ -104,8 +105,6 @@ def get_sequence_fm(batch):
         unique, counts = np.unique(sliced_array[:,0], return_counts=True)
         index = np.array((0, *np.cumsum(counts)))
 
-        wins = []
-        fails = []
         for j in range(len(index)-1):
             win, fail = 0, 0 
             for idx, i in enumerate(range(index[j], index[j+1])):
@@ -117,18 +116,17 @@ def get_sequence_fm(batch):
                 wins.append([win])
                 fails.append([fail])
                 labels.append([sliced_array[i, 1]])
+                x.append([sliced_array[i, 0]])
 
-        x = F.one_hot(torch.tensor(sliced_array[:,0]), num_classes=QUESTION_NUM[ARGS.dataset_name]+1)
-        x = torch.cat(
-            [
-                x,
-                torch.as_tensor(wins),
-                torch.as_tensor(fails)
-            ], dim=1) 
-        input_lists.append(x)
-
-    return {
-        'label': torch.as_tensor(labels), #(batch, 1)
-        'input': torch.cat(input_lists, dim=0), #(batch, feat_size)
-        'target_id': torch.empty((1))
-    }
+    if len(labels)%2 != 0 :
+        return {
+        'label': torch.as_tensor(labels[:-1]), #(batch, 1)
+        'input': torch.cat([torch.tensor(x), torch.tensor(wins), torch.tensor(fails)],dim=1)[:-1], #(batch, feat_size)
+        'target_id': torch.empty((len(labels)-1))
+        }
+    else:
+        return {
+            'label': torch.as_tensor(labels), #(batch, 1)
+            'input': torch.cat([torch.tensor(x), torch.tensor(wins), torch.tensor(fails)],dim=1), #(batch, feat_size)
+            'target_id': torch.empty(len(labels))
+        }

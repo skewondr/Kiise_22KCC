@@ -109,7 +109,7 @@ def get_model():
         collate_fn = get_sequence
 
     elif ARGS.model == 'KTM':
-        model = FactorizationMachineModel(QUESTION_NUM[ARGS.dataset_name]+3, ARGS.hidden_dim).to(ARGS.device)
+        model = FactorizationMachineModel([QUESTION_NUM[ARGS.dataset_name]+1, ARGS.seq_size+1, ARGS.seq_size+1], ARGS.hidden_dim).to(ARGS.device)
         collate_fn = get_sequence_fm
 
     else:
@@ -190,8 +190,6 @@ if __name__ == '__main__':
     ################################### Training #####################################
     optimizer = get_optimizer(ARGS.model, model, ARGS.lr, ARGS.decay)
     if ARGS.eta_min is not None:
-        #lr이 eta_min까지 떨어졌다 다시 초기 lr까지 올라온다. 
-        #lr은 T_max*2 단위로 반복한다. 
         scheduler = CosineAnnealingLR(
             optimizer, T_max=max(3, ARGS.num_epochs // 10), eta_min=ARGS.eta_min
         )
