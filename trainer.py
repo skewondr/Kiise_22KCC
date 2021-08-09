@@ -169,22 +169,20 @@ class Trainer:
             num_total = 0
             labels = []
             outs = []
-
             for batch_idx, batch in enumerate(train_gen):
                 label, out, pred = self._forward(batch)
                 train_loss = self._get_loss(label, out)
                 losses.append(train_loss.item())
+
                 if batch_idx % 100 == 0:    
                     logger.info(f'{epoch} {batch_idx * ARGS.train_batch}/{len(train_gen) * ARGS.train_batch} early stop: {self.early_stopping.counter}/{self.es_patience}, loss: {train_loss:.4f}')
-
-                #self._opt.step(train_loss)
+                
                 self._opt.zero_grad()
                 train_loss.backward()
                 self._opt.step()
 
                 num_corrects += (pred == label).sum().item()
                 num_total += len(label)
-
                 labels.extend(label.squeeze(-1).data.cpu().numpy())
                 outs.extend(out.squeeze(-1).data.cpu().numpy())
 
@@ -208,6 +206,7 @@ class Trainer:
             if self.early_stopping.early_stop: 
                 logger.info("Early stopped...")
                 break
+            start = time.time()
             
 
     # get test results
