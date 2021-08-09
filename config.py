@@ -83,6 +83,7 @@ base_args.add_argument('--ckpt_resume', type=str2bool, default='0')
 base_args.add_argument('--run_script', type=str, default="run_model.sh", help="Run script file path to log")
 
 base_args.add_argument('--dataset_name', type=str, default='ASSISTments2009', choices=dataset_list)
+base_args.add_argument('--get_user_ft', type=str2bool, default='0')
 base_args.add_argument('--test_run', type=str2bool, default='0')
 base_args.add_argument('--es_patience', type=int, default=10)
 

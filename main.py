@@ -1,6 +1,6 @@
 from config import ARGS
 from util import (
-    get_data_user_sep
+    get_data_infos, 
 )
 from dataset.dataset_user_sep import UserSepDataset, get_sequence, get_sequence_fm
 from util import load_checkpoint
@@ -109,7 +109,10 @@ def get_model():
         collate_fn = get_sequence
 
     elif ARGS.model == 'KTM':
-        model = FactorizationMachineModel([QUESTION_NUM[ARGS.dataset_name]+1, ARGS.seq_size+1, ARGS.seq_size+1], ARGS.hidden_dim).to(ARGS.device)
+        if not ARGS.get_user_ft:
+            model = FactorizationMachineModel([QUESTION_NUM[ARGS.dataset_name]+1, ARGS.seq_size+1, ARGS.seq_size+1], ARGS.hidden_dim).to(ARGS.device)
+        else: #840473, 840468, 840457
+            model = FactorizationMachineModel([840473+1, QUESTION_NUM[ARGS.dataset_name]+1, ARGS.seq_size+1, ARGS.seq_size+1], ARGS.hidden_dim).to(ARGS.device)
         collate_fn = get_sequence_fm
 
     else:
@@ -124,9 +127,9 @@ def run(i, model, start_epoch, optimizer, scheduler, collate_fn, other_states):
     ################################## Prepare Dataset ###############################
     data_path = f'../dataset/{ARGS.dataset_name}/processed'
 
-    train_sample_data, num_of_train_user = get_data_user_sep(data_path, i, 'train')
-    val_sample_data, num_of_val_user = get_data_user_sep(data_path, i, 'val')
-    test_sample_data, num_of_test_user = get_data_user_sep(data_path, i, 'test')
+    train_sample_data, num_of_train_user = get_data_infos(data_path, i, 'train')
+    val_sample_data, num_of_val_user = get_data_infos(data_path, i, 'val')
+    test_sample_data, num_of_test_user = get_data_infos(data_path, i, 'test')
     #import IPython; IPython.embed(); exit(1);
 
     train_data = UserSepDataset('train', train_sample_data, ARGS.dataset_name)

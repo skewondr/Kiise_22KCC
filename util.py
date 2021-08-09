@@ -9,6 +9,7 @@ from config import ARGS
 import random
 from typing import Dict, Optional, Tuple, Union
 
+import re
 import numpy as np
 import torch
 import torch.nn as nn
@@ -72,7 +73,7 @@ def get_data_tl(data_path):
     return sample_data, num_of_users
 
 
-def get_data_user_sep(user_base_path, i, mode):
+def get_data_infos(user_base_path, i, mode): #question
     data_path = f"{user_base_path}/{i}/{mode}/"
     #sample_data_name = f"{user_base_path}/{i}/{mode}_{ARGS.dataset_name}_{ARGS.seq_size}_data.npz"
     sample_data_name = f"{user_base_path}/{i}/{mode}_{ARGS.dataset_name}_{ARGS.seq_size}_sample.pickle"
@@ -90,12 +91,16 @@ def get_data_user_sep(user_base_path, i, mode):
         # for user separated format data
       
         sample_infos = []
+        max_id = 0
         for idx, user_path in enumerate(tqdm(user_path_list, total=num_of_users, ncols=100)):
+            user_id = user_path.split('/')[-1]
+            user_id = int(re.sub(r'[^0-9]', '', user_id))
+            if user_id>max_id: max_id = user_id 
             with open(data_path + user_path, 'rb') as f:
                 lines = f.readlines()
                 lines = lines[1:]  # header exists
                 num_of_interactions = len(lines) # sequence length 
-                if mode != 'val' :
+                if mode != 'val':
                     for end_index in range(5,num_of_interactions):
                         sample_infos.append((data_path + user_path,end_index))
                 else:
@@ -104,7 +109,6 @@ def get_data_user_sep(user_base_path, i, mode):
             #if idx > 100 : break
             
         with open(sample_data_name, 'wb') as f: pickle.dump(sample_infos, f)
-        
     return sample_infos, num_of_users
 
 def save_checkpoint(
