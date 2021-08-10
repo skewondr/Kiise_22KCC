@@ -125,33 +125,14 @@ def get_sequence_fm(batch):
                 x.append([item])
                 if ARGS.get_user_ft:
                     users.append([int(user_id)])
-
     #print("data_loader:",len(labels), f"{time.time()-start_time:.6f}") --> 10 avrg sec
-    #https://github.com/pytorch/pytorch/issues/5039
     if not ARGS.get_user_ft:
-        if len(labels)%2 != 0 :
-            return {
-                'label': torch.as_tensor(labels[:-1]), #(batch, 1)
-                'input': torch.cat([torch.tensor(x), torch.tensor(wins), torch.tensor(fails)],dim=1)[:-1], #(batch, feat_size)
-                'target_id': torch.empty((len(labels)-1))
-            }
-        else:
-            return {
-                'label': torch.as_tensor(labels), #(batch, 1)
-                'input': torch.cat([torch.tensor(x), torch.tensor(wins), torch.tensor(fails)],dim=1), #(batch, feat_size)
-                'target_id': torch.empty(len(labels))
-            }
-    else:
-        if len(labels)%2 != 0 :
-            return {
-                'label': torch.as_tensor(labels[:-1]), #(batch, 1)
-                'input': torch.cat([torch.tensor(users), torch.tensor(x), torch.tensor(wins), torch.tensor(fails)],dim=1)[:-1], #(batch, feat_size)
-                'target_id': torch.empty((len(labels)-1))
-            }
-        else:
-            return {
-                'label': torch.as_tensor(labels), #(batch, 1)
-                'input': torch.cat([torch.tensor(users), torch.tensor(x), torch.tensor(wins), torch.tensor(fails)],dim=1), #(batch, feat_size)
-                'target_id': torch.empty(len(labels))
-            }
-
+        input_tsr = torch.cat([torch.tensor(x), torch.tensor(wins), torch.tensor(fails)],dim=1)
+    else : 
+        input_tsr = torch.cat([torch.tensor(users), torch.tensor(x), torch.tensor(wins), torch.tensor(fails)],dim=1)
+    #https://github.com/pytorch/pytorch/issues/5039
+    return {
+        'label': torch.as_tensor(labels), #(batch, 1)
+        'input': input_tsr, #(batch, feat_size)
+        'target_id': torch.empty(len(labels))
+    }
