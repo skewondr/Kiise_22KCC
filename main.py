@@ -185,6 +185,10 @@ if __name__ == '__main__':
             os.environ["CUDA_VISIBLE_DEVICES"] = ARGS.gpu
             logger.info("Single-GPU mode")
             torch.cuda.set_device(int(ARGS.gpu))
+        elif num_gpus == 1: 
+            os.environ["CUDA_VISIBLE_DEVICES"] = '0'
+            logger.info("Single-GPU mode")
+            torch.cuda.set_device(0)
         elif num_gpus > 1 :
             logger.info(f"Multi-GPU mode: {num_gpus} GPUs")
             model = nn.DataParallel(model)
