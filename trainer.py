@@ -14,6 +14,8 @@ from network.util_network import ScheduledOptim, NoamOpt
 from util import save_checkpoint
 from typing import Dict, Optional, Tuple, Union
 
+FM_MODELS = ["KTM", "SEQFM"]
+
 class EarlyStopping:
     #https://stats.stackexchange.com/questions/68893/area-under-curve-of-roc-vs-overall-accuracy
     def __init__(self, patience=10, verbose=False, delta=0, path='checkpoint.pt'):
@@ -160,7 +162,6 @@ class Trainer:
             collate_fn=self._collate_fn
         )
 
-        self._model.train()
         for epoch in range(self._start_epochs, self._num_epochs):
             start_time = time.time()
             
@@ -170,6 +171,7 @@ class Trainer:
             labels = []
             outs = []
             for batch_idx, batch in enumerate(train_gen):
+                self._model.train()
                 label, out, pred = self._forward(batch)
                 train_loss = self._get_loss(label, out)
                 losses.append(train_loss.item())
@@ -228,7 +230,10 @@ class Trainer:
         batch = {k: t.to(self._device) for k, t in batch.items()}
         label = batch['label']  # shape: (batch_size, 1)
 
-        output = self._model(batch['input'], batch['target_id'])
+        if ARGS.model in FM_MODELS:
+            output = self._model(batch)
+        else:     
+            output = self._model(batch['input'], batch['target_id'])
         pred = (torch.sigmoid(output) >= self._threshold).long()  # shape: (batch_size, 1)
 
         return label, output, pred
