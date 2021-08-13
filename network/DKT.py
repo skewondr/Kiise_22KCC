@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from constant import PAD_INDEX
+from torch.autograd import Variable
 
 
 class DKT(nn.Module):
@@ -35,6 +36,7 @@ class DKT(nn.Module):
         hidden = self.init_hidden(batch_size)
         input = self._encoder(x['input'])
         output, _ = self._lstm(input, (hidden[0], hidden[1]))
-        output = self._decoder(output[:, -1, :])
-        output = torch.gather(output, -1, x['target_id']-1)
+        with torch.cuda.amp.autocast():
+            output = self._decoder(output[:, -1, :])
+            output = torch.gather(output, -1, x['target_id']-1)
         return output
