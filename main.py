@@ -18,7 +18,7 @@ from network.FM_family import (
     FactorizationMachineModel,
     FM_alpha,
 )
-from network.SeqFM import SeqFM
+#from network.SeqFM import SeqFM
 from constant import QUESTION_NUM
 from trainer import Trainer
 import numpy as np
@@ -121,20 +121,20 @@ def get_model():
     elif ARGS.model == 'KTM':
         if not ARGS.get_user_ft:
             model = FactorizationMachineModel([QUESTION_NUM[ARGS.dataset_name]+1, ARGS.seq_size+1, ARGS.seq_size+1], 
-            ARGS.hidden_dim).to(ARGS.device)
+            ARGS.fm_hidden_dim).to(ARGS.device)
         else: #user_id: train-840473, val-840468, test-840457
             model = FactorizationMachineModel([840473+1, QUESTION_NUM[ARGS.dataset_name]+1, ARGS.seq_size+1, ARGS.seq_size+1], 
-            ARGS.hidden_dim).to(ARGS.device)
+            ARGS.fm_hidden_dim).to(ARGS.device)
         collate_fn = get_sequence_fm
 
     elif ARGS.model == 'FM_alpha':
         if not ARGS.get_user_ft:
             model = FM_alpha(ARGS.alpha_model, [QUESTION_NUM[ARGS.dataset_name]+1, ARGS.seq_size+1, ARGS.seq_size+1], 
-             ARGS.hidden_dim, ARGS.hidden_dim, QUESTION_NUM[ARGS.dataset_name], ARGS.num_layers, 
+            ARGS.fm_hidden_dim, ARGS.input_dim, ARGS.hidden_dim, QUESTION_NUM[ARGS.dataset_name], ARGS.num_layers, 
             ARGS.num_head, ARGS.dropout).to(ARGS.device)
         else: #user_id: train-840473, val-840468, test-840457
             model = FM_alpha(ARGS.alpha_model, [840473+1, QUESTION_NUM[ARGS.dataset_name]+1, ARGS.seq_size+1, ARGS.seq_size+1], 
-             ARGS.hidden_dim, ARGS.hidden_dim, QUESTION_NUM[ARGS.dataset_name], ARGS.num_layers, 
+            ARGS.fm_hidden_dim, ARGS.input_dim, ARGS.hidden_dim, QUESTION_NUM[ARGS.dataset_name], ARGS.num_layers, 
             ARGS.num_head, ARGS.dropout).to(ARGS.device)
         collate_fn = get_sequence_fm_a
     

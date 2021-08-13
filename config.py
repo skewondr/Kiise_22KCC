@@ -113,6 +113,9 @@ model_args.add_argument('--fc_dim', type=int, default=512)
 # SAKT
 model_args.add_argument('--num_head', type=int, default=5)
 
+# KTM
+model_args.add_argument('--fm_hidden_dim', type=int, default=20)
+
 train_args = parser.add_argument_group('Train args')
 train_args.add_argument('--random_seed', type=int, default=1)
 train_args.add_argument('--num_epochs', type=int, default=10)

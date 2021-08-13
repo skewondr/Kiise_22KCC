@@ -91,9 +91,9 @@ class FM_alpha(torch.nn.Module):
         S Rendle, Factorization Machines, 2010.
     """
 
-    def __init__(self, alpha_model, field_dims, input_dim, embed_dim, question_num, num_layers, num_head, dropout):
+    def __init__(self, alpha_model, field_dims, fm_hidden_dim, input_dim, embed_dim, question_num, num_layers, num_head, dropout):
         super().__init__()
-        self.embedding = FeaturesEmbedding(field_dims, embed_dim)
+        self.embedding = FeaturesEmbedding(field_dims, fm_hidden_dim)
         self.linear = FeaturesLinear(field_dims)
         self.fm = FactorizationMachine(reduce_sum=True)
         if alpha_model == 'SAKT':
@@ -105,6 +105,7 @@ class FM_alpha(torch.nn.Module):
         """
         :param x: Long tensor of size ``(batch_size, num_fields)``
         """
-        x = self.linear(x['fm_input']) + self.fm(self.embedding(x['fm_input'])) + self.alpha_model(x)
+        #x = self.linear(x['fm_input']) + self.fm(self.embedding(x['fm_input'])) + self.alpha_model(x)
+        x = self.linear(x['fm_input']) + self.alpha_model(x)
 
         return x
