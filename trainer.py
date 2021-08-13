@@ -229,11 +229,7 @@ class Trainer:
     def _forward(self, batch):
         batch = {k: t.to(self._device) for k, t in batch.items()}
         label = batch['label']  # shape: (batch_size, 1)
-
-        if ARGS.model in FM_MODELS:
-            output = self._model(batch)
-        else:     
-            output = self._model(batch['input'], batch['target_id'])
+        output = self._model(batch)
         pred = (torch.sigmoid(output) >= self._threshold).long()  # shape: (batch_size, 1)
 
         return label, output, pred

@@ -158,18 +158,18 @@ class SAKT(nn.Module):
             position_indices.append(position_index)
         return torch.tensor(position_indices, dtype=int).to(ARGS.device)
 
-    def forward(self, interaction_id, target_id):
+    def forward(self, X):
         """
         Query: Question (skill, exercise, ...) embedding
         Key, Value: Interaction embedding + positional embedding
         """
-        question_id = self._transform_interaction_to_question_id(interaction_id)
-        question_id = torch.cat([question_id[:, 1:], target_id], dim=-1)
+        question_id = self._transform_interaction_to_question_id(X['input'])
+        question_id = torch.cat([question_id[:, 1:], X['target_id']], dim=-1)
 
-        interaction_vector = self._interaction_embedding(interaction_id)
+        interaction_vector = self._interaction_embedding(X['input'])
         #question_vector = self._question_embedding(question_id)
-        question_vector = self._question_embedding(target_id)
-        position_index = self._get_position_index(interaction_id)
+        question_vector = self._question_embedding( X['target_id'])
+        position_index = self._get_position_index(X['input'])
         position_vector = self._positional_embedding(position_index)
 
         #mask = get_pad_mask(question_id, PAD_INDEX) & get_subsequent_mask(question_id)

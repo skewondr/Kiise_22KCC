@@ -24,17 +24,17 @@ class DKT(nn.Module):
         return (weight.new_zeros(self._num_layers, batch_size, self._hidden_dim),
                 weight.new_zeros(self._num_layers, batch_size, self._hidden_dim))
 
-    def forward(self, input, target_id):
+    def forward(self, x):
         """
         get model output (before taking sigmoid) for target_id
         input: (batch_size, sequence_size)
         target_id: (batch_size)
         return output, a tensor of shape (batch_size, 1)
         """
-        batch_size = input.shape[0]
+        batch_size = x['input'].shape[0]
         hidden = self.init_hidden(batch_size)
-        input = self._encoder(input)
+        input = self._encoder(x['input'])
         output, _ = self._lstm(input, (hidden[0], hidden[1]))
         output = self._decoder(output[:, -1, :])
-        output = torch.gather(output, -1, target_id-1)
+        output = torch.gather(output, -1, x['target_id']-1)
         return output
