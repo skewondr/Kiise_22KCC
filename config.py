@@ -72,6 +72,7 @@ base_args.add_argument('--mode', type=str, default="train", help="train or eval"
 
 base_args.add_argument('--device', type=str, default='cpu', help='automatically using GPU if you have cuda.')
 base_args.add_argument('--gpu', type=str, default='none', help='using single gpu.')
+base_args.add_argument('--cpu', type=str2bool, default='0', help='using cpu.')
 base_args.add_argument('--num_workers', type=int, default=8)
 #base_args.add_argument('--base_path', type=str, default='/shared/benchmarks/')
 
@@ -87,10 +88,11 @@ base_args.add_argument('--get_user_ft', type=str2bool, default='0')
 base_args.add_argument('--test_run', type=str2bool, default='0')
 base_args.add_argument('--es_patience', type=int, default=10)
 
-model_list = ['DKT', 'DKVMN', 'NPA', 'SAKT', 'KTM']
+model_list = ['DKT', 'DKVMN', 'NPA', 'SAKT', 'KTM', 'FM_alpha', 'SEQFM']
 
 model_args = parser.add_argument_group('Model args')
 model_args.add_argument('--model', type=str, default='DKT', choices=model_list)
+model_args.add_argument('--alpha_model', type=str, default='DKT', choices=model_list)
 
 # DKT, NPA, SAKT
 model_args.add_argument('--num_layers', type=int, default=1)

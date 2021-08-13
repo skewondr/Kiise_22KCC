@@ -2,13 +2,23 @@ from config import ARGS
 from util import (
     get_data_infos, 
 )
-from dataset.dataset_user_sep import UserSepDataset, get_sequence, get_sequence_fm
+from dataset_user_sep import (
+    UserSepDataset, 
+    get_sequence, 
+    get_sequence_fm,
+    #get_sequence_seqfm,
+    get_sequence_fm_a,
+)
 from util import load_checkpoint
 from network.DKT import DKT
 from network.DKVMN import DKVMN
 from network.NPA import NPA
 from network.SAKT import SAKT
-from network.KTM import FactorizationMachineModel
+from network.FM_family import (
+    FactorizationMachineModel,
+    FM_alpha,
+)
+from network.SeqFM import SeqFM
 from constant import QUESTION_NUM
 from trainer import Trainer
 import numpy as np
@@ -110,10 +120,32 @@ def get_model():
 
     elif ARGS.model == 'KTM':
         if not ARGS.get_user_ft:
-            model = FactorizationMachineModel([QUESTION_NUM[ARGS.dataset_name]+1, ARGS.seq_size+1, ARGS.seq_size+1], ARGS.hidden_dim).to(ARGS.device)
-        else: #840473, 840468, 840457
-            model = FactorizationMachineModel([840473+1, QUESTION_NUM[ARGS.dataset_name]+1, ARGS.seq_size+1, ARGS.seq_size+1], ARGS.hidden_dim).to(ARGS.device)
+            model = FactorizationMachineModel([QUESTION_NUM[ARGS.dataset_name]+1, ARGS.seq_size+1, ARGS.seq_size+1], 
+            ARGS.hidden_dim).to(ARGS.device)
+        else: #user_id: train-840473, val-840468, test-840457
+            model = FactorizationMachineModel([840473+1, QUESTION_NUM[ARGS.dataset_name]+1, ARGS.seq_size+1, ARGS.seq_size+1], 
+            ARGS.hidden_dim).to(ARGS.device)
         collate_fn = get_sequence_fm
+
+    elif ARGS.model == 'FM_alpha':
+        if not ARGS.get_user_ft:
+            model = FM_alpha(ARGS.alpha_model, [QUESTION_NUM[ARGS.dataset_name]+1, ARGS.seq_size+1, ARGS.seq_size+1], 
+             ARGS.hidden_dim, ARGS.hidden_dim, QUESTION_NUM[ARGS.dataset_name], ARGS.num_layers, 
+            ARGS.num_head, ARGS.dropout).to(ARGS.device)
+        else: #user_id: train-840473, val-840468, test-840457
+            model = FM_alpha(ARGS.alpha_model, [840473+1, QUESTION_NUM[ARGS.dataset_name]+1, ARGS.seq_size+1, ARGS.seq_size+1], 
+             ARGS.hidden_dim, ARGS.hidden_dim, QUESTION_NUM[ARGS.dataset_name], ARGS.num_layers, 
+            ARGS.num_head, ARGS.dropout).to(ARGS.device)
+        collate_fn = get_sequence_fm_a
+    
+    # elif ARGS.model == 'SEQFM':
+    #     if not ARGS.get_user_ft:
+    #         model = SeqFM([QUESTION_NUM[ARGS.dataset_name]+1, ARGS.seq_size+1, ARGS.seq_size+1], 
+    #         [QUESTION_NUM[ARGS.dataset_name]+1], ARGS.hidden_dim, QUESTION_NUM[ARGS.dataset_name], ARGS.dropout, ARGS.num_layers, ARGS.num_head).to(ARGS.device)
+    #     else: #user_id: train-840473, val-840468, test-840457
+    #         model = SeqFM([840473+1, QUESTION_NUM[ARGS.dataset_name]+1, ARGS.seq_size+1, ARGS.seq_size+1], 
+    #         [QUESTION_NUM[ARGS.dataset_name]+1], ARGS.hidden_dim, QUESTION_NUM[ARGS.dataset_name], ARGS.dropout, ARGS.num_layers, ARGS.num_head).to(ARGS.device)
+    #     collate_fn = get_sequence_seqfm
 
     else:
         raise NotImplementedError
@@ -177,8 +209,9 @@ if __name__ == '__main__':
     set_seed(ARGS.random_seed)
     ################################# Prepare Model ##################################
     logger.info(f"Model: {ARGS.model}")
+    if ARGS.model == 'FM_alpha': logger.info(f"+ Alpha Model: {ARGS.alpha_model}")
     model, collate_fn = get_model()
-    if torch.cuda.is_available():
+    if torch.cuda.is_available() and not ARGS.cpu:
         ARGS.device = 'cuda'
         num_gpus = torch.cuda.device_count()
         if ARGS.gpu != 'none':
@@ -194,6 +227,7 @@ if __name__ == '__main__':
             model = nn.DataParallel(model)
         else:
             logger.info("CPU mode")
+    else : logger.info("CPU mode")
     ################################### Training #####################################
     optimizer = get_optimizer(ARGS.model, model, ARGS.lr, ARGS.decay)
     if ARGS.eta_min is not None:
