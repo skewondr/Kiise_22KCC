@@ -6,10 +6,10 @@ DATASET=EdNet-KT1
 #MODEL=SAKT
 #MODEL=KTM
 #MODEL=SEQFM
-MODEL=DKT
-#MODEL=FM_alpha
+#MODEL=DKT
+MODEL=FM_alpha
 
-#A_MODEL=SAKT
+A_MODEL=SAKT
 #A_MODEL=KTM
 #A_MODEL=SEQFM
 #A_MODEL=DKT
@@ -20,18 +20,19 @@ args=(
     --seq_size 100
     --model $MODEL
     #--alpha_model $A_MODEL
-    #--hidden_dim 20
+    --fm_hidden_dim 20
+    --hidden_dim 200
     --train_batch 2048
     --test_batch 2048
     --eval_steps 40000
-    --ckpt_name DKT_base #!!!!!!!!!!!!!SHOULD BE CHANGED!!!!!!!!!!!!!!!!
+    --ckpt_name KTM_DKT2 #!!!!!!!!!!!!!SHOULD BE CHANGED!!!!!!!!!!!!!!!!
     --lr 1e-3
     --es_patience 30
     #--num_head 5
     #--get_user_ft 1
     #--gpu 0
     #--cpu 1
-    #--num_workers 0
+    --num_workers 4
     #--random_seed
     #--num_epochs
     #--test_run 1
