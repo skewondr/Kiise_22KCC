@@ -75,7 +75,6 @@ def get_data_tl(data_path):
 
 def get_data_infos(user_base_path, i, mode): #question
     data_path = f"{user_base_path}/{i}/{mode}/"
-    #sample_data_name = f"{user_base_path}/{i}/{mode}_{ARGS.dataset_name}_{ARGS.seq_size}_data.npz"
     sample_data_name = f"{user_base_path}/{i}/{mode}_{ARGS.dataset_name}_{ARGS.seq_size}_sample.pickle"
 
     # get list of all files

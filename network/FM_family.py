@@ -77,35 +77,5 @@ class FactorizationMachineModel(torch.nn.Module):
         :param x: Long tensor of size ``(batch_size, num_fields)``
         """
         x = self.linear(x['input']) + self.fm(self.embedding(x['input']))
-        #x = self.linear(x['input'])
-        #x = self.fm(self.embedding(x['input']))
-        return x
-
-from .SAKT import *
-from .DKT import *
-
-class FM_alpha(torch.nn.Module):
-    """
-    A pytorch implementation of Factorization Machine.
-    Reference:
-        S Rendle, Factorization Machines, 2010.
-    """
-
-    def __init__(self, alpha_model, field_dims, fm_hidden_dim, input_dim, embed_dim, question_num, num_layers, num_head, dropout):
-        super().__init__()
-        self.embedding = FeaturesEmbedding(field_dims, fm_hidden_dim)
-        self.linear = FeaturesLinear(field_dims)
-        self.fm = FactorizationMachine(reduce_sum=True)
-        if alpha_model == 'SAKT':
-            self.alpha_model = SAKT(embed_dim, question_num, num_layers, num_head, dropout).to(ARGS.device)
-        elif alpha_model == 'DKT':
-            self.alpha_model = DKT(input_dim, embed_dim, num_layers, question_num, dropout).to(ARGS.device)
-
-    def forward(self, x):
-        """
-        :param x: Long tensor of size ``(batch_size, num_fields)``
-        """
-        #x = self.linear(x['fm_input']) + self.fm(self.embedding(x['fm_input'])) + self.alpha_model(x)
-        x = self.linear(x['fm_input']) + self.alpha_model(x)
 
         return x
