@@ -26,8 +26,7 @@ class UserSepDataset(Dataset):
        
 def get_sequence(batch):
     start_time = time.time()
-    batch_data_path = [b[0] for b in batch]
-    batch_num_interacts = [b[1] for b in batch]
+    batch_data_path, batch_num_interacts = zip(*batch)
     
     labels = []
     input_lists = []
@@ -80,8 +79,7 @@ def get_sequence(batch):
 
 def get_sequence_fm(batch):
     
-    batch_data_path = [b[0] for b in batch]
-    batch_num_interacts = [b[1] for b in batch]
+    batch_data_path, batch_num_interacts = zip(*batch)
     
     labels = []
     wins = []
