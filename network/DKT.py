@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from constant import PAD_INDEX
 from torch.autograd import Variable
+from config import ARGS
 
 
 class DKT(nn.Module):
@@ -21,9 +22,8 @@ class DKT(nn.Module):
         initialize hidden layer as zero tensor
         batch_size: single integer
         """
-        weight = next(self.parameters())
-        return (weight.new_zeros(self._num_layers, batch_size, self._hidden_dim),
-                weight.new_zeros(self._num_layers, batch_size, self._hidden_dim))
+        return (torch.zeros((self._num_layers, batch_size, self._hidden_dim), requires_grad=True).to(ARGS.device),
+                torch.zeros((self._num_layers, batch_size, self._hidden_dim), requires_grad=True).to(ARGS.device))
 
     def forward(self, x):
         """
