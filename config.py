@@ -88,11 +88,10 @@ base_args.add_argument('--get_user_ft', type=str2bool, default='0')
 base_args.add_argument('--test_run', type=str2bool, default='0')
 base_args.add_argument('--es_patience', type=int, default=10)
 
-model_list = ['DKT', 'DKVMN', 'NPA', 'SAKT', 'KTM', 'FM_alpha', 'SEQFM']
+model_list = ['DKT', 'DKVMN', 'NPA', 'SAKT', 'KTM']
 
 model_args = parser.add_argument_group('Model args')
 model_args.add_argument('--model', type=str, default='DKT', choices=model_list)
-model_args.add_argument('--alpha_model', type=str, default='DKT', choices=model_list)
 
 # DKT, NPA, SAKT
 model_args.add_argument('--num_layers', type=int, default=1)
