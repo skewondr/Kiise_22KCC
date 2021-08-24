@@ -106,26 +106,26 @@ class DKVMN(nn.Module):
         add = torch.transpose(add, 1, 2)
         self._value_memory = self._prev_value_memory * (1 - erase) + add
 
-    def forward(self, input, target_id):
+    def forward(self, X):
         """
         get output of the model (before taking sigmoid)
-        input: integer tensor of shape (batch_size, sequence_size)
-        target_id: integer tensor of shape (batch_size)
+        X['input']: integer tensor of shape (batch_size, sequence_size)
+        X['target_id']: integer tensor of shape (batch_size)
         """
         # initialize value memory matrix
-        batch_size = input.shape[0]
+        batch_size = X['input'].shape[0]
         self._batch_size = batch_size
         self._init_value_memory()
 
-        # repeat write process seq_size many times with input
+        # repeat write process seq_size many times with X['input']
         for i in range(ARGS.seq_size):
-            interaction = input[:, i]  # (batch_size)
+            interaction = X['input'][:, i]  # (batch_size)
             self._write(interaction)
 
         # read process
-        question_vector = self._question_embedding(target_id)
+        question_vector = self._question_embedding(X['target_id'])
         question_vector = question_vector.squeeze(1)
-        read_content = self._read(target_id)
+        read_content = self._read(X['target_id'])
 
         summary_vector = self._summary_layer(torch.cat((read_content, question_vector), dim=-1))
         summary_vector = self._tanh(summary_vector)
