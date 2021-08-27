@@ -16,6 +16,8 @@ import torch.nn as nn
 from torch.cuda.amp import GradScaler
 from torch.optim import Optimizer, optimizer
 from torch.optim.lr_scheduler import _LRScheduler
+from matplotlib import pyplot as plt
+from random import sample
 
 TModel = Union[nn.DataParallel, nn.Module]
 
@@ -108,6 +110,97 @@ def get_data_infos(user_base_path, i, mode): #question
             #if idx > 100 : break
             
         with open(sample_data_name, 'wb') as f: pickle.dump(sample_infos, f)
+    return sample_infos, num_of_users
+
+def get_fulldata_infos(user_base_path, i, mode): #question
+    data_path = f"{user_base_path}/{i}/{mode}/"
+    sample_data_name = f"{user_base_path}/{i}/{mode}_{ARGS.dataset_name}_{ARGS.seq_size}_fullsample.pickle"
+
+    # get list of all files
+    user_path_list = os.listdir(data_path)
+    num_of_users = len(user_path_list)
+
+    if os.path.isfile(sample_data_name):
+        print(f"Loading {sample_data_name}...")
+        with open(sample_data_name, 'rb') as f: 
+            sample_infos = pickle.load(f)
+    else:
+        # almost same as get_sample_info
+        # for user separated format data
+      
+        sample_infos = []
+        seq_length=[]
+        correct_count=0
+        incorrect_count=0
+        for idx, user_path in enumerate(tqdm(user_path_list, total=num_of_users, ncols=100)):
+            user_id = user_path.split('/')[-1]
+            user_id = int(re.sub(r'[^0-9]', '', user_id))
+            with open(data_path + user_path, 'r') as f:
+                lines = f.readlines()
+                lines = lines[1:]  # header exists
+                num_of_interactions = len(lines) # sequence length 
+                seq_length.append(num_of_interactions)
+                for end_index in range(5,num_of_interactions):
+                    sliced_data = lines[:end_index+1]
+                    line = sliced_data[-1].rstrip().split(',')
+                    is_correct = int(line[1])
+                    if is_correct: correct_count+=1
+                    else: incorrect_count+=1
+                    sample_infos.append((data_path + user_path, end_index))
+            
+        with open(sample_data_name, 'wb') as f: pickle.dump(sample_infos, f)
+
+    return sample_infos, num_of_users
+
+def get_subdata_infos(user_base_path, i, mode):
+    data_path = f"{user_base_path}/{i}/{mode}/"
+    if mode == 'train' :
+        sample_data_name = f"{user_base_path}/{i}/{mode}_{ARGS.dataset_name}_{ARGS.seq_size}_{ARGS.sub_size}.pickle"
+    else: 
+        sample_data_name = f"{user_base_path}/{i}/{mode}_{ARGS.dataset_name}_{ARGS.seq_size}_sub.pickle"
+    # get list of all files
+    user_path_list = os.listdir(data_path)
+    num_of_users = len(user_path_list)
+    if ARGS.sub_size < 100 :
+        if mode == 'train':
+            user_path_list = sample(user_path_list, int(num_of_users*(ARGS.sub_size*0.01)))
+            num_of_users = len(user_path_list)
+        elif mode == 'val':
+            user_path_list = sample(user_path_list, int(num_of_users*(1*0.01)))
+            num_of_users = len(user_path_list)
+
+    if os.path.isfile(sample_data_name):
+        print(f"Loading {sample_data_name}...")
+        with open(sample_data_name, 'rb') as f: 
+            sample_infos = pickle.load(f)
+    else:
+        # almost same as get_sample_info
+        # for user separated format data
+
+        sample_infos = []
+        seq_length=[]
+        correct_count=0
+        incorrect_count=0
+        
+        for idx, user_path in enumerate(tqdm(user_path_list, total=num_of_users, ncols=100)):
+            user_id = user_path.split('/')[-1]
+            user_id = int(re.sub(r'[^0-9]', '', user_id))
+            with open(data_path + user_path, 'r') as f:
+                lines = f.readlines()
+                lines = lines[1:]  # header exists
+                num_of_interactions = len(lines) # sequence length 
+                seq_length.append(num_of_interactions)
+                
+                for end_index in range(5,num_of_interactions):
+                    sliced_data = lines[:end_index+1]
+                    line = sliced_data[-1].rstrip().split(',')
+                    is_correct = int(line[1])
+                    if is_correct: correct_count+=1
+                    else: incorrect_count+=1
+                    sample_infos.append((data_path + user_path,end_index))
+
+        with open(sample_data_name, 'wb') as f: pickle.dump(sample_infos, f)
+        
     return sample_infos, num_of_users
 
 def save_checkpoint(

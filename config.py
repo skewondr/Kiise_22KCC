@@ -87,6 +87,7 @@ base_args.add_argument('--dataset_name', type=str, default='ASSISTments2009', ch
 base_args.add_argument('--get_user_ft', type=str2bool, default='0')
 base_args.add_argument('--test_run', type=str2bool, default='0')
 base_args.add_argument('--es_patience', type=int, default=10)
+base_args.add_argument('--sub_size', type=int, default=10)
 
 model_list = ['DKT', 'DKVMN', 'NPA', 'SAKT', 'KTM']
 
