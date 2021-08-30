@@ -295,8 +295,8 @@ class Trainer:
         plt.plot(x, self.train_accuracy, label='Train Acc.')
         plt.plot(x, self.valid_accuracy, label='Valid Acc.')
 
-        plt.title('Batches - Train/Valid Acc.')
-        plt.xlabel('Batches')
+        plt.title('Epochs - Train/Valid Acc.')
+        plt.xlabel('Epochs')
         plt.ylabel('Accuracy')
         plt.legend()
 
