@@ -172,6 +172,7 @@ def run(i, model, start_epoch, optimizer, scheduler, collate_fn, other_states):
         trainer.train()
         total_time = time.time() - start_time
         logger.info(f"elapsed time: {total_time:.2f}s, {timedelta(seconds=total_time)}")
+        trainer.plot_accuracy() 
     trainer.test()
     return trainer.test_acc, trainer.test_auc
 

@@ -13,6 +13,7 @@ from config import ARGS
 from network.util_network import ScheduledOptim, NoamOpt
 from util import save_checkpoint
 from typing import Dict, Optional, Tuple, Union
+import matplotlib.pyplot as plt
 
 FM_MODELS = ["KTM", "SEQFM"]
 
@@ -143,6 +144,10 @@ class Trainer:
         self.early_stopping.best_score = other_states.get("best", None)
         self.early_stopping.counter = other_states.get("early", 0)
 
+        self.train_accuracy = []
+        self.valid_accuracy = []
+        self.valid_acc = 0.0
+
     # train model and choose weight with max auc on validation dataset
     def train(self):
         train_gen = data.DataLoader(
@@ -196,6 +201,8 @@ class Trainer:
             acc = num_corrects / num_total
             try: auc = roc_auc_score(labels, outs)
             except ValueError: auc = 0.0
+            self.train_accuracy.append(acc) 
+            self.valid_accuracy.append(self.valid_acc) 
             
             loss = np.mean(losses)
             training_time = time.time() - start_time
@@ -268,6 +275,7 @@ class Trainer:
         
         if name == 'Validation':
             self.early_stopping(auc, self._model, epoch, self._opt, self.scheduler)
+            self.valid_acc = acc
 
         elif name == 'Test':
             self.test_acc = acc
@@ -276,3 +284,22 @@ class Trainer:
         logger.info(f'[{name}] early stop: {self.early_stopping.counter}/{self.es_patience}, loss: {loss:.4f}, acc: {acc:.4f}, auc: {auc:.4f}, time: {training_time:.2f}')
         logger.info('-'*80)
 
+    def plot_accuracy(self):
+        """
+            Draw a plot of train/valid accuracy.
+            X-axis : Epoch
+            Y-axis : train_accuracy & valid_accuracy
+            Draw train_acc-epoch, valid_acc-epoch graph in 'one' plot.
+        """
+        x = list(np.arange(1, len(self.train_accuracy)+1))
+        plt.plot(x, self.train_accuracy, label='Train Acc.')
+        plt.plot(x, self.valid_accuracy, label='Valid Acc.')
+
+        plt.title('Batches - Train/Valid Acc.')
+        plt.xlabel('Batches')
+        plt.ylabel('Accuracy')
+        plt.legend()
+
+        plt.show()
+        plt_file_path = os.path.join(self._weight_path, 'Accuracy_plot.png')
+        plt.savefig(plt_file_path)
