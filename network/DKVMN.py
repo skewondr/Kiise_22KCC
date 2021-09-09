@@ -36,7 +36,7 @@ class DKVMN(nn.Module):
                                        out_features=1)
 
         # key memory matrix, transposed and initialized
-        self._key_memory = torch.Tensor(self._key_dim, self._concept_num).to(ARGS.device)
+        self._key_memory = torch.Tensor(self._key_dim, self._concept_num)
         stdev = 1 / (sqrt(self._concept_num + self._key_dim))
         nn.init.uniform_(self._key_memory, -stdev, stdev)
 
@@ -73,7 +73,8 @@ class DKVMN(nn.Module):
         compute correlation weight of a given question with key memory matrix
         question_id: integer tensor of shape (batch_size)
         """
-        question_vector = self._question_embedding(question_id).to(ARGS.device)
+        question_vector = self._question_embedding(question_id).to('cpu')
+
         return self._softmax(torch.matmul(question_vector, self._key_memory)).to(ARGS.device)
 
     def _read(self, question_id):
