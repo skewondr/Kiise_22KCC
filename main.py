@@ -1,6 +1,8 @@
 from config import ARGS
 from util import (
     get_data_infos, 
+    get_fulldata_infos,
+    get_subdata_infos,
 )
 from dataset_user_sep import (
     UserSepDataset, 
@@ -135,9 +137,9 @@ def run(i, model, start_epoch, optimizer, scheduler, collate_fn, other_states):
     ################################## Prepare Dataset ###############################
     data_path = f'../dataset/{ARGS.dataset_name}/processed'
 
-    train_sample_data, num_of_train_user = get_data_infos(data_path, i, 'train')
-    val_sample_data, num_of_val_user = get_data_infos(data_path, i, 'val')
-    test_sample_data, num_of_test_user = get_data_infos(data_path, i, 'test')
+    train_sample_data, num_of_train_user = get_subdata_infos(data_path, i, 'train')
+    val_sample_data, num_of_val_user = get_subdata_infos(data_path, i, 'val')
+    test_sample_data, num_of_test_user = get_subdata_infos(data_path, i, 'test')
     #import IPython; IPython.embed(); exit(1);
 
     train_data = UserSepDataset('train', train_sample_data, ARGS.dataset_name)
@@ -185,9 +187,6 @@ if __name__ == '__main__':
     logger.info(f"seed: {ARGS.random_seed}")
     set_seed(ARGS.random_seed)
     ################################# Prepare Model ##################################
-    logger.info(f"Model: {ARGS.model}")
-    if ARGS.model == 'FM_alpha': logger.info(f"+ Alpha Model: {ARGS.alpha_model}")
-    model, collate_fn = get_model()
     if torch.cuda.is_available() and not ARGS.cpu:
         ARGS.device = 'cuda'
         num_gpus = torch.cuda.device_count()
@@ -201,10 +200,13 @@ if __name__ == '__main__':
             torch.cuda.set_device(0)
         elif num_gpus > 1 :
             logger.info(f"Multi-GPU mode: {num_gpus} GPUs")
-            model = nn.DataParallel(model)
         else:
             logger.info("CPU mode")
     else : logger.info("CPU mode")
+    logger.info(f"Model: {ARGS.model}")
+    if ARGS.model == 'FM_alpha': logger.info(f"+ Alpha Model: {ARGS.alpha_model}")
+    model, collate_fn = get_model()
+    if num_gpus > 1: model = nn.DataParallel(model)
     ################################### Training #####################################
     optimizer = get_optimizer(ARGS.model, model, ARGS.lr, ARGS.decay)
     if ARGS.eta_min is not None:
