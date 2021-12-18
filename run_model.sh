@@ -3,10 +3,10 @@
 DATASET=EdNet-KT1
 #DATASET=ASSISTments2009
 
-MODEL=SAKT
+# MODEL=SAKT
 #MODEL=KTM
 #MODEL=SEQFM
-# MODEL=DKT
+MODEL=DKT
 seed=(1)
 for s in ${seed[@]}; do
     args=(
