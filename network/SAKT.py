@@ -137,34 +137,11 @@ class SAKT(nn.Module):
         self._interaction_embedding = nn.Embedding(2*question_num+1, hidden_dim, padding_idx=PAD_INDEX)
         self._question_embedding = nn.Embedding(question_num+1, hidden_dim, padding_idx=PAD_INDEX)
 
-    def _transform_interaction_to_question_id(self, interaction):
-        """
-        get question_id from interaction index
-        if interaction index is a number in [0, question_num], then leave it as-is
-        if interaction index is bigger than question_num (in [question_num + 1, 2 * question_num]
-        then subtract question_num
-        interaction: integer tensor of shape (batch_size, sequence_size)
-        """
-        return interaction - self._question_num * (interaction > self._question_num).long()
-
-    def _get_position_index(self, question_id):
-        """
-        [0, 0, 0, 4, 12] -> [0, 0, 0, 1, 2]
-        """
-        batch_size = question_id.shape[0]
-        position_indices = []
-        for i in range(batch_size):
-            non_padding_num = (question_id[i] != PAD_INDEX).sum(-1).item()
-            position_index = [0] * (ARGS.seq_size - non_padding_num) + list(range(1, non_padding_num+1))
-            position_indices.append(position_index)
-        return torch.tensor(position_indices, dtype=int).to(ARGS.device)
-
     def forward(self, X):
         """
         Query: Question (skill, exercise, ...) embedding
         Key, Value: Interaction embedding + positional embedding
         """
-
         interaction_vector = self._interaction_embedding(X['kv_input'])
         question_vector = self._question_embedding(X['target_id'])
         position_vector = self._positional_embedding(X['position'])
@@ -175,8 +152,7 @@ class SAKT(nn.Module):
 
         for layer in self._layers:
             x = layer(query=question_vector, key=x, mask=mask)
-  
+      
         output = self._prediction(x)
         output = output[:, -1, :]
-        
         return output

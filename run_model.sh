@@ -6,8 +6,8 @@ DATASET=EdNet-KT1
 MODEL=SAKT
 #MODEL=KTM
 #MODEL=SEQFM
-#MODEL=DKT
-seed=(1 2 3)
+# MODEL=DKT
+seed=(1)
 for s in ${seed[@]}; do
     args=(
         #--mode 'eval'
@@ -19,7 +19,7 @@ for s in ${seed[@]}; do
         --train_batch 2048
         --test_batch 2048
         --eval_steps 40000
-        --ckpt_name SAKT_baseline_${s} #!!!!!!!!!!!!!aug, num, seg, seed!!!!!!!!!!!!!!!!
+        --ckpt_name Testing #!!!!!!!!!!!!!aug, num, seg, seed!!!!!!!!!!!!!!!!
         --lr 1e-3
         --es_patience 5
         --num_head 5
