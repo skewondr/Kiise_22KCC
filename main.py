@@ -1,10 +1,6 @@
 from config import ARGS
 from util import get_data_infos
-from dataset_user_sep import (
-    UserSepDataset, 
-    get_sequence, 
-    get_sequence_fm,
-)
+from dataset_user_sep import *
 from util import load_checkpoint
 from network.DKT import DKT
 from network.DKVMN import DKVMN
@@ -110,7 +106,7 @@ def get_model():
     elif ARGS.model == 'SAKT':
         model = SAKT(ARGS.hidden_dim, QUESTION_NUM[ARGS.dataset_name], ARGS.num_layers,
                      ARGS.num_head, ARGS.dropout).to(ARGS.device)
-        collate_fn = get_sequence
+        collate_fn = get_sequence_sakt
 
     elif ARGS.model == 'KTM':
         if not ARGS.get_user_ft:
@@ -146,7 +142,7 @@ def run(i, model, start_epoch, optimizer, scheduler, collate_fn, other_states):
     logger.info(f'Validation: # of users: {num_of_val_user}, # of samples: {len(val_sample_data)}')
     logger.info(f'Test: # of users: {num_of_test_user}, # of samples: {len(test_sample_data)}')
     
-    import IPython; IPython.embed(1); exit();
+    # import IPython; IPython.embed(); exit(1);
     trainer = Trainer(
         model, 
         ARGS.test_run,
