@@ -1,4 +1,5 @@
 PAD_INDEX = 0
+MIN_LENGTH = 10
 
 QUESTION_NUM = {
     'modified_AAAI20': 16175,

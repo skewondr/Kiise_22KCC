@@ -1,9 +1,5 @@
 from config import ARGS
-from util import (
-    get_data_infos, 
-    get_fulldata_infos,
-    get_subdata_infos,
-)
+from util import get_data_infos
 from dataset_user_sep import (
     UserSepDataset, 
     get_sequence, 
@@ -136,11 +132,10 @@ def run(i, model, start_epoch, optimizer, scheduler, collate_fn, other_states):
     """
     ################################## Prepare Dataset ###############################
     data_path = f'../dataset/{ARGS.dataset_name}/processed'
-
-    train_sample_data, num_of_train_user = get_subdata_infos(data_path, i, 'train')
-    val_sample_data, num_of_val_user = get_subdata_infos(data_path, i, 'val')
-    test_sample_data, num_of_test_user = get_subdata_infos(data_path, i, 'test')
-    #import IPython; IPython.embed(); exit(1);
+   
+    train_sample_data, num_of_train_user = get_data_infos(data_path, i, 'train', ARGS.sub_size)
+    val_sample_data, num_of_val_user = get_data_infos(data_path, i, 'val', ARGS.sub_size)
+    test_sample_data, num_of_test_user = get_data_infos(data_path, i, 'test', ARGS.sub_size)
 
     train_data = UserSepDataset('train', train_sample_data, ARGS.dataset_name)
     val_data = UserSepDataset('val', val_sample_data, ARGS.dataset_name)
