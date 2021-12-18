@@ -25,6 +25,7 @@ class UserSepDataset(Dataset):
         return self._sample_infos[index]
        
 def get_sequence(batch):
+    start_time = time.time()
     batch_data_path, batch_num_interacts = zip(*batch)
     
     lists = {"labels":[], "input_lists":[], "target_ids":[]}
@@ -42,7 +43,7 @@ def get_sequence(batch):
         else:
             pad_counts = ARGS.seq_size + 1 - user_data_length
 
-        kv_list = []
+        input_list = []
         correct_list = []
         for idx, line in enumerate(sliced_data):
             line = line.rstrip().split(',')
@@ -51,22 +52,23 @@ def get_sequence(batch):
 
             if idx == user_data_length - 1:
                 target_id = tag_id
-      
+            
             if is_correct:
-                kv_list.append(tag_id)
+                input_list.append(tag_id)
             else:
-                kv_list.append(tag_id + QUESTION_NUM[ARGS.dataset_name])
+                input_list.append(tag_id + QUESTION_NUM[ARGS.dataset_name])
+        
             correct_list.append(is_correct)
 
         paddings = [PAD_INDEX] * pad_counts
-        pos_list = paddings + list(range(1, len(kv_list)+1))
-        kv_list = paddings + kv_list
+        input_list = paddings + input_list
         correct_list = paddings + correct_list 
-        assert len(kv_list) == ARGS.seq_size + 1, "sequence size error"
+        assert len(input_list) == ARGS.seq_size + 1, "sequence size error"
 
         lists["labels"].append([correct_list[-1]])
         lists["input_lists"].append(input_list[:-1])
         lists["target_ids"].append([target_id])
+       
     #print("data_loader:",len(labels), f"{time.time()-start_time:.6f}") --> 0.9 avrg sec
     return {
         'label': torch.as_tensor(lists["labels"]), #(batch, 1)
@@ -74,11 +76,12 @@ def get_sequence(batch):
         'target_id': torch.as_tensor(lists["target_ids"])
     }
 
+  
 def get_sequence_sakt(batch):
     start_time = time.time()
     batch_data_path, batch_num_interacts = zip(*batch)
     
-    lists = {"labels":[], "kv_lists":[], "target_ids":[], "positions":[]}
+    lists = {"labels":[], "input_lists":[], "target_ids":[], "positions":[]}
     for data_path, num_of_interactions in zip(batch_data_path, batch_num_interacts):
         with open(data_path, 'r') as f:
             data = f.readlines()
@@ -93,7 +96,7 @@ def get_sequence_sakt(batch):
         else:
             pad_counts = ARGS.seq_size + 1 - user_data_length
 
-        kv_list = []
+        input_list = []
         correct_list = []
         for idx, line in enumerate(sliced_data):
             line = line.rstrip().split(',')
@@ -104,27 +107,30 @@ def get_sequence_sakt(batch):
                 target_id = tag_id
             
             if is_correct:
-                kv_list.append(tag_id)
+                input_list.append(tag_id)
             else:
-                kv_list.append(tag_id + QUESTION_NUM[ARGS.dataset_name])
+                input_list.append(tag_id + QUESTION_NUM[ARGS.dataset_name])
+        
             correct_list.append(is_correct)
 
         paddings = [PAD_INDEX] * pad_counts
-        pos_list = paddings + list(range(1, len(kv_list)+1))
-        kv_list = paddings + kv_list
+        pos_list = paddings + list(range(1, len(input_list)+1))
+        input_list = paddings + input_list
         correct_list = paddings + correct_list 
-        assert len(kv_list) == ARGS.seq_size + 1, "sequence size error"
+        assert len(input_list) == ARGS.seq_size + 1, "sequence size error"
 
-        lists["positions"].append(pos_list[:-1])
         lists["labels"].append([correct_list[-1]])
-        lists["kv_lists"].append(kv_list[:-1])
+        lists["input_lists"].append(input_list[:-1])
         lists["target_ids"].append([target_id])
+        lists["positions"].append(pos_list[:-1])
+
+       
     #print("data_loader:",len(labels), f"{time.time()-start_time:.6f}") --> 0.9 avrg sec
     return {
-        'position': torch.as_tensor(lists["positions"]), #(batch, 1)
         'label': torch.as_tensor(lists["labels"]), #(batch, 1)
-        'kv_input': torch.as_tensor(lists["kv_lists"]), #(batch, seq_size)
-        'target_id': torch.as_tensor(lists["target_ids"])
+        'input': torch.as_tensor(lists["input_lists"]), #(batch, seq_size)
+        'target_id': torch.as_tensor(lists["target_ids"]),
+        'position': torch.as_tensor(lists["positions"])
     }
 
 def get_sequence_fm(batch):

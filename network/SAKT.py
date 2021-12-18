@@ -9,7 +9,6 @@ import math
 from constant import PAD_INDEX
 from config import ARGS
 from network.util_network import get_pad_mask, get_subsequent_mask, clones
-from logzero import logger
 
 class ScaledDotProductAttention(nn.Module):
     def __init__(self, attn_dropout=0.1):
@@ -142,17 +141,16 @@ class SAKT(nn.Module):
         Query: Question (skill, exercise, ...) embedding
         Key, Value: Interaction embedding + positional embedding
         """
-        interaction_vector = self._interaction_embedding(X['kv_input'])
+        interaction_vector = self._interaction_embedding(X['input'])
         question_vector = self._question_embedding(X['target_id'])
         position_vector = self._positional_embedding(X['position'])
 
-        mask = get_pad_mask(X['kv_input'], PAD_INDEX) & get_subsequent_mask(X['kv_input'])
-        # mask = None 
+        mask = get_pad_mask(X['input'], PAD_INDEX) & get_subsequent_mask(X['input'])
+        mask = None 
         x = interaction_vector + position_vector
 
         for layer in self._layers:
             x = layer(query=question_vector, key=x, mask=mask)
-      
         output = self._prediction(x)
         output = output[:, -1, :]
         return output
