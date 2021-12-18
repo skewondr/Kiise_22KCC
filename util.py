@@ -123,8 +123,8 @@ def get_data_infos(user_base_path, i, mode, sub_size):
     else: 
         sample_infos = get_pickles(sample_data_name)
 
-    if mode == 'train' and not os.path.isfile(acc_name):
-        get_data_acc(sample_data_name, acc_name)
+    # if mode == 'train' and not os.path.isfile(acc_name):
+    #     get_data_acc(sample_data_name, acc_name)
     
     return sample_infos, num_of_users
 
