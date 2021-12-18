@@ -9,6 +9,7 @@ import math
 from constant import PAD_INDEX
 from config import ARGS
 from network.util_network import get_pad_mask, get_subsequent_mask, clones
+from logzero import logger
 
 class ScaledDotProductAttention(nn.Module):
     def __init__(self, attn_dropout=0.1):
@@ -163,22 +164,19 @@ class SAKT(nn.Module):
         Query: Question (skill, exercise, ...) embedding
         Key, Value: Interaction embedding + positional embedding
         """
-        question_id = self._transform_interaction_to_question_id(X['input'])
-        question_id = torch.cat([question_id[:, 1:], X['target_id']], dim=-1)
 
-        interaction_vector = self._interaction_embedding(X['input'])
-        #question_vector = self._question_embedding(question_id)
-        question_vector = self._question_embedding( X['target_id'])
-        position_index = self._get_position_index(X['input'])
-        position_vector = self._positional_embedding(position_index)
+        interaction_vector = self._interaction_embedding(X['kv_input'])
+        question_vector = self._question_embedding(X['target_id'])
+        position_vector = self._positional_embedding(X['position'])
 
-        #mask = get_pad_mask(question_id, PAD_INDEX) & get_subsequent_mask(question_id)
-        mask = None 
+        mask = get_pad_mask(X['kv_input'], PAD_INDEX) & get_subsequent_mask(X['kv_input'])
+        # mask = None 
         x = interaction_vector + position_vector
 
         for layer in self._layers:
             x = layer(query=question_vector, key=x, mask=mask)
-        with torch.cuda.amp.autocast():
-            output = self._prediction(x)
-            output = output[:, -1, :]
+  
+        output = self._prediction(x)
+        output = output[:, -1, :]
+        
         return output

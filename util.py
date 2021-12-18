@@ -80,7 +80,7 @@ def read_data_files(flag, mode, path, user_path_list, num_of_users, save_name, r
         logger.info(f"# of exercise : {len(rm_target_tags)}")
 
     with open(save_name, 'wb') as f: 
-        pickle.dump(set(output), f)
+        pickle.dump(list(set(output)), f)
     
     return output
 
@@ -123,8 +123,8 @@ def get_data_infos(user_base_path, i, mode, sub_size):
     else: 
         sample_infos = get_pickles(sample_data_name)
 
-    if mode == 'train' and not os.path.isfile(acc_name):
-        get_data_acc(sample_data_name, acc_name)
+    # if mode == 'train' and not os.path.isfile(acc_name):
+    #     get_data_acc(sample_data_name, acc_name)
     
     return sample_infos, num_of_users
 

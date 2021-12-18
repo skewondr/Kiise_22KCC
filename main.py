@@ -146,7 +146,7 @@ def run(i, model, start_epoch, optimizer, scheduler, collate_fn, other_states):
     logger.info(f'Validation: # of users: {num_of_val_user}, # of samples: {len(val_sample_data)}')
     logger.info(f'Test: # of users: {num_of_test_user}, # of samples: {len(test_sample_data)}')
     
-    import IPython; IPython.embed(1); exit();
+    # import IPython; IPython.embed(); exit(1);
     trainer = Trainer(
         model, 
         ARGS.test_run,
