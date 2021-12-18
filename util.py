@@ -94,6 +94,7 @@ def get_data_infos(user_base_path, i, mode, sub_size):
     rm_tag_name = data_path+f"sub{ARGS.sub_size}/{mode}_rm_{ARGS.sub_size}target.pickle"
     train_tag_name = data_path+f"sub{ARGS.sub_size}/train_{ARGS.sub_size}target.pickle"
     tag_name = data_path+f"sub{sub_size}/{mode}_{sub_size}target.pickle"
+    acc_name = data_path+f"sub{sub_size}/{mode}_{sub_size}acc.pickle"
     path = os.path.join(data_path, mode)
 
     # get list of all files
@@ -121,8 +122,50 @@ def get_data_infos(user_base_path, i, mode, sub_size):
         sample_infos = read_data_files("make_sample", mode, path, user_path_list, num_of_users, sample_data_name, name)
     else: 
         sample_infos = get_pickles(sample_data_name)
+
+    if mode == 'train' and not os.path.isfile(acc_name):
+        get_data_acc(sample_data_name, acc_name)
     
     return sample_infos, num_of_users
+
+def get_data_acc(sample_data_name, save_name):
+    user_path_list = get_pickles(sample_data_name)
+    num_of_users = len(user_path_list)
+
+    ex_total_cnt = {}
+    ex_crt_cnt = {}
+    ex_acc = {}
+    for idx, (data_path, num_of_interactions) in enumerate(tqdm(user_path_list, total=num_of_users, ncols=100)):
+        with open(data_path, 'r') as f:
+            data = f.readlines()
+            data = data[1:] # header exists
+            sliced_data = data[:num_of_interactions+1]
+
+        for _, line in enumerate(sliced_data):
+            line = line.rstrip().split(',')
+            tag_id = int(line[0])
+            is_correct = int(line[1])
+
+            if tag_id in ex_total_cnt:
+                ex_total_cnt[tag_id] += 1
+            else : 
+                ex_total_cnt[tag_id] = 1
+
+            if is_correct:
+                if tag_id in ex_crt_cnt:
+                    ex_crt_cnt[tag_id] += 1
+                else : 
+                    ex_crt_cnt[tag_id] = 1
+
+    for key in ex_crt_cnt.keys():
+        ex_acc[key] = ex_crt_cnt[key]/ex_total_cnt[key]
+
+    logger.info(f"average of accuracy:{statistics.mean(list(ex_acc.values())):.2f}")
+
+    with open(save_name, 'wb') as f: 
+        pickle.dump(ex_acc, f)
+
+    return 
 
 def save_checkpoint(
     ckpt_path: str,
