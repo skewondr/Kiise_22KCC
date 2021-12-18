@@ -141,11 +141,9 @@ def run(i, model, start_epoch, optimizer, scheduler, collate_fn, other_states):
     logger.info(f'Train: # of users: {num_of_train_user}, # of samples: {len(train_sample_data)}')
     logger.info(f'Validation: # of users: {num_of_val_user}, # of samples: {len(val_sample_data)}')
     logger.info(f'Test: # of users: {num_of_test_user}, # of samples: {len(test_sample_data)}')
-    
-<<<<<<< HEAD
+
     # import IPython; IPython.embed(); exit(1);
-=======
->>>>>>> parent of 176ee82... sub data preprocessing - save exercise accuracy
+
     trainer = Trainer(
         model, 
         ARGS.test_run,

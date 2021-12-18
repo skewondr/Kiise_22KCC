@@ -121,13 +121,10 @@ def get_data_infos(user_base_path, i, mode, sub_size):
         sample_infos = read_data_files("make_sample", mode, path, user_path_list, num_of_users, sample_data_name, name)
     else: 
         sample_infos = get_pickles(sample_data_name)
-<<<<<<< HEAD
 
     # if mode == 'train' and not os.path.isfile(acc_name):
     #     get_data_acc(sample_data_name, acc_name)
-=======
->>>>>>> parent of 176ee82... sub data preprocessing - save exercise accuracy
-    
+
     return sample_infos, num_of_users
 
 def save_checkpoint(
