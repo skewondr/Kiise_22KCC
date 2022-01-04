@@ -132,9 +132,9 @@ class SAKT(nn.Module):
         self._prediction = nn.Linear(hidden_dim, 1)
 
         # Embedding layers
-        self._positional_embedding = nn.Embedding(ARGS.seq_size+1, hidden_dim, padding_idx=PAD_INDEX)
-        self._interaction_embedding = nn.Embedding(2*question_num+1, hidden_dim, padding_idx=PAD_INDEX)
-        self._question_embedding = nn.Embedding(question_num+1, hidden_dim, padding_idx=PAD_INDEX)
+        self._positional_embedding = nn.Embedding(ARGS.seq_size+1, hidden_dim, padding_idx=PAD_INDEX, sparse=True)
+        self._interaction_embedding = nn.Embedding(2*question_num+1, hidden_dim, padding_idx=PAD_INDEX, sparse=True)
+        self._question_embedding = nn.Embedding(question_num+1, hidden_dim, padding_idx=PAD_INDEX, sparse=True)
 
     def forward(self, X):
         """

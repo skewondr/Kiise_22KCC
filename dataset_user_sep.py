@@ -77,7 +77,7 @@ def get_sequence(batch):
     }
 
   
-def get_sequence_sakt(batch):
+def get_sequence_attn(batch):
     start_time = time.time()
     batch_data_path, batch_num_interacts = zip(*batch)
     
@@ -98,13 +98,11 @@ def get_sequence_sakt(batch):
 
         input_list = []
         correct_list = []
+        tag_list = []
         for idx, line in enumerate(sliced_data):
             line = line.rstrip().split(',')
             tag_id = int(line[0])
             is_correct = int(line[1])
-
-            if idx == user_data_length - 1:
-                target_id = tag_id
             
             if is_correct:
                 input_list.append(tag_id)
@@ -112,6 +110,7 @@ def get_sequence_sakt(batch):
                 input_list.append(tag_id + QUESTION_NUM[ARGS.dataset_name])
         
             correct_list.append(is_correct)
+            tag_list.append(tag_id)
 
         paddings = [PAD_INDEX] * pad_counts
         pos_list = paddings + list(range(1, len(input_list)+1))
@@ -121,7 +120,7 @@ def get_sequence_sakt(batch):
 
         lists["labels"].append([correct_list[-1]])
         lists["input_lists"].append(input_list[:-1])
-        lists["target_ids"].append([target_id])
+        lists["target_ids"].append([tag_list[-1]])
         lists["positions"].append(pos_list[:-1])
 
        

@@ -4,9 +4,7 @@ from dataset_user_sep import *
 from util import load_checkpoint
 from network.DKT import DKT
 from network.DKVMN import DKVMN
-from network.NPA import NPA
 from network.SAKT import SAKT
-from network.FM_family import FactorizationMachineModel
 from constant import QUESTION_NUM
 from trainer import Trainer
 import numpy as np
@@ -95,7 +93,7 @@ def get_model():
     elif ARGS.model == 'SAKT' :
         model = SAKT(ARGS.hidden_dim, QUESTION_NUM[ARGS.dataset_name], ARGS.num_layers,
                      ARGS.num_head, ARGS.dropout).to(ARGS.device)
-        collate_fn = get_sequence_sakt
+        collate_fn = get_sequence_attn
 
     else:
         raise NotImplementedError

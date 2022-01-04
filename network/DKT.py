@@ -14,16 +14,8 @@ class DKT(nn.Module):
         self._hidden_dim = hidden_dim
         self._num_layers = num_layers
         self._lstm = nn.LSTM(input_dim, hidden_dim, num_layers=num_layers, batch_first=True, dropout=dropout)
-        self._encoder = nn.Embedding(num_embeddings=2*question_num+1, embedding_dim=input_dim, padding_idx=PAD_INDEX)
+        self._encoder = nn.Embedding(num_embeddings=2*question_num+1, embedding_dim=input_dim, padding_idx=PAD_INDEX, sparse=True)
         self._decoder = nn.Linear(hidden_dim, question_num)
-
-    def init_hidden(self, batch_size):
-        """
-        initialize hidden layer as zero tensor
-        batch_size: single integer
-        """
-        return (torch.zeros((self._num_layers, batch_size, self._hidden_dim), requires_grad=True).to(ARGS.device),
-                torch.zeros((self._num_layers, batch_size, self._hidden_dim), requires_grad=True).to(ARGS.device))
 
     def forward(self, x):
         """
@@ -32,10 +24,8 @@ class DKT(nn.Module):
         target_id: (batch_size)
         return output, a tensor of shape (batch_size, 1)
         """
-        batch_size = x['input'].shape[0]
-        hidden = self.init_hidden(batch_size)
-        input = self._encoder(x['input'])
-        output, _ = self._lstm(input, (hidden[0], hidden[1]))
+        x_input = self._encoder(x['input'])
+        output, _ = self._lstm(x_input)
         output = self._decoder(output[:, -1, :])
         output = torch.gather(output, -1, x['target_id']-1)
         return output
