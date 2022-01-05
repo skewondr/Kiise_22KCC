@@ -81,7 +81,7 @@ def get_sequence_attn(batch):
     start_time = time.time()
     batch_data_path, batch_num_interacts = zip(*batch)
     
-    lists = {"labels":[], "input_lists":[], "target_ids":[], "positions":[]}
+    lists = {"labels":[], "input_lists":[], "target_ids":[], "tag_ids":[], "positions":[]}
     for data_path, num_of_interactions in zip(batch_data_path, batch_num_interacts):
         with open(data_path, 'r') as f:
             data = f.readlines()
@@ -116,11 +116,13 @@ def get_sequence_attn(batch):
         pos_list = paddings + list(range(1, len(input_list)+1))
         input_list = paddings + input_list
         correct_list = paddings + correct_list 
+        tag_list = paddings + tag_list
         assert len(input_list) == ARGS.seq_size + 1, "sequence size error"
 
         lists["labels"].append([correct_list[-1]])
         lists["input_lists"].append(input_list[:-1])
         lists["target_ids"].append([tag_list[-1]])
+        lists["tag_ids"].append(tag_list[:-1])
         lists["positions"].append(pos_list[:-1])
 
        
@@ -129,6 +131,7 @@ def get_sequence_attn(batch):
         'label': torch.as_tensor(lists["labels"]), #(batch, 1)
         'input': torch.as_tensor(lists["input_lists"]), #(batch, seq_size)
         'target_id': torch.as_tensor(lists["target_ids"]),
+        'tag_id': torch.as_tensor(lists["tag_ids"]),
         'position': torch.as_tensor(lists["positions"])
     }
 

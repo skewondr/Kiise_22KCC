@@ -6,7 +6,7 @@ DATASET=EdNet-KT1
 # MODEL=SAKT
 #MODEL=KTM
 #MODEL=SEQFM
-MODEL=DKT
+MODEL=DKVMN
 seed=(1)
 for s in ${seed[@]}; do
     args=(

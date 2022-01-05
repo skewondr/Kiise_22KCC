@@ -87,8 +87,12 @@ def get_model():
     if ARGS.model == 'DKT':
         model = DKT(ARGS.input_dim, ARGS.hidden_dim, ARGS.num_layers, QUESTION_NUM[ARGS.dataset_name],
                     ARGS.dropout).to(ARGS.device)
-    
         collate_fn = get_sequence
+
+    elif ARGS.model == 'DKVMN':
+        model = DKVMN(ARGS.key_dim, ARGS.value_dim, ARGS.summary_dim, QUESTION_NUM[ARGS.dataset_name],
+                      ARGS.concept_num).to(ARGS.device)
+        collate_fn = get_sequence_attn
 
     elif ARGS.model == 'SAKT' :
         model = SAKT(ARGS.hidden_dim, QUESTION_NUM[ARGS.dataset_name], ARGS.num_layers,
