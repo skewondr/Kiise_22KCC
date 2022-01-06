@@ -193,10 +193,11 @@ class Trainer:
                 labels.extend(label.squeeze(-1).data.cpu().numpy())
                 outs.extend(out.squeeze(-1).data.cpu().numpy())
 
-                if batch_idx * ARGS.train_batch % self.eval_steps == 0 and batch_idx != 0:
-                    self._test('Validation', val_gen, epoch)
+                # if batch_idx * ARGS.train_batch % self.eval_steps == 0 and batch_idx != 0:
+                #     self._test('Validation', val_gen, epoch)
                     
-                if self.early_stopping.early_stop: break
+                # if self.early_stopping.early_stop: break
+            self._test('Validation', val_gen, epoch)
 
             acc = num_corrects / num_total
             try: auc = roc_auc_score(labels, outs)
