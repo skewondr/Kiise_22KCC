@@ -42,23 +42,15 @@ class DKVMN(nn.Module):
         stdev = 1 / (sqrt(self._concept_num + self._key_dim))
         nn.init.uniform_(self._key_memory, -stdev, stdev)
 
+        # value memory matrix, transposed
+        self._value_memory = torch.Tensor(self._value_dim, self._concept_num).to(ARGS.device)
+        stdev = 1 / (sqrt(self._concept_num + self._key_dim))
+        nn.init.uniform_(self._value_memory, -stdev, stdev)
+
         # activation functions
         self._sigmoid = nn.Sigmoid()
         self._tanh = nn.Tanh()
         self._softmax = nn.Softmax(dim=-1)
-
-    def _init_value_memory(self):
-        """
-        initialize value memory matrix
-        follows initialization that used in the following NMT implementation:
-        https://github.com/loudinthecloud/pytorch-ntm/blob/master/ntm/memory.py
-        """
-        # value memory matrix, transposed
-        self._value_memory = torch.Tensor(self._value_dim, self._concept_num).to(ARGS.device)
-
-        stdev = 1 / (sqrt(self._concept_num + self._key_dim))
-        nn.init.uniform_(self._value_memory, -stdev, stdev)
-        self._value_memory = self._value_memory.clone().repeat(self._batch_size, 1, 1)  # (batch_size, key_dim, concept_num)
 
     def _compute_correlation_weight(self, question_id):
         """
@@ -75,7 +67,7 @@ class DKVMN(nn.Module):
         """
         question_id = question_id.squeeze(-1)
         correlation_weight = self._compute_correlation_weight(question_id)
-        read_content = torch.matmul(self._value_memory, correlation_weight.unsqueeze(-1)).squeeze(-1)
+        read_content = torch.matmul(self._crnt_value_memory, correlation_weight.unsqueeze(-1)).squeeze(-1)
         return read_content.to(ARGS.device)
 
     def _write(self, interaction, question_id):
@@ -85,7 +77,7 @@ class DKVMN(nn.Module):
         """
         interaction_vector = self._interaction_embedding(interaction)
 
-        self._prev_value_memory = self._value_memory
+        self._prev_value_memory = self._value_memory.clone().repeat(interaction.shape[0], 1, 1)
         w = self._compute_correlation_weight(question_id)
 
         e = self._sigmoid(self._erase_layer(interaction_vector))  # erase vector
@@ -95,7 +87,7 @@ class DKVMN(nn.Module):
         a = self._tanh(self._add_layer(interaction_vector))  # add vector
         add = torch.matmul(w.unsqueeze(-1), a.unsqueeze(1))
         add = torch.transpose(add, 1, 2)
-        self._value_memory = self._prev_value_memory * (1 - erase) + add
+        self._crnt_value_memory = self._prev_value_memory * (1 - erase) + add
 
     def forward(self, X):
         """
@@ -103,11 +95,6 @@ class DKVMN(nn.Module):
         X['input']: integer tensor of shape (batch_size, sequence_size)
         X['target_id']: integer tensor of shape (batch_size)
         """
-        # initialize value memory matrix
-        batch_size = X['input'].shape[0]
-        self._batch_size = batch_size
-        self._init_value_memory()
-
         # repeat write process seq_size many times with X['input']
         for i in range(ARGS.seq_size):
             interaction = X['input'][:, i]  # (batch_size)
