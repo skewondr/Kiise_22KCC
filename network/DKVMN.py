@@ -65,7 +65,7 @@ class DKVMN(nn.Module):
         compute correlation weight of a given question with key memory matrix
         question_id: integer tensor of shape (batch_size)
         """
-        question_vector = self._question_embedding(question_id).to('cpu')
+        question_vector = self._question_embedding(question_id).to(ARGS.device)
         return self._softmax(torch.matmul(question_vector, self._key_memory)).to(ARGS.device)
 
     def _read(self, question_id):

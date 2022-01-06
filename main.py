@@ -86,17 +86,17 @@ TRANSFORMER_MODELS = ["SAKT"]
 def get_model():
     if ARGS.model == 'DKT':
         model = DKT(ARGS.input_dim, ARGS.hidden_dim, ARGS.num_layers, QUESTION_NUM[ARGS.dataset_name],
-                    ARGS.dropout).to(ARGS.device)
+                    ARGS.dropout)
         collate_fn = get_sequence
 
     elif ARGS.model == 'DKVMN':
         model = DKVMN(ARGS.key_dim, ARGS.value_dim, ARGS.summary_dim, QUESTION_NUM[ARGS.dataset_name],
-                      ARGS.concept_num).to(ARGS.device)
+                      ARGS.concept_num)
         collate_fn = get_sequence_attn
 
     elif ARGS.model == 'SAKT' :
         model = SAKT(ARGS.hidden_dim, QUESTION_NUM[ARGS.dataset_name], ARGS.num_layers,
-                     ARGS.num_head, ARGS.dropout).to(ARGS.device)
+                     ARGS.num_head, ARGS.dropout)
         collate_fn = get_sequence_attn
 
     else:
@@ -163,7 +163,6 @@ if __name__ == '__main__':
     ################################# Prepare Model ##################################
     logger.info(f"Model: {ARGS.model}")
     if ARGS.model == 'FM_alpha': logger.info(f"+ Alpha Model: {ARGS.alpha_model}")
-    model, collate_fn = get_model()
     if torch.cuda.is_available() and not ARGS.cpu:
         ARGS.device = 'cuda'
         num_gpus = torch.cuda.device_count()
@@ -175,12 +174,9 @@ if __name__ == '__main__':
             os.environ["CUDA_VISIBLE_DEVICES"] = '0'
             logger.info("Single-GPU mode")
             torch.cuda.set_device(0)
-        elif num_gpus > 1 :
-            logger.info(f"Multi-GPU mode: {num_gpus} GPUs")
-            model = nn.DataParallel(model)
-        else:
-            logger.info("CPU mode")
     else : logger.info("CPU mode")
+    model, collate_fn = get_model()
+    model = model.to(ARGS.device)
     ################################### Training #####################################
     optimizer = get_optimizer(ARGS.model, model, ARGS.lr, ARGS.decay)
     if ARGS.eta_min is not None:
