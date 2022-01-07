@@ -39,13 +39,11 @@ class DKVMN(nn.Module):
 
         # key memory matrix, transposed and initialized
         self._key_memory = torch.Tensor(self._key_dim, self._concept_num).to(ARGS.device)
-        stdev = 1 / (sqrt(self._concept_num + self._key_dim))
-        nn.init.uniform_(self._key_memory, -stdev, stdev)
+        nn.init.kaiming_normal_(self._key_memory)
 
         # value memory matrix, transposed
         self._value_memory = torch.Tensor(self._value_dim, self._concept_num).to(ARGS.device)
-        stdev = 1 / (sqrt(self._concept_num + self._key_dim))
-        nn.init.uniform_(self._value_memory, -stdev, stdev)
+        nn.init.kaiming_normal_(self._value_memory)
 
         # activation functions
         self._sigmoid = nn.Sigmoid()
