@@ -5,6 +5,7 @@ from util import load_checkpoint
 from network.DKT import DKT
 from network.DKVMN import DKVMN
 from network.SAKT import SAKT
+from network.SAKT_LSTM import SAKT_LSTM
 from constant import QUESTION_NUM
 from trainer import Trainer
 import numpy as np
@@ -98,6 +99,11 @@ def get_model():
         model = SAKT(ARGS.hidden_dim, QUESTION_NUM[ARGS.dataset_name], ARGS.num_layers,
                      ARGS.num_head, ARGS.dropout)
         collate_fn = get_sequence_attn
+
+    elif ARGS.model == 'SAKT_LSTM' :
+        model = SAKT_LSTM(ARGS.qd, ARGS.cd, ARGS.pd, ARGS.hidden_dim, QUESTION_NUM[ARGS.dataset_name], ARGS.num_layers,
+                     ARGS.num_head, ARGS.dropout).to(ARGS.device)
+        collate_fn = get_sequence_qkv
 
     else:
         raise NotImplementedError

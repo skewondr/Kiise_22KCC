@@ -89,7 +89,7 @@ base_args.add_argument('--test_run', type=str2bool, default='0')
 base_args.add_argument('--es_patience', type=int, default=10)
 base_args.add_argument('--sub_size', type=int, default=10)
 
-model_list = ['DKT', 'DKVMN', 'NPA', 'SAKT', 'KTM']
+model_list = ['DKT', 'DKVMN', 'NPA', 'SAKT', 'KTM', 'SAKT_LSTM']
 
 model_args = parser.add_argument_group('Model args')
 model_args.add_argument('--model', type=str, default='DKT', choices=model_list)
@@ -112,6 +112,12 @@ model_args.add_argument('--fc_dim', type=int, default=512)
 
 # SAKT
 model_args.add_argument('--num_head', type=int, default=5)
+
+#SAKT_LSTM 
+model_args.add_argument('--pos', type=str2bool, default='1')
+model_args.add_argument('--qd', type=int, default=100, help="question dimension")
+model_args.add_argument('--cd', type=int, default=100, help="correctness dimension")
+model_args.add_argument('--pd', type=int, default=100, help="position dimension")
 
 # KTM
 model_args.add_argument('--fm_hidden_dim', type=int, default=20)

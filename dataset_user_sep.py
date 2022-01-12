@@ -125,7 +125,6 @@ def get_sequence_attn(batch):
         lists["tag_ids"].append(tag_list[:-1])
         lists["positions"].append(pos_list[:-1])
 
-       
     #print("data_loader:",len(labels), f"{time.time()-start_time:.6f}") --> 0.9 avrg sec
     return {
         'label': torch.as_tensor(lists["labels"]), #(batch, 1)
@@ -134,3 +133,70 @@ def get_sequence_attn(batch):
         'tag_id': torch.as_tensor(lists["tag_ids"]),
         'position': torch.as_tensor(lists["positions"])
     }
+
+def get_sequence_qkv(batch):
+    start_time = time.time()
+    batch_data_path, batch_num_interacts = zip(*batch)
+
+    lists = {"labels":[], "input_lists":[], "target_ids":[], "correct_lists":[], "pos_lists":[]}
+    label_o_count = 0
+    label_x_count = 0
+
+    for data_path, num_of_interactions in zip(batch_data_path, batch_num_interacts):
+        with open(data_path, 'r') as f:
+            data = f.readlines()
+            data = data[1:] # header exists
+            sliced_data = data[:int(num_of_interactions)+1]
+            user_data_length = len(sliced_data)
+
+        if user_data_length > ARGS.seq_size + 1:
+            sliced_data = sliced_data[-(ARGS.seq_size + 1):]
+            user_data_length = ARGS.seq_size + 1
+            pad_counts = 0
+        else:
+            pad_counts = ARGS.seq_size + 1 - user_data_length
+
+        input_list = []
+        correct_list = []
+        for idx, line in enumerate(sliced_data):
+            line = line.rstrip().split(',')
+            tag_id = int(line[0])
+            is_correct = int(line[1])
+
+            if idx == user_data_length - 1:
+                target_crt = is_correct
+                if is_correct:
+                    label_o_count += 1
+                else:
+                    label_x_count += 1
+
+            if is_correct:
+                correct_list.append(CORRECT)
+            else:
+                correct_list.append(INCORRECT)
+            input_list.append(tag_id)
+
+        append_list(pad_counts, input_list, correct_list, target_crt, lists)
+
+    return {
+        'position':torch.as_tensor(lists["pos_lists"]),
+        'correctness':torch.as_tensor(lists["correct_lists"]), #(batch, seq_size)
+        'label': torch.as_tensor(lists["labels"]), #(batch, 1)
+        'input': torch.as_tensor(lists["input_lists"]), #(batch, seq_size)
+        'target_id': torch.as_tensor(lists["target_ids"]), 
+    }
+
+def append_list(pad_counts, input_list, correct_list, target_crt, lists):
+    paddings = [PAD_INDEX] * pad_counts
+    pos_list = paddings + list(range(1, len(input_list)+1))
+
+    input_list = paddings + input_list
+    correct_list = paddings + correct_list
+    assert len(input_list) == ARGS.seq_size + 1, "sequence size error"
+
+    lists["pos_lists"].append(pos_list)
+    lists["correct_lists"].append(correct_list)
+    lists["labels"].append([target_crt])
+    lists["input_lists"].append(input_list)
+    lists["target_ids"].append([input_list[-1]])
+

@@ -101,13 +101,13 @@ class SAKTLayer(nn.Module):
         self._ffn = PositionwiseFeedForward(hidden_dim, hidden_dim, dropout) #hidden_dim = d_model, d_ff
         self._layernorms = clones(nn.LayerNorm(hidden_dim, eps=1e-6), 2)
 
-    def forward(self, query, key, mask=None):
+    def forward(self, query, key, value, mask=None):
         """
         query: question embeddings
         key: interaction embeddings
         """
         # self-attention block
-        output = self._self_attn(query=query, key=key, value=key, mask=mask)
+        output = self._self_attn(query=query, key=key, value=value, mask=mask)
         #output = self._layernorms[0](key + output)
         # feed-forward block
         #output = self._layernorms[1](output + self._ffn(output))
