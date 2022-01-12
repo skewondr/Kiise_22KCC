@@ -38,13 +38,14 @@ def get_rm_tags(mode, train_tag_name, tag_name, rm_tag_name):
                 pickle.dump(rm_tags, f)
     return 
 
-def read_data_files(flag, mode, path, user_path_list, num_of_users, save_name, rm_tag_name=None):
+def read_data_files(flag, mode, path, user_path_list, num_of_users, save_name, save_l_name=None, rm_tag_name=None):
     rm_target_tags = get_pickles(rm_tag_name)
   
     output = []
     seq_length=[]
     correct_count=0
     incorrect_count=0
+    label = []
     for idx, user_path in enumerate(tqdm(user_path_list, total=num_of_users, ncols=100)):
         user_id = user_path.split('/')[-1]
         user_id = int(re.sub(r'[^0-9]', '', user_id))
@@ -66,8 +67,10 @@ def read_data_files(flag, mode, path, user_path_list, num_of_users, save_name, r
                 if flag == 'make_sample':
                     if mode == 'train':
                         output.append((os.path.join(path, user_path), end_index))
+                        label.append(is_correct)
                     elif mode != 'train' and end_tag in rm_target_tags:
                         output.append((os.path.join(path, user_path), end_index))
+                        label.append(is_correct)
                         
     if flag == 'make_sample':
         logger.info(f"mean length : {statistics.mean(seq_length)}")
@@ -79,10 +82,17 @@ def read_data_files(flag, mode, path, user_path_list, num_of_users, save_name, r
 
         logger.info(f"# of exercise : {len(rm_target_tags)}")
 
-    with open(save_name, 'wb') as f: 
-        pickle.dump(set(output), f)
-    
-    return output
+    if flag == 'make_tag':
+        with open(save_name, 'wb') as f: 
+                pickle.dump(set(output), f)
+
+    if flag == 'make_sample':
+        with open(save_name, 'wb') as f: 
+            pickle.dump(output, f)
+        with open(save_l_name, 'wb') as f: 
+            pickle.dump(label, f)
+        
+    return output, label
 
 def get_data_infos(user_base_path, i, mode, sub_size):
     """
@@ -95,6 +105,7 @@ def get_data_infos(user_base_path, i, mode, sub_size):
     train_tag_name = data_path+f"sub{ARGS.sub_size}/train_{ARGS.sub_size}target.pickle"
     tag_name = data_path+f"sub{sub_size}/{mode}_{sub_size}target.pickle"
     acc_name = data_path+f"sub{sub_size}/{mode}_{sub_size}acc.pickle"
+    label_name = data_path+f"sub{sub_size}/{mode}_{sub_size}label.pickle"
     path = os.path.join(data_path, mode)
 
     # get list of all files
@@ -113,20 +124,21 @@ def get_data_infos(user_base_path, i, mode, sub_size):
             num_of_users = len(user_path_list)
 
     if not os.path.isfile(tag_name):
-        _ = read_data_files("make_tag", mode, path, user_path_list, num_of_users, tag_name)
+        _, _ = read_data_files("make_tag", mode, path, user_path_list, num_of_users, tag_name)
     if not os.path.isfile(rm_tag_name):
         get_rm_tags(mode, train_tag_name, tag_name, rm_tag_name)
-    if not os.path.isfile(sample_data_name):
+    if not os.path.isfile(sample_data_name) or not os.path.isfile(label_name):
         if mode == 'train' : name = train_tag_name
         else : name = rm_tag_name
-        sample_infos = read_data_files("make_sample", mode, path, user_path_list, num_of_users, sample_data_name, name)
+        sample_infos, label = read_data_files("make_sample", mode, path, user_path_list, num_of_users, sample_data_name, label_name, name)
     else: 
         sample_infos = get_pickles(sample_data_name)
+        label = get_pickles(label_name)
 
     # if mode == 'train' and not os.path.isfile(acc_name):
     #     get_data_acc(sample_data_name, acc_name)
     
-    return sample_infos, num_of_users
+    return sample_infos, num_of_users, label
 
 def get_data_acc(sample_data_name, save_name):
     user_path_list = get_pickles(sample_data_name)
