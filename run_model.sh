@@ -25,7 +25,6 @@ for s in ${seed[@]}; do
         --test_batch 2048
         --eval_steps 40000
         --ckpt_name Testing #!!!!!!!!!!!!!seg, seed!!!!!!!!!!!!!!!!
-        --pos 1
         --qd 100
         --cd 50 
         --pd 50 

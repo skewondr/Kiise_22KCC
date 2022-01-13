@@ -114,7 +114,6 @@ model_args.add_argument('--fc_dim', type=int, default=512)
 model_args.add_argument('--num_head', type=int, default=5)
 
 #SAKT_LSTM 
-model_args.add_argument('--pos', type=str2bool, default='1')
 model_args.add_argument('--qd', type=int, default=100, help="question dimension")
 model_args.add_argument('--cd', type=int, default=100, help="correctness dimension")
 model_args.add_argument('--pd', type=int, default=100, help="position dimension")
