@@ -88,29 +88,25 @@ def get_model():
     if ARGS.model == 'DKT':
         model = DKT(ARGS.input_dim, ARGS.hidden_dim, ARGS.num_layers, QUESTION_NUM[ARGS.dataset_name],
                     ARGS.dropout)
-        collate_fn = get_sequence
 
     elif ARGS.model == 'DKVMN':
         model = DKVMN(ARGS.key_dim, ARGS.value_dim, ARGS.summary_dim, QUESTION_NUM[ARGS.dataset_name],
                       ARGS.concept_num)
-        collate_fn = get_sequence_attn
 
     elif ARGS.model == 'SAKT' :
         model = SAKT(ARGS.hidden_dim, QUESTION_NUM[ARGS.dataset_name], ARGS.num_layers,
                      ARGS.num_head, ARGS.dropout)
-        collate_fn = get_sequence_attn
 
     elif ARGS.model == 'SAKT_LSTM' :
         model = SAKT_LSTM(ARGS.qd, ARGS.cd, ARGS.pd, ARGS.hidden_dim, QUESTION_NUM[ARGS.dataset_name], ARGS.num_layers,
                      ARGS.num_head, ARGS.dropout).to(ARGS.device)
-        collate_fn = get_sequence_qkv
 
     else:
         raise NotImplementedError
 
-    return model, collate_fn
+    return model
 
-def run(i, model, start_epoch, optimizer, scheduler, collate_fn, other_states):
+def run(i, model, start_epoch, optimizer, scheduler, other_states):
     """
     i: single integer represents dataset number
     """
@@ -145,7 +141,6 @@ def run(i, model, start_epoch, optimizer, scheduler, collate_fn, other_states):
         train_data, 
         val_data, 
         test_data,
-        collate_fn, 
         other_states=other_states,
     )
     if ARGS.mode == "train":
@@ -181,7 +176,7 @@ if __name__ == '__main__':
             logger.info("Single-GPU mode")
             torch.cuda.set_device(0)
     else : logger.info("CPU mode")
-    model, collate_fn = get_model()
+    model = get_model()
     model = model.to(ARGS.device)
     ################################### Training #####################################
     optimizer = get_optimizer(ARGS.model, model, ARGS.lr, ARGS.decay)
@@ -207,14 +202,14 @@ if __name__ == '__main__':
             other_states = {}
         ################################### Start Training #####################################
         if ARGS.cross_validation is False:
-            test_acc, test_auc = run(1, model, start_epoch, optimizer, scheduler, collate_fn, other_states)
+            test_acc, test_auc = run(1, model, start_epoch, optimizer, scheduler, other_states)
         else:
             acc_list = []
             auc_list = []
 
             for i in range(1, 6):
                 logger.info(f'{i}th dataset')
-                test_acc, test_auc = run(i, model, start_epoch, optimizer, scheduler, collate_fn, other_states)
+                test_acc, test_auc = run(i, model, start_epoch, optimizer, scheduler, other_states)
                 acc_list.append(test_acc)
                 auc_list.append(test_auc)
 
@@ -232,5 +227,5 @@ if __name__ == '__main__':
         model.load_state_dict(torch.load(os.path.join(ARGS.weight_path, f'{now_str}.pt')))
         start_epoch = 0
         other_states = {}
-        test_acc, test_auc = run(1, model, start_epoch, optimizer, scheduler, collate_fn, other_states)
+        test_acc, test_auc = run(1, model, start_epoch, optimizer, scheduler, other_states)
         

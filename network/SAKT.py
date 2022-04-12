@@ -150,7 +150,7 @@ class SAKT(nn.Module):
         x = interaction_vector + position_vector
 
         for layer in self._layers:
-            x = layer(query=question_vector, key=x, mask=mask)
+            x = layer(query=question_vector, key=x, value=x, mask=mask)
         output = self._prediction(x)
         output = output[:, -1, :]
         return output

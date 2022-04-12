@@ -3,6 +3,7 @@ import time
 import torch
 import torch.nn as nn
 from torch.utils import data
+from dataset_user_sep import *
 from tqdm import tqdm
 from sklearn.metrics import roc_auc_score
 from itertools import repeat, chain, islice
@@ -14,6 +15,8 @@ from network.util_network import ScheduledOptim, NoamOpt
 from util import save_checkpoint
 from typing import Dict, Optional, Tuple, Union
 import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix
+import seaborn as sns
 
 FM_MODELS = ["KTM", "SEQFM"]
 
@@ -111,7 +114,6 @@ class Trainer:
         train_data, 
         val_data, 
         test_data, 
-        collate_fn, 
         other_states={},
     ):
         self._device = device
@@ -126,7 +128,8 @@ class Trainer:
         self._train_data = train_data
         self._val_data = val_data
         self._test_data = test_data
-        self._collate_fn = collate_fn
+        self._collate_fn = MyCollator(ARGS.model)
+        self._collate_fn_aug = MyCollator(ARGS.model, True)
 
         #self._opt = NoamOptimizer(model=model, lr=lr, model_size=d_model, warmup=warm_up_step_count)
         self._opt = optimizer
@@ -156,7 +159,7 @@ class Trainer:
             pin_memory=False if ARGS.device == 'cpu' else True,
             batch_size=ARGS.train_batch, 
             num_workers=ARGS.num_workers, 
-            collate_fn=self._collate_fn
+            collate_fn=self._collate_fn_aug
         )
         val_gen = data.DataLoader(
             dataset=self._val_data, 
@@ -256,6 +259,7 @@ class Trainer:
         num_total = 0
         labels = []
         outs = []
+        preds = []
 
         with torch.no_grad():
             for batch in tqdm(batches, total=len(batches), ncols=100):
@@ -268,6 +272,7 @@ class Trainer:
 
                 labels.extend(label.squeeze(-1).data.cpu().numpy())
                 outs.extend(out.squeeze(-1).data.cpu().numpy())
+                preds.extend(pred.squeeze(-1).data.cpu().numpy())
 
         acc = num_corrects / num_total
         auc = roc_auc_score(labels, outs)
@@ -277,10 +282,14 @@ class Trainer:
         if name == 'Validation':
             self.early_stopping(auc, self._model, epoch, self._opt, self.scheduler)
             self.valid_acc = acc
+            tn, fp, fn, tp = confusion_matrix(labels, preds).ravel()
+            logger.info(f"model prediction: tn: fp: fn: tp = {tn}: {fp}: {fn}: {tp}")
 
         elif name == 'Test':
             self.test_acc = acc
             self.test_auc = auc
+            self.plot_cfm(labels, preds)
+
         logger.info('-'*80)
         logger.info(f'[{name}] early stop: {self.early_stopping.counter}/{self.es_patience}, loss: {loss:.4f}, acc: {acc:.4f}, auc: {auc:.4f}, time: {training_time:.2f}')
         logger.info('-'*80)
@@ -304,3 +313,19 @@ class Trainer:
         plt.show()
         plt_file_path = os.path.join(self._weight_path, 'Accuracy_plot.png')
         plt.savefig(plt_file_path)
+
+    def plot_cfm(self, labels, preds):
+        cf_matrix = confusion_matrix(labels, preds, normalize='all')
+        ax = sns.heatmap(cf_matrix, annot=True, cmap='Blues')
+
+        ax.set_title('Confusion Matrix with labels\n\n');
+        ax.set_xlabel('\nPredicted Values')
+        ax.set_ylabel('Actual Values ');
+
+        ## Ticket labels - List must be in alphabetical order
+        ax.xaxis.set_ticklabels(['0','1'])
+        ax.yaxis.set_ticklabels(['0','1'])
+
+        plt_file_path = os.path.join(self._weight_path, 'CF_Matrix.png')
+        plt.savefig(plt_file_path, dpi=300)
+
