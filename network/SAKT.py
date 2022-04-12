@@ -146,7 +146,7 @@ class SAKT(nn.Module):
         position_vector = self._positional_embedding(X['position'])
 
         mask = get_pad_mask(X['input'], PAD_INDEX) & get_subsequent_mask(X['input'])
-        mask = None 
+        # mask = None 
         x = interaction_vector + position_vector
 
         for layer in self._layers:

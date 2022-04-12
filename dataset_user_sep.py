@@ -44,7 +44,7 @@ class MyCollator():
         start_time = time.time()
         batch_data_path, batch_num_interacts = zip(*batch)
         
-        lists = {"labels":[], "input_lists":[], "target_ids":[]}
+        lists = {"labels":[], "input_lists":[], "target_ids":[], "avg_len":[]}
         for data_path, num_of_interactions in zip(batch_data_path, batch_num_interacts):
             with open(data_path, 'r') as f:
                 data = f.readlines()
@@ -91,6 +91,7 @@ class MyCollator():
             'label': torch.as_tensor(lists["labels"]), #(batch, 1)
             'input': torch.as_tensor(lists["input_lists"]), #(batch, seq_size)
             'target_id': torch.as_tensor(lists["target_ids"]),
+            'avg_len': torch.as_tensor(lists["avg_len"]),
         }
 
     
@@ -98,7 +99,7 @@ class MyCollator():
         start_time = time.time()
         batch_data_path, batch_num_interacts = zip(*batch)
         
-        lists = {"labels":[], "input_lists":[], "target_ids":[], "tag_ids":[], "positions":[]}
+        lists = {"labels":[], "input_lists":[], "target_ids":[], "tag_ids":[], "positions":[], "avg_len":[]}
         for data_path, num_of_interactions in zip(batch_data_path, batch_num_interacts):
             with open(data_path, 'r') as f:
                 data = f.readlines()
@@ -148,13 +149,14 @@ class MyCollator():
             'target_id': torch.as_tensor(lists["target_ids"]),
             'tag_id': torch.as_tensor(lists["tag_ids"]),
             'position': torch.as_tensor(lists["positions"]),
+            'avg_len': torch.as_tensor(lists["avg_len"]),
         }
 
     def get_sequence_qkv(self, batch):
         start_time = time.time()
         batch_data_path, batch_num_interacts = zip(*batch)
 
-        lists = {"labels":[], "input_lists":[], "target_ids":[], "correct_lists":[], "pos_lists":[]}
+        lists = {"labels":[], "input_lists":[], "target_ids":[], "correct_lists":[], "pos_lists":[], "avg_len":[]}
 
         for data_path, num_of_interactions in zip(batch_data_path, batch_num_interacts):
             with open(data_path, 'r') as f:
@@ -202,6 +204,7 @@ class MyCollator():
             'label': torch.as_tensor(lists["labels"]), #(batch, 1)
             'input': torch.as_tensor(lists["input_lists"]), #(batch, seq_size)
             'target_id': torch.as_tensor(lists["target_ids"]), 
+            'avg_len': torch.as_tensor(lists["avg_len"]),
         }
 
     def append_list(self, pad_counts, input_list, correct_list, target_crt, crt_idx, incrt_idx, lists, other_list=None):
@@ -250,6 +253,7 @@ class MyCollator():
         paddings = [PAD_INDEX] * pad_counts
         pos_list = paddings + list(range(1, len(input_list)+1))
 
+        input_len = len(input_list)
         input_list = paddings + input_list
         correct_list = paddings + correct_list 
 
@@ -262,6 +266,7 @@ class MyCollator():
             lists["labels"].append([target_crt])
             lists["input_lists"].append(input_list)
             lists["target_ids"].append([input_list[-1]])
+            lists["avg_len"].append([input_len])
         
         elif ARGS.model in ['SAKT', 'DKVMN']:
 
@@ -273,6 +278,8 @@ class MyCollator():
             lists["target_ids"].append([tag_list[-1]])
             lists["tag_ids"].append(tag_list[:-1])
             lists["positions"].append(pos_list[:-1])
+            lists["avg_len"].append([input_len])
+
 
         elif ARGS.model in ['DKT']:
 
@@ -281,6 +288,8 @@ class MyCollator():
             lists["labels"].append([correct_list[-1]])
             lists["input_lists"].append(input_list[:-1])
             lists["target_ids"].append([target_id])
+            lists["avg_len"].append([input_len])
+
 
 
     

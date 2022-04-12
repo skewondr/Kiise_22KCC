@@ -178,6 +178,8 @@ class Trainer:
             num_total = 0
             labels = []
             outs = []
+            avg_len = 0
+
             for batch_idx, batch in enumerate(train_gen):
                 self._model.train()
                 label, out, pred = self._forward(batch)
@@ -195,11 +197,13 @@ class Trainer:
                 num_total += len(label)
                 labels.extend(label.squeeze(-1).data.cpu().numpy())
                 outs.extend(out.squeeze(-1).data.cpu().numpy())
+                avg_len += batch['avg_len'].sum().item()
 
                 # if batch_idx * ARGS.train_batch % self.eval_steps == 0 and batch_idx != 0:
                 #     self._test('Validation', val_gen, epoch)
                     
                 # if self.early_stopping.early_stop: break
+            logger.info(f"Train seqlen avg:{avg_len/len(batch['avg_len']):.2f}")
             self._test('Validation', val_gen, epoch)
 
             acc = num_corrects / num_total
