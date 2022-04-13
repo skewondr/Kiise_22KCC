@@ -18,8 +18,6 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
 
-FM_MODELS = ["KTM", "SEQFM"]
-
 class EarlyStopping:
     #https://stats.stackexchange.com/questions/68893/area-under-curve-of-roc-vs-overall-accuracy
     def __init__(self, patience=10, verbose=False, delta=0, path='checkpoint.pt'):

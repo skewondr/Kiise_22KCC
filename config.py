@@ -63,8 +63,7 @@ def print_args(params):
 now = datetime.now()
 now_str = f'{now.day:02}{now.hour:02}{now.minute:02}'
 
-dataset_list = ['ASSISTments2009', 'ASSISTments2012', 'ASSISTments2015', 'ASSISTmentsChall',
-                'STATICS', 'KDDCup', 'Junyi', 'EdNet-KT1']
+dataset_list = ['EdNet-KT1']
 
 base_args = parser.add_argument_group('Base args')
 
@@ -74,27 +73,25 @@ base_args.add_argument('--device', type=str, default='cpu', help='automatically 
 base_args.add_argument('--gpu', type=str, default='none', help='using single gpu.')
 base_args.add_argument('--cpu', type=str2bool, default='0', help='using cpu.')
 base_args.add_argument('--num_workers', type=int, default=8)
-#base_args.add_argument('--base_path', type=str, default='/shared/benchmarks/')
 
 base_args.add_argument('--weight_path', type=str, default=f"./weight", help="saved model path")
-#base_args.add_argument('--weight_name', type=str, default=f"best_{now_str}", help="saved model name")
 base_args.add_argument('--ckpt_path', type=str, default="./checkpoint", help="checkpoint path")
 base_args.add_argument('--ckpt_name', type=str, required=True, help="checkpoint name")
 base_args.add_argument('--ckpt_resume', type=str2bool, default='0')
 base_args.add_argument('--run_script', type=str, default="run_model.sh", help="Run script file path to log")
 
-base_args.add_argument('--dataset_name', type=str, default='ASSISTments2009', choices=dataset_list)
+base_args.add_argument('--dataset_name', type=str, default='EdNet-KT1', choices=dataset_list)
 base_args.add_argument('--get_user_ft', type=str2bool, default='0')
 base_args.add_argument('--test_run', type=str2bool, default='0')
 base_args.add_argument('--es_patience', type=int, default=10)
 base_args.add_argument('--sub_size', type=int, default=10)
 
-model_list = ['DKT', 'DKVMN', 'NPA', 'SAKT', 'KTM', 'SAKT_LSTM']
+model_list = ['DKT', 'DKVMN', 'SAKT']
 
 model_args = parser.add_argument_group('Model args')
 model_args.add_argument('--model', type=str, default='DKT', choices=model_list)
 
-# DKT, NPA, SAKT
+# DKT, SAKT
 model_args.add_argument('--num_layers', type=int, default=1)
 model_args.add_argument('--hidden_dim', type=int, default=100)
 model_args.add_argument('--input_dim', type=int, default=100)
@@ -106,20 +103,9 @@ model_args.add_argument('--value_dim', type=int, default=100)
 model_args.add_argument('--summary_dim', type=int, default=100)
 model_args.add_argument('--concept_num', type=int, default=20)
 
-# NPA
-model_args.add_argument('--attention_dim', type=int, default=256)
-model_args.add_argument('--fc_dim', type=int, default=512)
-
 # SAKT
 model_args.add_argument('--num_head', type=int, default=5)
 
-#SAKT_LSTM 
-model_args.add_argument('--qd', type=int, default=100, help="question dimension")
-model_args.add_argument('--cd', type=int, default=100, help="correctness dimension")
-model_args.add_argument('--pd', type=int, default=100, help="position dimension")
-
-# KTM
-model_args.add_argument('--fm_hidden_dim', type=int, default=20)
 
 train_args = parser.add_argument_group('Train args')
 train_args.add_argument('--random_seed', type=int, default=1)
@@ -130,12 +116,12 @@ train_args.add_argument('--lr', type=float, default=1e-3)
 train_args.add_argument('--decay', type=float, default=2e-4)
 train_args.add_argument('--eta_min', type=float, default=1e-4, help="Minimum learning rate for cosine annealing scheduler")
 train_args.add_argument('--seq_size', type=int, default=200)
-#train_args.add_argument('--warm_up_step_count', type=int, default=4000)
 train_args.add_argument('--eval_steps', type=int, default=5)
 train_args.add_argument('--cross_validation', type=str2bool, default='0')
 
-train_args.add_argument('--aug_prob', type=float, default=1e-1)
-train_args.add_argument('--del_type', type=str, default="A", help="Option: P / N")
+# AUGMENTATION
+train_args.add_argument('--aug_prob', type=float, default=1e-1, help="used to count the number of questions to remove ex) seq_len * aug_prob")
+train_args.add_argument('--del_type', type=str, default="A", help="Option: A(do nothing) / P(remove x) / N(remove o)")
 
 ARGS = get_args()
 
