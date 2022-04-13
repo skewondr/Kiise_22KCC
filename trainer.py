@@ -296,6 +296,8 @@ class Trainer:
         elif name == 'Test':
             self.test_acc = acc
             self.test_auc = auc
+            tn, fp, fn, tp = confusion_matrix(labels, preds).ravel()
+            logger.info(f"model prediction: tn: fp: fn: tp = {tn}: {fp}: {fn}: {tp}")
             self.plot_cfm(labels, preds)
 
         logger.info('-'*80)
@@ -324,10 +326,14 @@ class Trainer:
         plt.clf()
 
     def plot_cfm(self, labels, preds):
-        cf_matrix = confusion_matrix(labels, preds, normalize='all')
-        tn, fp, fn, tp = cf_matrix.ravel()
-        logger.info(f"model prediction: tn: fp: fn: tp = {tn}: {fp}: {fn}: {tp}")
-        ax = sns.heatmap(cf_matrix, annot=True, cmap='Blues')
+        cf_matrix = confusion_matrix(labels, preds)
+
+        group_names = ['TN','FP','FN','TP']
+        group_counts = ["{0:0.0f}".format(value) for value in cf_matrix.flatten()]
+        group_percentages = ["{0:.2%}".format(value) for value in cf_matrix.flatten()/np.sum(cf_matrix)]
+        labels = [f"{v1}\n{v2}\n{v3}" for v1, v2, v3 in zip(group_names,group_counts,group_percentages)]
+        labels = np.asarray(labels).reshape(2,2)
+        ax = sns.heatmap(cf_matrix, annot=labels, fmt='', cmap='Blues')
 
         ax.set_title('Confusion Matrix with labels\n\n');
         ax.set_xlabel('\nPredicted Values')
