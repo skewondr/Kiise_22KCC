@@ -225,20 +225,26 @@ class MyCollator():
             """
             제거할 대상이 없는 경우 : 원본 데이터를 사용하도록 
             """
+            selected_n = int(ARGS.aug_prob * ARGS.seq_size)
+
             if ARGS.del_type == 'P': #label == 1
-                selected_n = min(int(ARGS.aug_prob * len(incrt_idx)), len(incrt_idx))
+                min_selected_n = min(selected_n, len(incrt_idx))
+                removed_idx_list = np.random.choice(incrt_idx, min_selected_n, replace=False)
                 # logger.info("remove incrt idx")
 
-
             elif ARGS.del_type == 'N':  #label == 0
-                selected_n = min(int(ARGS.aug_prob * len(crt_idx)), len(incrt_idx))
+                min_selected_n = min(selected_n, len(crt_idx))
+                removed_idx_list = np.random.choice(crt_idx, min_selected_n, replace=False)
                 # logger.info("remove crt idx")
 
+            elif ARGS.del_type == 'A':  #random 
+                min_selected_n = min(selected_n, len(input_list[:-1]))
+                removed_idx_list = np.random.choice(range(len(input_list[:-1])), min_selected_n, replace=False)
+                # logger.info("remove crt idx")
             
-            else : selected_n = 0
+            else : min_selected_n = 0
 
-            if selected_n > 0 : 
-                removed_idx_list = np.random.choice(incrt_idx, selected_n, replace=False)
+            if min_selected_n > 0 : 
 
                 input_list = [v for i, v in enumerate(input_list) if i not in removed_idx_list]
                 correct_list = [v for i, v in enumerate(correct_list) if i not in removed_idx_list]
@@ -279,7 +285,6 @@ class MyCollator():
             lists["tag_ids"].append(tag_list[:-1])
             lists["positions"].append(pos_list[:-1])
             lists["avg_len"].append([input_len])
-
 
         elif ARGS.model in ['DKT']:
 
