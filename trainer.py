@@ -63,7 +63,10 @@ class EarlyStopping:
             self.save_best_ckpt(score, model, os.path.join(self.path, 'best_ckpt.pt'))
             self.best_score = score
             self.counter = 0
-        self.save_last_ckpt(score, model, os.path.join(self.path, 'last_ckpt.pt'), epoch, optim, scheduler)
+        if epoch == 0 :
+            self.save_best_ckpt(score, model, os.path.join(self.path, 'best_ckpt.pt'))
+        else:
+            self.save_last_ckpt(score, model, os.path.join(self.path, 'last_ckpt.pt'), epoch, optim, scheduler)
 
     def save_best_ckpt(self, score, model, path):
         if self.verbose:
@@ -188,7 +191,8 @@ class Trainer:
 
                 if batch_idx % 100 == 0:    
                     logger.info(f'{epoch} {batch_idx * ARGS.train_batch}/{len(train_gen) * ARGS.train_batch} early stop: {self.early_stopping.counter}/{self.es_patience}, loss: {train_loss:.4f}')
-                
+                # if batch_idx == 0 : 
+                #     logger.info(f"{batch['avg_len'].float().mean().item():.4f}")
                 self._opt.zero_grad()
                 train_loss.backward()
                 self._opt.step()
@@ -197,13 +201,13 @@ class Trainer:
                 num_total += len(label)
                 labels.extend(label.squeeze(-1).data.cpu().numpy())
                 outs.extend(out.squeeze(-1).data.cpu().numpy())
-                avg_len += batch['avg_len'].sum().item()
+                avg_len += batch['avg_len'].float().mean().item()
 
                 # if batch_idx * ARGS.train_batch % self.eval_steps == 0 and batch_idx != 0:
                 #     self._test('Validation', val_gen, epoch)
                     
                 # if self.early_stopping.early_stop: break
-            logger.info(f"Train seqlen avg:{avg_len/len(batch['avg_len']):.2f}")
+            logger.info(f"Train seqlen avg:{avg_len/len(train_gen)}")
             self._test('Validation', val_gen, epoch)
 
             acc = num_corrects / num_total
@@ -317,9 +321,12 @@ class Trainer:
         plt.show()
         plt_file_path = os.path.join(self._weight_path, 'Accuracy_plot.png')
         plt.savefig(plt_file_path)
+        plt.clf()
 
     def plot_cfm(self, labels, preds):
         cf_matrix = confusion_matrix(labels, preds, normalize='all')
+        tn, fp, fn, tp = cf_matrix.ravel()
+        logger.info(f"model prediction: tn: fp: fn: tp = {tn}: {fp}: {fn}: {tp}")
         ax = sns.heatmap(cf_matrix, annot=True, cmap='Blues')
 
         ax.set_title('Confusion Matrix with labels\n\n');
@@ -331,5 +338,7 @@ class Trainer:
         ax.yaxis.set_ticklabels(['0','1'])
 
         plt_file_path = os.path.join(self._weight_path, 'CF_Matrix.png')
-        plt.savefig(plt_file_path, dpi=300)
+        plt.savefig(plt_file_path, dpi=500)
+        plt.clf()
+
 

@@ -22,7 +22,7 @@ for s in ${seed[@]}; do
         --train_batch 2048
         --test_batch 2048
         --eval_steps 40000
-        --ckpt_name Testing
+        --ckpt_name A_0.2_${s}
         --qd 100
         --cd 50 
         --pd 50 
@@ -30,7 +30,7 @@ for s in ${seed[@]}; do
         # --balance 1
         #######################################
         --aug_prob 0.2
-        --del_type N
+        --del_type P
         #######################################
         --es_patience 3
         --num_head 5
@@ -38,7 +38,7 @@ for s in ${seed[@]}; do
         --num_epochs 20
         #--test_run 1
         #--ckpt_resume 1 
-        --gpu 0
+        --gpu 1
     )
     echo `python main.py ${args[@]}`
 done
