@@ -158,6 +158,7 @@ if __name__ == '__main__':
     set_seed(ARGS.random_seed)
     ################################# Prepare Model ##################################
     logger.info(f"Model: {ARGS.model}")
+    logger.info(f"Checkpoint Name: {ARGS.ckpt_name}")
     if torch.cuda.is_available() and not ARGS.cpu:
         ARGS.device = 'cuda'
         num_gpus = torch.cuda.device_count()
