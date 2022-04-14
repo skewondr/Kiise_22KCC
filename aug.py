@@ -13,7 +13,29 @@ acc_name = f"../dataset/{ARGS.dataset_name}/processed/1/sub{ARGS.sub_size}/train
 with open(acc_name, 'rb') as f: 
     acc_dict = pickle.load(f)
 
-def Pre_Del(input_lists, idx_list, n):
+"""
+제거할 대상이 없는 경우 : 원본 데이터를 사용하도록 
+
+pad_counts: 원본 데이터의 zero padding length 
+input_list: 원본 데이터의 input sequence (문제 정보) 
+correct_list: 원본 데이터의 input sequence (정답 정보)  
+target_crt: 마지막 문제 라벨 
+crt_idx: correct_list에서 맞힌 문제 index 
+incrt_idx: correct_list에서 틀린 문제 index 
+lists: 저장할 대상 dict
+others: 각 모델별 preprocessing 함수마다 특별히 필요한 요소들 
+"""
+
+# aug_config = {
+#     1: ((input_list, correct_list), incrt_idx, ARGS.aug_prob),del
+#     2: ((input_list, correct_list), range(len(correct_list)-1), ARGS.aug_prob),
+#     4: ((input_list, correct_list), incrt_idx, ARGS.aug_prob), shuff
+#     5: ((input_list, correct_list), crt_idx, incrt_idx, ARGS.aug_prob), swap
+#     }
+
+selected_n = int(ARGS.aug_prob * ARGS.seq_size)
+
+def Del(kwargs, others):
     if ARGS.aug_prob < 1: #aug_probability
         n = int(n * len(input_lists[0]))
         if len(input_lists[0])-1-n >= 5 and len(idx_list) > 0 and n > 0:
@@ -45,29 +67,7 @@ def Pre_Del(input_lists, idx_list, n):
         else: 
             return None 
 
-def Post_Del(input_lists, idx_list, n):
-    SAKT_MODELS = ['SAKT', 'SAKT_LSTM']
-    incrt = INCORRECT if ARGS.model in SAKT_MODELS else 0
-
-    if input_lists[1][-1] == incrt and ARGS.aug_prob < 1: #aug_probability
-        n = int(n * len(input_lists[0]))
-        if len(input_lists[0])-1-n >= 5 and len(idx_list) > 0 and n > 0:
-            if ARGS.aug_seg_time:
-                prob = [i for i in range(1, len(idx_list)+1)]
-                prob = [i/sum(prob) for i in prob]
-                removed_idx_list = np.random.choice(idx_list,min(n, len(idx_list)), p=prob, replace=False)
-
-            else:
-                removed_idx_list = np.random.choice(idx_list,min(n, len(idx_list)), replace=False)
-
-            input_lists0 = [v for i, v in enumerate(input_lists[0]) if i not in removed_idx_list]
-            input_lists1 = [v for i, v in enumerate(input_lists[1]) if i not in removed_idx_list]
-    
-            return (input_lists0, input_lists1)
-        else: 
-            return None 
-
-def Post_Del_Acc(input_lists, crt_list, incrt_list, n):
+def Del_Acc(input_lists, crt_list, incrt_list, n):
     SAKT_MODELS = ['SAKT', 'SAKT_LSTM']
     incrt = INCORRECT if ARGS.model in SAKT_MODELS else 0
 
@@ -101,7 +101,7 @@ def Post_Del_Acc(input_lists, crt_list, incrt_list, n):
         else: 
             return None 
 
-def Pre_Shuff(input_lists, idx_list, n):
+def Shuf(input_lists, idx_list, n):
     if ARGS.aug_prob < 1: #aug_probability
         n = int(n * len(input_lists[0]))
         if len(idx_list) > 1 and n > 1:
@@ -133,7 +133,7 @@ def Pre_Shuff(input_lists, idx_list, n):
             return None 
 
 
-def Pre_Swap(input_lists, crt_idx, incrt_idx, n):
+def Swap(input_lists, crt_idx, incrt_idx, n):
     if ARGS.aug_prob < 1: #aug_probability
         n = int(n * len(input_lists[0]))
         if n > 0:

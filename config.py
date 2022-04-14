@@ -121,6 +121,7 @@ train_args.add_argument('--cross_validation', type=str2bool, default='0')
 
 # AUGMENTATION
 train_args.add_argument('--aug_prob', type=float, default=1e-1, help="used to count the number of questions to remove ex) seq_len * aug_prob")
+train_args.add_argument('--aug_type', type=str, default="deletion", help="deletion / deletion_acc / swapping / shuffling")
 train_args.add_argument('--del_type', type=str, default="A", help="Option: A(do nothing) / P(remove x) / N(remove o)")
 
 ARGS = get_args()
