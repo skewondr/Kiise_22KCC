@@ -27,8 +27,8 @@ for s in ${seed[@]}; do
         # --balance 1
         #######################################
         --aug_prob 0.2
-        --aug_type deletion
-        --select_type gcr
+        --aug_type shuffling
+        # --select_type lp
         #######################################
         --es_patience 3
         --num_head 5
