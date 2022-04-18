@@ -34,108 +34,68 @@ others: 각 모델별 preprocessing 함수마다 특별히 필요한 요소들
 #     }
 
 selected_n = int(ARGS.aug_prob * ARGS.seq_size)
-
-def Del(kwargs, others):
-    if ARGS.aug_prob < 1: #aug_probability
-        n = int(n * len(input_lists[0]))
-        if len(input_lists[0])-1-n >= 5 and len(idx_list) > 0 and n > 0:
-            if ARGS.aug_seg_time:
-                prob = [i for i in reversed(range(1, len(idx_list)+1))]
-                prob = [i/sum(prob) for i in prob]
-                removed_idx_list = np.random.choice(idx_list,min(n, len(idx_list)), p=prob, replace=False)
-            elif ARGS.aug_seg_acc:
-                prob = []
-                for i in idx_list:
-                    if input_lists[0][i] in acc_dict:
-                        prob.append(1-acc_dict[input_lists[0][i]])
-                    else:
-                        prob.append(1.0)
-                prob = [i/sum(prob) for i in prob]
-                removed_idx_list = np.random.choice(idx_list,min(n, len(idx_list)), p=prob, replace=False)
-            else:
-                removed_idx_list = np.random.choice(idx_list,min(n, len(idx_list)), replace=False)
-
-            # logger.info(f"{n}. bf:{input_lists[0]}")
-
-            input_lists0 = [v for i, v in enumerate(input_lists[0]) if i not in removed_idx_list]
-            input_lists1 = [v for i, v in enumerate(input_lists[1]) if i not in removed_idx_list]
-
-            # logger.info(f"{n}. af:{input_lists0}")
-
-    
-            return (input_lists0, input_lists1)
-        else: 
-            return None 
-
-def Del_Acc(input_lists, crt_list, incrt_list, n):
-    SAKT_MODELS = ['SAKT', 'SAKT_LSTM']
-    incrt = INCORRECT if ARGS.model in SAKT_MODELS else 0
-
-    if input_lists[1][-1] == incrt and ARGS.aug_prob < 1: #aug_probability
-        n = int(n * len(input_lists[0]))
-        if (len(input_lists[0])-1-n >= 5 and n > 0) and (len(crt_list) > 0 or len(incrt_list) > 0):
-            crt_prob = []
-            for i in crt_list:
-                if input_lists[0][i] in acc_dict:
-                        crt_prob.append(acc_dict[input_lists[0][i]])
+logger.info(acc_dict.keys())
+def Del(others, kwargs):
+    min_selected_n = min(selected_n, len(kwargs["incrt_idx"]))
+    if len(kwargs["input_list"][:-1])-min_selected_n >= 5 and min_selected_n > 0:
+        if ARGS.select_type == 'lp':
+            prob = np.arange(1, len(kwargs["incrt_idx"])+1)[::-1]
+            removed_idx_list = np.random.choice(kwargs["incrt_idx"], min_selected_n, p=prob/sum(prob), replace=False)
+        elif ARGS.select_type == 'gcr':
+            prob = []
+            for i in kwargs["incrt_idx"]:
+                if kwargs["input_list"][i] in acc_dict:
+                    prob.append(1-acc_dict[kwargs["input_list"][i]])
                 else:
-                    crt_prob.append(0.0)
-            crt_prob = [i/sum(crt_prob) for i in crt_prob]
-            incrt_prob = []
-            for i in incrt_list:
-                if input_lists[0][i] in acc_dict:
-                        incrt_prob.append(1-acc_dict[input_lists[0][i]])
+                    prob.append(1.0)
+            prob = np.array(prob)
+            removed_idx_list = np.random.choice(kwargs["incrt_idx"], min_selected_n, p=prob/sum(prob), replace=False)
+        else:
+            removed_idx_list = np.random.choice(kwargs["incrt_idx"], min_selected_n, replace=False)
+
+        input_list = [v for i, v in enumerate(kwargs["input_list"]) if i not in removed_idx_list]
+        correct_list = [v for i, v in enumerate(kwargs["correct_list"]) if i not in removed_idx_list]
+        if isinstance(others, list):
+            tag_list = [v for i, v in enumerate(others) if i not in removed_idx_list]
+        else:
+            tag_list = others
+            logger.info(tag_list)
+        return input_list, correct_list, tag_list
+    else: 
+        return kwargs["input_list"], kwargs["correct_list"], others
+
+def Shuf(others, kwargs):
+    min_selected_n = min(selected_n, len(kwargs["incrt_idx"]))
+    if len(kwargs["incrt_idx"]) > 1 and min_selected_n > 1:
+        if ARGS.select_type == 'lp':
+            prob = np.arange(1, len(kwargs["incrt_idx"])+1)[::-1]
+            exchng_idx_list = np.random.choice(kwargs["incrt_idx"], min_selected_n, p=prob/sum(prob), replace=False)
+        elif ARGS.select_type == 'gcr':
+            prob = []
+            for i in kwargs["incrt_idx"]:
+                if kwargs["input_list"][i] in acc_dict:
+                    prob.append(1-acc_dict[kwargs["input_list"][i]])
                 else:
-                    incrt_prob.append(1.0)
-            incrt_prob = [i/sum(incrt_prob) for i in incrt_prob]
-
-            idx_list, prob = zip(*sorted(zip(crt_list+incrt_list, crt_prob+incrt_prob)))
-            prob = [i/sum(prob) for i in prob]
-
-            removed_idx_list = np.random.choice(idx_list,min(n, len(idx_list)), p=prob, replace=False)
-
-            input_lists0 = [v for i, v in enumerate(input_lists[0]) if i not in removed_idx_list]
-            input_lists1 = [v for i, v in enumerate(input_lists[1]) if i not in removed_idx_list]
-    
-            return (input_lists0, input_lists1)
-        else: 
-            return None 
-
-def Shuf(input_lists, idx_list, n):
-    if ARGS.aug_prob < 1: #aug_probability
-        n = int(n * len(input_lists[0]))
-        if len(idx_list) > 1 and n > 1:
-            if ARGS.aug_seg_time:
-                prob = [i for i in reversed(range(1, len(idx_list)+1))]
-                prob = [i/sum(prob) for i in prob]
-                n_idx = np.random.choice(idx_list, min(n, len(idx_list)), p=prob, replace=False)
-            elif ARGS.aug_seg_acc:
-                prob = []
-                for i in idx_list:
-                    if input_lists[0][i] in acc_dict:
-                        prob.append(1-acc_dict[input_lists[0][i]])
-                    else:
-                        prob.append(1.0)
-                prob = [i/sum(prob) for i in prob]
-                n_idx = np.random.choice(idx_list, min(n, len(idx_list)), p=prob, replace=False)
-            else:
-                n_idx = np.random.choice(idx_list, min(n, len(idx_list)), replace=False)
-            shuffled_n_idx = n_idx.copy()
-            while (n_idx == shuffled_n_idx).all():
-                random.shuffle(shuffled_n_idx)
-            shuff_idx = [shuffled_n_idx[list(n_idx).index(i)] if i in n_idx else i for i in range(len(input_lists[0]))]
-            input_lists0 = np.array(input_lists[0])
-            input_lists1 = np.array(input_lists[1])
-            input_lists0 = input_lists0[shuff_idx]
-            input_lists1 = input_lists1[shuff_idx]
-            return (list(input_lists0), list(input_lists1))
-        else: 
-            return None 
-
+                    prob.append(1.0)
+            prob = np.array(prob)
+            exchng_idx_list = np.random.choice(kwargs["incrt_idx"], min_selected_n, p=prob/sum(prob), replace=False)
+        else:
+            exchng_idx_list = np.random.choice(kwargs["incrt_idx"], min_selected_n, replace=False)
+        shuffled_exchng_idx_list = exchng_idx_list.copy()
+        while (exchng_idx_list == shuffled_exchng_idx_list).all():
+            random.shuffle(shuffled_exchng_idx_list)
+        shuff_idx = [shuffled_exchng_idx_list[list(exchng_idx_list).index(i)] if i in exchng_idx_list else i for i in range(len(kwargs["input_list"]))]
+        input_list = np.array(kwargs["input_list"])
+        correct_list = np.array(kwargs["correct_list"])
+        input_list = input_list[shuff_idx]
+        correct_list = correct_list[shuff_idx]
+        return (list(input_list), list(correct_list))
+    else: 
+        return None 
 
 def Swap(input_lists, crt_idx, incrt_idx, n):
     if ARGS.aug_prob < 1: #aug_probability
-        n = int(n * len(input_lists[0]))
+        n = int(n * len(kwargs["input_list"]))
         if n > 0:
             crt_idx = np.array(crt_idx)
             incrt_idx = np.array(incrt_idx)
@@ -145,14 +105,14 @@ def Swap(input_lists, crt_idx, incrt_idx, n):
                     try: 
                         o_index = np.random.choice(crt_idx, 1, replace=False)
                         x_index = np.random.choice(incrt_idx[incrt_idx>o_index], 1, replace=False)
-                        # logger.info(f"{_}, o_index:{o_index}, x_index:{x_index}, bf:{input_lists[0]}")
+                        # logger.info(f"{_}, o_index:{o_index}, x_index:{x_index}, bf:{kwargs["input_list"]}")
 
-                        input_lists[0][o_index[0]], input_lists[0][x_index[0]] = input_lists[0][x_index[0]], input_lists[0][o_index[0]]
-                        input_lists[1][o_index[0]], input_lists[1][x_index[0]] = input_lists[1][x_index[0]], input_lists[1][o_index[0]]
+                        kwargs["input_list"][o_index[0]], kwargs["input_list"][x_index[0]] = kwargs["input_list"][x_index[0]], kwargs["input_list"][o_index[0]]
+                        kwargs["correct_list"][o_index[0]], kwargs["correct_list"][x_index[0]] = kwargs["correct_list"][x_index[0]], kwargs["correct_list"][o_index[0]]
                         
                         crt_idx = crt_idx[crt_idx!=o_index]
                         incrt_idx = incrt_idx[incrt_idx!=x_index]
-                        # logger.info(f"{_}, o_index:{o_index}, x_index:{x_index}, af:{input_lists[0]}")
+                        # logger.info(f"{_}, o_index:{o_index}, x_index:{x_index}, af:{kwargs["input_list"]}")
                         count += 1
                     except:
                         continue

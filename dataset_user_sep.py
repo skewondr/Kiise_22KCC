@@ -41,7 +41,6 @@ class MyCollator():
 
         self.aug_fn = {
             "deletion":Del,
-            "deletion_acc":Del_Acc,
             "swapping":Swap,
             "shuffling":Shuf,
             }
@@ -50,7 +49,7 @@ class MyCollator():
         return self.collate_fn(batch)
 
     def get_sequence(self, batch):
-          """
+        """
         preprocessing for DKT
         """
         start_time = time.time()
@@ -96,7 +95,7 @@ class MyCollator():
             
                 correct_list.append(is_correct)
 
-            self.append_list(pad_counts=pad_counts, input_list=input_list, correct_list=correct_list, target_crt=target_crt, crt_idx=crt_idx, incrt_idx=incrt_idx, lists=lists, target_id)
+            self.append_list(target_id, pad_counts=pad_counts, input_list=input_list, correct_list=correct_list, target_crt=target_crt, crt_idx=crt_idx, incrt_idx=incrt_idx, lists=lists)
         
         #print("data_loader:",len(labels), f"{time.time()-start_time:.6f}") --> 0.9 avrg sec
         return {
@@ -155,7 +154,7 @@ class MyCollator():
                 correct_list.append(is_correct)
                 tag_list.append(tag_id)
 
-            self.append_list(pad_counts=pad_counts, input_list=input_list, correct_list=correct_list, target_crt=target_crt, crt_idx=crt_idx, incrt_idx=incrt_idx, lists=lists, tag_list)
+            self.append_list(tag_list, pad_counts=pad_counts, input_list=input_list, correct_list=correct_list, target_crt=target_crt, crt_idx=crt_idx, incrt_idx=incrt_idx, lists=lists)
 
         #print("data_loader:",len(labels), f"{time.time()-start_time:.6f}") --> 0.9 avrg sec
         return {
@@ -167,8 +166,10 @@ class MyCollator():
             'avg_len': torch.as_tensor(lists["avg_len"]),
         }
 
-    def append_list(self, **kwargs, *others):
+    def append_list(self, *others, **kwargs): 
         """
+        others - tuple, kwargs - dict
+
         pad_counts: 원본 데이터의 zero padding length 
         input_list: 원본 데이터의 input sequence (문제 정보) 
         correct_list: 원본 데이터의 input sequence (정답 정보)  
@@ -181,7 +182,7 @@ class MyCollator():
         ###################################### AUGMENTATION ############################################
         if self.aug_flag:
             # logger.info("go in aug_flag")
-            input_list, correct_list = self.aug_fn[ARGS.aug_type](kwargs, others)
+            input_list, correct_list, tag_list = self.aug_fn[ARGS.aug_type](others[0], kwargs)
         ###################################### AUGMENTATION ############################################
 
         pad_counts = ARGS.seq_size + 1 - len(input_list)
@@ -192,29 +193,26 @@ class MyCollator():
         input_len = len(input_list)
         input_list = paddings + input_list
         correct_list = paddings + correct_list 
+        if isinstance(tag_list, list):
+            tag_list = paddings + tag_list
 
         assert len(input_list) == ARGS.seq_size + 1, "sequence size error"
         
-        elif ARGS.model in ['SAKT', 'DKVMN']:
+        if ARGS.model in ['SAKT', 'DKVMN']:
 
-            tag_list = paddings + others
-            assert len(tag_list) == ARGS.seq_size + 1, "sequence size error"
-
-            lists["labels"].append([correct_list[-1]])
-            lists["input_lists"].append(input_list[:-1])
-            lists["target_ids"].append([tag_list[-1]])
-            lists["tag_ids"].append(tag_list[:-1])
-            lists["positions"].append(pos_list[:-1])
-            lists["avg_len"].append([input_len])
+            kwargs["lists"]["labels"].append([correct_list[-1]])
+            kwargs["lists"]["input_lists"].append(input_list[:-1])
+            kwargs["lists"]["target_ids"].append([tag_list[-1]])
+            kwargs["lists"]["tag_ids"].append(tag_list[:-1])
+            kwargs["lists"]["positions"].append(pos_list[:-1])
+            kwargs["lists"]["avg_len"].append([input_len])
 
         elif ARGS.model in ['DKT']:
 
-            target_id = others
-
-            lists["labels"].append([correct_list[-1]])
-            lists["input_lists"].append(input_list[:-1])
-            lists["target_ids"].append([target_id])
-            lists["avg_len"].append([input_len])
+            kwargs["lists"]["labels"].append([correct_list[-1]])
+            kwargs["lists"]["input_lists"].append(input_list[:-1])
+            kwargs["lists"]["target_ids"].append([others[0]])
+            kwargs["lists"]["avg_len"].append([input_len])
 
 
 

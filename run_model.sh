@@ -14,7 +14,7 @@ for s in ${seed[@]}; do
     args=(
         #--mode 'eval'
         --dataset_name $DATASET
-        --seq_size 100
+        --seq_size 15
         --sub_size 5
         --model $MODEL
         --input_dim 200
@@ -22,15 +22,13 @@ for s in ${seed[@]}; do
         --train_batch 2048
         --test_batch 2048
         --eval_steps 40000
-        --ckpt_name A_0.2_${s}
-        --qd 100
-        --cd 50 
-        --pd 50 
+        --ckpt_name Testing
         --lr 1e-3
         # --balance 1
         #######################################
         --aug_prob 0.2
-        --del_type P
+        --aug_type deletion
+        --select_type gcr
         #######################################
         --es_patience 3
         --num_head 5
