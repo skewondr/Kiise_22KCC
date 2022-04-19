@@ -85,10 +85,9 @@ def Shuf(kwargs):
         input_list = np.array(kwargs["input_list"])
         correct_list = np.array(kwargs["correct_list"])
         tag_list = np.array(kwargs["tag_list"])
-
-        input_list[[idx_list]] = input_list[[shuff_idx_list]]
-        correct_list[[idx_list]] = correct_list[[shuff_idx_list]]
-        tag_list[[idx_list]] = tag_list[[shuff_idx_list]]
+        input_list[(idx_list)] = input_list[(shuff_idx_list)]
+        correct_list[(idx_list)] = correct_list[(shuff_idx_list)]
+        tag_list[(idx_list)] = tag_list[(shuff_idx_list)]
 
         input_list = list(input_list)
         correct_list = list(correct_list)
