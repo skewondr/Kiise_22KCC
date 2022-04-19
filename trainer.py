@@ -201,8 +201,6 @@ class Trainer:
                 outs.extend(out.squeeze(-1).data.cpu().numpy())
                 avg_len += batch['avg_len'].float().mean().item()
 
-                break
-
                 # if batch_idx * ARGS.train_batch % self.eval_steps == 0 and batch_idx != 0:
                 #     self._test('Validation', val_gen, epoch)
                     
@@ -229,8 +227,6 @@ class Trainer:
                 break
             start = time.time()
 
-            break
-            
 
     # get test results
     def test(self):
