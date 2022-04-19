@@ -38,8 +38,8 @@ def Del(kwargs):
         elif ARGS.select_type == 'gcr':
             prob = []
             for i in kwargs["incrt_idx"]:
-                if kwargs["input_list"][i] in acc_dict:
-                    prob.append(1-acc_dict[kwargs["input_list"][i]])
+                if kwargs["tag_list"][i] in acc_dict:
+                    prob.append(1-acc_dict[kwargs["tag_list"][i]])
                 else:
                     prob.append(1.0)
             prob = np.array(prob)
@@ -66,11 +66,12 @@ def Shuf(kwargs):
         elif ARGS.select_type == 'gcr':
             prob = []
             for i in kwargs["incrt_idx"]:
-                if kwargs["input_list"][i] in acc_dict:
-                    prob.append(1-acc_dict[kwargs["input_list"][i]])
+                if kwargs["tag_list"][i] in acc_dict:
+                    prob.append(1-acc_dict[kwargs["tag_list"][i]])
                 else:
                     prob.append(1.0)
             prob = np.array(prob)
+            logger.info(prob/sum(prob))
             idx_list = np.random.choice(kwargs["incrt_idx"], min_selected_n, p=prob/sum(prob), replace=False)
         else:
             idx_list = np.random.choice(kwargs["incrt_idx"], min_selected_n, replace=False)
