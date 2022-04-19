@@ -160,7 +160,7 @@ class Trainer:
             pin_memory=False if ARGS.device == 'cpu' else True,
             batch_size=ARGS.train_batch, 
             num_workers=ARGS.num_workers, 
-            collate_fn=self._collate_fn_aug
+            collate_fn=self._collate_fn if ARGS.aug_type == 'none' else self._collate_fn_aug
         )
         val_gen = data.DataLoader(
             dataset=self._val_data, 
@@ -201,11 +201,13 @@ class Trainer:
                 outs.extend(out.squeeze(-1).data.cpu().numpy())
                 avg_len += batch['avg_len'].float().mean().item()
 
+                break
+
                 # if batch_idx * ARGS.train_batch % self.eval_steps == 0 and batch_idx != 0:
                 #     self._test('Validation', val_gen, epoch)
                     
                 # if self.early_stopping.early_stop: break
-            logger.info(f"Train seqlen avg:{avg_len/len(train_gen)}")
+            logger.info(f"Train seqlen avg:{avg_len/len(train_gen):.4f}")
             self._test('Validation', val_gen, epoch)
 
             acc = num_corrects / num_total
@@ -226,6 +228,8 @@ class Trainer:
                 logger.info("Early stopped...")
                 break
             start = time.time()
+
+            break
             
 
     # get test results
@@ -242,6 +246,7 @@ class Trainer:
         self._model.load_state_dict(torch.load(os.path.join(self._weight_path, 'best_ckpt.pt')))
         
         self._test('Test', test_gen, 0)
+        return self.test_acc, self.test_auc
 
     def _forward(self, batch):
         batch = {k: t.to(self._device) for k, t in batch.items()}

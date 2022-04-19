@@ -120,6 +120,8 @@ class MyCollator():
         if self.aug_flag:
             # logger.info("go in aug_flag")
             input_list, correct_list, tag_list = self.aug_fn[ARGS.aug_type](kwargs)
+        else: 
+            input_list, correct_list, tag_list = kwargs["input_list"], kwargs["correct_list"], kwargs["tag_list"]
         ###################################### AUGMENTATION ############################################
 
         pad_counts = ARGS.seq_size + 1 - len(input_list)

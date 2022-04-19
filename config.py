@@ -77,8 +77,9 @@ base_args.add_argument('--num_workers', type=int, default=8)
 base_args.add_argument('--weight_path', type=str, default=f"./weight", help="saved model path")
 base_args.add_argument('--ckpt_path', type=str, default="./checkpoint", help="checkpoint path")
 base_args.add_argument('--ckpt_name', type=str, required=True, help="checkpoint name")
+base_args.add_argument('--result_path', type=str, default="./experiment_results.txt", required=True, help="result recording path")
 base_args.add_argument('--ckpt_resume', type=str2bool, default='0')
-base_args.add_argument('--run_script', type=str, default="run_model.sh", help="Run script file path to log")
+base_args.add_argument('--run_script', type=str, default="run_model.sh", required=True, help="Run script file path to log")
 
 base_args.add_argument('--dataset_name', type=str, default='EdNet-KT1', choices=dataset_list)
 base_args.add_argument('--get_user_ft', type=str2bool, default='0')
@@ -120,8 +121,8 @@ train_args.add_argument('--eval_steps', type=int, default=5)
 train_args.add_argument('--cross_validation', type=str2bool, default='0')
 
 # AUGMENTATION
-train_args.add_argument('--aug_prob', type=float, default=1e-1, help="used to count the number of questions to remove ex) seq_len * aug_prob")
-train_args.add_argument('--aug_type', type=str, default="deletion", help="deletion / swapping / shuffling")
+train_args.add_argument('--aug_prob', type=float, default=1.0, help="used to count the number of questions to remove ex) seq_len * aug_prob")
+train_args.add_argument('--aug_type', type=str, default="none", help="none / deletion / swapping / shuffling")
 train_args.add_argument('--select_type', type=str, default="rnd", help="rnd: random / gcr:global correct rate / lp:local positon")
 
 ARGS = get_args()

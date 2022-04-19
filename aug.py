@@ -35,6 +35,7 @@ def Del(kwargs):
         if ARGS.select_type == 'lp':
             prob = np.arange(1, len(kwargs["incrt_idx"])+1)[::-1]
             idx_list = np.random.choice(kwargs["incrt_idx"], min_selected_n, p=prob/sum(prob), replace=False)
+
         elif ARGS.select_type == 'gcr':
             prob = []
             for i in kwargs["incrt_idx"]:
@@ -43,11 +44,11 @@ def Del(kwargs):
                 else:
                     prob.append(1.0)
             prob = np.array(prob)
+
             idx_list = np.random.choice(kwargs["incrt_idx"], min_selected_n, p=prob/sum(prob), replace=False)
         else:
             idx_list = np.random.choice(kwargs["incrt_idx"], min_selected_n, replace=False)
         ################################################################################
-
         input_list = [v for i, v in enumerate(kwargs["input_list"]) if i not in idx_list]
         correct_list = [v for i, v in enumerate(kwargs["correct_list"]) if i not in idx_list]
         tag_list = [v for i, v in enumerate(kwargs["tag_list"]) if i not in idx_list]
@@ -62,6 +63,7 @@ def Shuf(kwargs):
         ################################################################################
         if ARGS.select_type == 'lp':
             prob = np.arange(1, len(kwargs["incrt_idx"])+1)[::-1]
+            logger.info(prob/sum(prob))
             idx_list = np.random.choice(kwargs["incrt_idx"], min_selected_n, p=prob/sum(prob), replace=False)
         elif ARGS.select_type == 'gcr':
             prob = []
@@ -77,16 +79,24 @@ def Shuf(kwargs):
             idx_list = np.random.choice(kwargs["incrt_idx"], min_selected_n, replace=False)
         ################################################################################
         idx_list = np.sort(idx_list)
+
+        logger.info(f"idx_list:{idx_list}")
+
         shuff_idx_list = idx_list.copy()
         while (idx_list == shuff_idx_list).all():
             random.shuffle(shuff_idx_list)
         
+
+        logger.info(f"shuff_idx_list:{shuff_idx_list}")
         input_list = np.array(kwargs["input_list"])
         correct_list = np.array(kwargs["correct_list"])
         tag_list = np.array(kwargs["tag_list"])
+        logger.info(f"bf input_list:{input_list}")
+
         input_list[[idx_list]] = input_list[[shuff_idx_list]]
         correct_list[[idx_list]] = correct_list[[shuff_idx_list]]
         tag_list[[idx_list]] = tag_list[[shuff_idx_list]]
+        logger.info(f"af input_list:{input_list}")
 
         input_list = list(input_list)
         correct_list = list(correct_list)
@@ -119,6 +129,5 @@ def Swap(kwargs):
             incrt_idx = np.append(incrt_idx, o_index)
 
             count +=1
-            # logger.info(f"{count}/ {min_selected_n}")
     return kwargs["input_list"], kwargs["correct_list"], kwargs["tag_list"]
  
