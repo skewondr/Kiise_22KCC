@@ -5,8 +5,8 @@
 DATASET=EdNet-KT1
 #DATASET=ASSISTments2009
 
-MODEL=SAKT
-# MODEL=DKT
+# MODEL=SAKT
+MODEL=DKT
 # MODEL=SAKT_LSTM
 seed=(1)
 
@@ -27,7 +27,7 @@ for s in ${seed[@]}; do
         # --balance 1
         #######################################
         --aug_prob 0.2
-        --aug_type shuffling
+        --aug_type swapping
         # --select_type lp
         #######################################
         --es_patience 3

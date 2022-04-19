@@ -33,8 +33,8 @@ class MyCollator():
 
         collate_fn = {
             'DKT':self.get_sequence,
-            'DKVMN':self.get_sequence_attn,
-            'SAKT':self.get_sequence_attn,
+            'DKVMN':self.get_sequence,
+            'SAKT':self.get_sequence,
             }
 
         self.collate_fn = collate_fn[model_name]
@@ -50,12 +50,17 @@ class MyCollator():
 
     def get_sequence(self, batch):
         """
-        preprocessing for DKT
+        preprocessing for DKT, SAKT, DKVMN
         """
+        batch_list = {
+            'DKT': {"label":[], "input":[], "target_id":[], "avg_len":[]},
+            'DKVMN':{"label":[], "input":[], "target_id":[], "tag_id":[], "position":[], "avg_len":[]},
+            'SAKT':{"label":[], "input":[], "target_id":[], "tag_id":[], "position":[], "avg_len":[]},
+        }
         start_time = time.time()
         batch_data_path, batch_num_interacts = zip(*batch)
         
-        lists = {"labels":[], "input_lists":[], "target_ids":[], "avg_len":[]}
+        lists = batch_list[ARGS.model]
         for data_path, num_of_interactions in zip(batch_data_path, batch_num_interacts):
             with open(data_path, 'r') as f:
                 data = f.readlines()
@@ -66,12 +71,10 @@ class MyCollator():
             if user_data_length > ARGS.seq_size + 1:
                 sliced_data = sliced_data[-(ARGS.seq_size + 1):]
                 user_data_length = ARGS.seq_size + 1
-                pad_counts = 0   
-            else:
-                pad_counts = ARGS.seq_size + 1 - user_data_length
 
             input_list = []
             correct_list = []
+            tag_list = []
             crt_idx = []
             incrt_idx = []
 
@@ -81,7 +84,6 @@ class MyCollator():
                 is_correct = int(line[1])
 
                 if idx == user_data_length - 1:
-                    target_id = tag_id
                     target_crt = is_correct
                 
                 if is_correct:
@@ -94,95 +96,30 @@ class MyCollator():
                     input_list.append(tag_id + QUESTION_NUM[ARGS.dataset_name])
             
                 correct_list.append(is_correct)
-
-            self.append_list(target_id, pad_counts=pad_counts, input_list=input_list, correct_list=correct_list, target_crt=target_crt, crt_idx=crt_idx, incrt_idx=incrt_idx, lists=lists)
-        
-        #print("data_loader:",len(labels), f"{time.time()-start_time:.6f}") --> 0.9 avrg sec
-        return {
-            'label': torch.as_tensor(lists["labels"]), #(batch, 1)
-            'input': torch.as_tensor(lists["input_lists"]), #(batch, seq_size)
-            'target_id': torch.as_tensor(lists["target_ids"]),
-            'avg_len': torch.as_tensor(lists["avg_len"]),
-        }
-
-    
-    def get_sequence_attn(self, batch):
-        """
-        preprocessing for SAKT, DKVMN
-        """
-        start_time = time.time()
-        batch_data_path, batch_num_interacts = zip(*batch)
-        
-        lists = {"labels":[], "input_lists":[], "target_ids":[], "tag_ids":[], "positions":[], "avg_len":[]}
-        for data_path, num_of_interactions in zip(batch_data_path, batch_num_interacts):
-            with open(data_path, 'r') as f:
-                data = f.readlines()
-                data = data[1:] # header exists
-                sliced_data = data[:num_of_interactions+1]
-                user_data_length = len(sliced_data)
-
-            if user_data_length > ARGS.seq_size + 1:
-                sliced_data = sliced_data[-(ARGS.seq_size + 1):]
-                user_data_length = ARGS.seq_size + 1
-                pad_counts = 0   
-            else:
-                pad_counts = ARGS.seq_size + 1 - user_data_length
-
-            input_list = []
-            correct_list = []
-            tag_list = []
-            crt_idx = []
-            incrt_idx = []
-            
-            for idx, line in enumerate(sliced_data):
-                line = line.rstrip().split(',')
-                tag_id = int(line[0])
-                is_correct = int(line[1])
-
-                if idx == user_data_length - 1:
-                    target_crt = is_correct
-
-                if is_correct:
-                    if idx != user_data_length - 1:
-                        crt_idx.append(idx)
-                    input_list.append(tag_id)
-                else:
-                    if idx != user_data_length - 1:
-                        incrt_idx.append(idx)
-                    input_list.append(tag_id + QUESTION_NUM[ARGS.dataset_name])
-            
-                correct_list.append(is_correct)
                 tag_list.append(tag_id)
 
-            self.append_list(tag_list, pad_counts=pad_counts, input_list=input_list, correct_list=correct_list, target_crt=target_crt, crt_idx=crt_idx, incrt_idx=incrt_idx, lists=lists)
-
+            self.append_list(input_list=input_list, correct_list=correct_list, tag_list=tag_list, target_crt=target_crt, crt_idx=crt_idx, incrt_idx=incrt_idx, lists=lists)
+        
         #print("data_loader:",len(labels), f"{time.time()-start_time:.6f}") --> 0.9 avrg sec
-        return {
-            'label': torch.as_tensor(lists["labels"]), #(batch, 1)
-            'input': torch.as_tensor(lists["input_lists"]), #(batch, seq_size)
-            'target_id': torch.as_tensor(lists["target_ids"]),
-            'tag_id': torch.as_tensor(lists["tag_ids"]),
-            'position': torch.as_tensor(lists["positions"]),
-            'avg_len': torch.as_tensor(lists["avg_len"]),
-        }
-
-    def append_list(self, *others, **kwargs): 
+        aug_batch = dict()
+        for d in lists:
+            aug_batch[d] = torch.as_tensor(lists[d])
+        return aug_batch
+    
+    def append_list(self, **kwargs): 
         """
-        others - tuple, kwargs - dict
-
-        pad_counts: 원본 데이터의 zero padding length 
-        input_list: 원본 데이터의 input sequence (문제 정보) 
+        input_list: 원본 데이터의 input sequence (문제 + 정답 정보) 
         correct_list: 원본 데이터의 input sequence (정답 정보)  
+        tag_list : 원본 데이터의 input sequence (문제 정보)
         target_crt: 마지막 문제 라벨 
         crt_idx: correct_list에서 맞힌 문제 index 
         incrt_idx: correct_list에서 틀린 문제 index 
         lists: 저장할 대상 dict
-        others: 각 모델별 preprocessing 함수마다 특별히 필요한 요소들 
         """
         ###################################### AUGMENTATION ############################################
         if self.aug_flag:
             # logger.info("go in aug_flag")
-            input_list, correct_list, tag_list = self.aug_fn[ARGS.aug_type](others[0], kwargs)
+            input_list, correct_list, tag_list = self.aug_fn[ARGS.aug_type](kwargs)
         ###################################### AUGMENTATION ############################################
 
         pad_counts = ARGS.seq_size + 1 - len(input_list)
@@ -193,25 +130,22 @@ class MyCollator():
         input_len = len(input_list)
         input_list = paddings + input_list
         correct_list = paddings + correct_list 
-        if isinstance(tag_list, list):
-            tag_list = paddings + tag_list
+        tag_list = paddings + tag_list
 
         assert len(input_list) == ARGS.seq_size + 1, "sequence size error"
         
-        if ARGS.model in ['SAKT', 'DKVMN']:
-
-            kwargs["lists"]["labels"].append([correct_list[-1]])
-            kwargs["lists"]["input_lists"].append(input_list[:-1])
-            kwargs["lists"]["target_ids"].append([tag_list[-1]])
-            kwargs["lists"]["tag_ids"].append(tag_list[:-1])
-            kwargs["lists"]["positions"].append(pos_list[:-1])
+        if ARGS.model in ['DKT']:
+            kwargs["lists"]["label"].append([correct_list[-1]])
+            kwargs["lists"]["input"].append(input_list[:-1])
+            kwargs["lists"]["target_id"].append([tag_list[-1]])
             kwargs["lists"]["avg_len"].append([input_len])
 
-        elif ARGS.model in ['DKT']:
-
-            kwargs["lists"]["labels"].append([correct_list[-1]])
-            kwargs["lists"]["input_lists"].append(input_list[:-1])
-            kwargs["lists"]["target_ids"].append([others[0]])
+        elif ARGS.model in ['SAKT', 'DKVMN']:
+            kwargs["lists"]["label"].append([correct_list[-1]])
+            kwargs["lists"]["input"].append(input_list[:-1])
+            kwargs["lists"]["target_id"].append([tag_list[-1]])
+            kwargs["lists"]["tag_id"].append(tag_list[:-1])
+            kwargs["lists"]["position"].append(pos_list[:-1])
             kwargs["lists"]["avg_len"].append([input_len])
 
 
