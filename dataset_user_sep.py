@@ -9,6 +9,7 @@ import time
 import re
 from logzero import logger
 from aug import *
+import random 
 
 class UserSepDataset(Dataset):
 
@@ -117,7 +118,7 @@ class MyCollator():
         lists: 저장할 대상 dict
         """
         ###################################### AUGMENTATION ############################################
-        if self.aug_flag:
+        if self.aug_flag and random.uniform(0,1) < ARGS.aug_ratio:
             # logger.info("go in aug_flag")
             input_list, correct_list, tag_list = self.aug_fn[ARGS.aug_type](kwargs)
         else: 

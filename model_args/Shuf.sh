@@ -5,14 +5,14 @@
 DATASET=EdNet-KT1
 #DATASET=ASSISTments2009
 
-atype=(rnd gcr lp)
+atype=(rnd)
 model=(DKT)
-prob=(0.04 0.08 0.16 0.32)
+ratio=(0.2 0.4 0.8)
 seed=(1 2 3)
 
 for t in ${atype[@]}; do
     for m in ${model[@]}; do
-        for p in ${prob[@]}; do
+        for p in ${ratio[@]}; do
             for s in ${seed[@]}; do
                 args=(
                     #--mode 'eval'
@@ -27,11 +27,12 @@ for t in ${atype[@]}; do
                     --train_batch 2048
                     --test_batch 2048
                     --eval_steps 40000
-                    --ckpt_name Shuf_${t}_${m}_${p}_${s} #---------!
+                    --ckpt_name Shuf_${t}_${m}_r${p}_${s} #---------!
                     --lr 1e-3
                     # --balance 1
                     #######################################
-                    --aug_prob ${p} 
+                    --aug_prob 0.32
+                    --aug_ratio ${p}
                     --aug_type shuffling #deletion / swapping / shuffling
                     --select_type ${t}
                     #######################################

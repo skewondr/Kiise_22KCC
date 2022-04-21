@@ -8,10 +8,12 @@ from logzero import logger
 import re
 from random import sample
 import random 
+import os.path
 
 acc_name = f"../dataset/{ARGS.dataset_name}/processed/1/sub{ARGS.sub_size}/train_{ARGS.sub_size}acc.pickle"
-with open(acc_name, 'rb') as f: 
-    acc_dict = pickle.load(f)
+if os.path.isfile(acc_name):
+    with open(acc_name, 'rb') as f: 
+        acc_dict = pickle.load(f)
 
 """
 제거할 대상이 없는 경우 : 원본 데이터를 사용하도록 

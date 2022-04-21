@@ -6,12 +6,12 @@ DATASET=EdNet-KT1
 #DATASET=ASSISTments2009
 
 model=(DKT)
-prob=(0.04 0.08 0.16 0.32)
+ratio=(0.2 0.4 0.8)
 seed=(1 2 3)
 
 # for t in ${atype[@]}; do
 for m in ${model[@]}; do
-    for p in ${prob[@]}; do
+    for p in ${ratio[@]}; do
         for s in ${seed[@]}; do
             args=(
                 #--mode 'eval'
@@ -26,11 +26,12 @@ for m in ${model[@]}; do
                 --train_batch 2048
                 --test_batch 2048
                 --eval_steps 40000
-                --ckpt_name Swap_${m}_${p}_${s} #---------!
+                --ckpt_name Swap_${m}_r${p}_${s} #---------!
                 --lr 1e-3
                 # --balance 1
                 #######################################
-                --aug_prob ${p} 
+                --aug_prob 0.32
+                --aug_ratio ${p}
                 --aug_type swapping #deletion / swapping / shuffling
                 # --select_type ${t}
                 #######################################

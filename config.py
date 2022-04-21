@@ -122,6 +122,7 @@ train_args.add_argument('--cross_validation', type=str2bool, default='0')
 
 # AUGMENTATION
 train_args.add_argument('--aug_prob', type=float, default=1.0, help="used to count the number of questions to remove ex) seq_len * aug_prob")
+train_args.add_argument('--aug_ratio', type=float, default=1.0, help="used to count the number of questions to remove ex) seq_len * aug_prob")
 train_args.add_argument('--aug_type', type=str, default="none", help="none / deletion / swapping / shuffling")
 train_args.add_argument('--select_type', type=str, default="rnd", help="rnd: random / gcr:global correct rate / lp:local positon")
 
