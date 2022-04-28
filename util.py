@@ -53,7 +53,7 @@ def read_data_files(flag, mode, path, user_path_list, num_of_users, save_name, s
             lines = f.readlines()
             lines = lines[1:]  # header exists
             num_of_interactions = len(lines) # sequence length 
-            for end_index in range(MIN_LENGTH, MAX_LENGTH+1):
+            for end_index in range(MIN_LENGTH, min(MAX_LENGTH+1,num_of_interactions)):
                 sliced_data = lines[:end_index]
                 seq_length.append(len(sliced_data))
                 line = sliced_data[-1].rstrip().split(',')
