@@ -27,19 +27,19 @@ def get_pickles(name):
     else: 
         return None 
 
-def get_rm_tags(mode, train_tag_name, tag_name, rm_tag_name):
+def get_rm_tags(mode, train_target_name, target_name, rm_target_name):
     if mode != 'train':
-        with open(train_tag_name, 'rb') as f: 
+        with open(train_target_name, 'rb') as f: 
             train_tags = pickle.load(f)
-        with open(tag_name, 'rb') as f: 
+        with open(target_name, 'rb') as f: 
             tags = pickle.load(f)
             rm_tags = list(set(train_tags) & set(tags))
-        with open(rm_tag_name, 'wb') as f: 
+        with open(rm_target_name, 'wb') as f: 
                 pickle.dump(rm_tags, f)
     return 
 
-def read_data_files(flag, mode, path, user_path_list, num_of_users, save_name, save_l_name=None, rm_tag_name=None):
-    rm_target_tags = get_pickles(rm_tag_name)
+def read_data_files(flag, mode, path, user_path_list, num_of_users, save_name, save_l_name=None, rm_target_name=None):
+    rm_target_tags = get_pickles(rm_target_name)
   
     output = []
     seq_length=[]
@@ -53,16 +53,17 @@ def read_data_files(flag, mode, path, user_path_list, num_of_users, save_name, s
             lines = f.readlines()
             lines = lines[1:]  # header exists
             num_of_interactions = len(lines) # sequence length 
-            seq_length.append(num_of_interactions)
+            count = 0 
             for end_index in range(MIN_LENGTH, num_of_interactions):
                 sliced_data = lines[:end_index+1]
+                seq_length.append(len(sliced_data))
                 line = sliced_data[-1].rstrip().split(',')
                 end_tag = int(line[0])
                 is_correct = int(line[1])
                 if is_correct: correct_count+=1
                 else: incorrect_count+=1
                 
-                if flag == 'make_tag':
+                if flag == 'make_target':
                     output.append(end_tag)
                 if flag == 'make_sample':
                     if mode == 'train':
@@ -71,6 +72,9 @@ def read_data_files(flag, mode, path, user_path_list, num_of_users, save_name, s
                     elif mode != 'train' and end_tag in rm_target_tags:
                         output.append((os.path.join(path, user_path), end_index))
                         label.append(is_correct)
+                
+                if count >= 100 : break
+                count += 1
                         
     if flag == 'make_sample':
         logger.info(f"mean length : {statistics.mean(seq_length)}")
@@ -82,7 +86,7 @@ def read_data_files(flag, mode, path, user_path_list, num_of_users, save_name, s
 
         logger.info(f"# of exercise : {len(rm_target_tags)}")
 
-    if flag == 'make_tag':
+    if flag == 'make_target':
         with open(save_name, 'wb') as f: 
                 pickle.dump(set(output), f)
 
@@ -101,9 +105,9 @@ def get_data_infos(user_base_path, i, mode, sub_size):
     """
     data_path = f"{user_base_path}/{i}/"
     sample_data_name = data_path+f"sub{sub_size}/{mode}_{sub_size}sample.pickle"
-    rm_tag_name = data_path+f"sub{ARGS.sub_size}/{mode}_rm_{ARGS.sub_size}target.pickle"
-    train_tag_name = data_path+f"sub{ARGS.sub_size}/train_{ARGS.sub_size}target.pickle"
-    tag_name = data_path+f"sub{sub_size}/{mode}_{sub_size}target.pickle"
+    rm_target_name = data_path+f"sub{ARGS.sub_size}/{mode}_rm_{ARGS.sub_size}target.pickle"
+    train_target_name = data_path+f"sub{ARGS.sub_size}/train_{ARGS.sub_size}target.pickle"
+    target_name = data_path+f"sub{sub_size}/{mode}_{sub_size}target.pickle"
     acc_name = data_path+f"sub{sub_size}/{mode}_{sub_size}acc.pickle"
     label_name = data_path+f"sub{sub_size}/{mode}_{sub_size}label.pickle"
     path = os.path.join(data_path, mode)
@@ -123,20 +127,32 @@ def get_data_infos(user_base_path, i, mode, sub_size):
             user_path_list = sample(user_path_list, int(num_of_users*(30*0.01)))
             num_of_users = len(user_path_list)
 
-    if not os.path.isfile(tag_name):
-        _, _ = read_data_files("make_tag", mode, path, user_path_list, num_of_users, tag_name)
-    if not os.path.isfile(rm_tag_name):
-        get_rm_tags(mode, train_tag_name, tag_name, rm_tag_name)
+    if not os.path.isfile(target_name):
+        """
+        sub data에서 만들 수 있는 모든 타겟 문제 tag
+        """
+        _, _ = read_data_files("make_target", mode, path, user_path_list, num_of_users, target_name)
+    if not os.path.isfile(rm_target_name):
+        """
+        valid, test에서 train 내 존재 하지 않는 타겟 문제 tag를 제외. 
+        """
+        get_rm_tags(mode, train_target_name, target_name, rm_target_name)
     if not os.path.isfile(sample_data_name) or not os.path.isfile(label_name):
-        if mode == 'train' : name = train_tag_name
-        else : name = rm_tag_name
+        """
+        train, valid, test에서 sample, label 셋 생성. 
+        """
+        if mode == 'train' : name = train_target_name
+        else : name = rm_target_name
         sample_infos, label = read_data_files("make_sample", mode, path, user_path_list, num_of_users, sample_data_name, label_name, name)
     else: 
         sample_infos = get_pickles(sample_data_name)
         label = get_pickles(label_name)
 
-    # if mode == 'train' and not os.path.isfile(acc_name):
-    #     get_data_acc(sample_data_name, acc_name)
+    if mode == 'train' and not os.path.isfile(acc_name):
+        """
+        해당 train sub data에 대해서 문제 마다 global accuracy rate 측정. 
+        """
+        get_data_acc(sample_data_name, acc_name)
     
     return sample_infos, num_of_users, label
 

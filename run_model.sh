@@ -6,8 +6,8 @@ DATASET=EdNet-KT1
 #DATASET=ASSISTments2009
 
 model=(DKT)
-sub=(50)
-seed=(1 2 3)
+sub=(5)
+seed=(1)
 
 # for t in ${atype[@]}; do
 for m in ${model[@]}; do
@@ -26,7 +26,7 @@ for m in ${model[@]}; do
                 --train_batch 2048
                 --test_batch 2048
                 --eval_steps 40000
-                --ckpt_name DKT${p}_${s} #---------!
+                --ckpt_name Testing #---------!
                 --lr 1e-3
                 # --balance 1
                 #######################################
@@ -40,7 +40,7 @@ for m in ${model[@]}; do
                 --num_epochs 20
                 #--test_run 1
                 #--ckpt_resume 1 
-                --gpu 1 #---------!
+                --gpu 0 #---------!
             )
             echo `python main.py ${args[@]}`
         done
