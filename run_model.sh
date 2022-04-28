@@ -6,7 +6,7 @@ DATASET=EdNet-KT1
 #DATASET=ASSISTments2009
 
 model=(DKT)
-sub=(100)
+sub=(5)
 seed=(1)
 
 # for t in ${atype[@]}; do

@@ -85,7 +85,7 @@ base_args.add_argument('--dataset_name', type=str, default='EdNet-KT1', choices=
 base_args.add_argument('--get_user_ft', type=str2bool, default='0')
 base_args.add_argument('--test_run', type=str2bool, default='0')
 base_args.add_argument('--es_patience', type=int, default=10)
-base_args.add_argument('--sub_size', type=int, default=10)
+base_args.add_argument('--sub_size', type=int, default=100)
 
 model_list = ['DKT', 'DKVMN', 'SAKT']
 
