@@ -116,7 +116,7 @@ train_args.add_argument('--test_batch', type=int, default=64)
 train_args.add_argument('--lr', type=float, default=1e-3)
 train_args.add_argument('--decay', type=float, default=2e-4)
 train_args.add_argument('--eta_min', type=float, default=1e-4, help="Minimum learning rate for cosine annealing scheduler")
-train_args.add_argument('--seq_size', type=int, default=200)
+train_args.add_argument('--seq_size', type=int, default=100, help="can't be longer than {MAX_LENGTH}")
 train_args.add_argument('--eval_steps', type=int, default=5)
 train_args.add_argument('--cross_validation', type=str2bool, default='0')
 

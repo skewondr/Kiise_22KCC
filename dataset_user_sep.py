@@ -66,12 +66,12 @@ class MyCollator():
             with open(data_path, 'r') as f:
                 data = f.readlines()
                 data = data[1:] # header exists
-                sliced_data = data[:num_of_interactions+1]
+                sliced_data = data[:num_of_interactions]
                 user_data_length = len(sliced_data)
 
-            if user_data_length > ARGS.seq_size + 1:
-                sliced_data = sliced_data[-(ARGS.seq_size + 1):]
-                user_data_length = ARGS.seq_size + 1
+            if user_data_length > ARGS.seq_size:
+                sliced_data = sliced_data[-(ARGS.seq_size):]
+                user_data_length = len(sliced_data)
 
             input_list = []
             correct_list = []
@@ -125,7 +125,7 @@ class MyCollator():
             input_list, correct_list, tag_list = kwargs["input_list"], kwargs["correct_list"], kwargs["tag_list"]
         ###################################### AUGMENTATION ############################################
 
-        pad_counts = ARGS.seq_size + 1 - len(input_list)
+        pad_counts = ARGS.seq_size - len(input_list)
 
         paddings = [PAD_INDEX] * pad_counts
         pos_list = paddings + list(range(1, len(input_list)+1))
@@ -135,7 +135,7 @@ class MyCollator():
         correct_list = paddings + correct_list 
         tag_list = paddings + tag_list
 
-        assert len(input_list) == ARGS.seq_size + 1, "sequence size error"
+        assert len(input_list) == ARGS.seq_size, "sequence size error"
         
         if ARGS.model in ['DKT']:
             kwargs["lists"]["label"].append([correct_list[-1]])

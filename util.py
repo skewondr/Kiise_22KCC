@@ -53,9 +53,8 @@ def read_data_files(flag, mode, path, user_path_list, num_of_users, save_name, s
             lines = f.readlines()
             lines = lines[1:]  # header exists
             num_of_interactions = len(lines) # sequence length 
-            count = 0 
-            for end_index in range(MIN_LENGTH, num_of_interactions):
-                sliced_data = lines[:end_index+1]
+            for end_index in range(MIN_LENGTH, MAX_LENGTH+1):
+                sliced_data = lines[:end_index]
                 seq_length.append(len(sliced_data))
                 line = sliced_data[-1].rstrip().split(',')
                 end_tag = int(line[0])
@@ -73,9 +72,6 @@ def read_data_files(flag, mode, path, user_path_list, num_of_users, save_name, s
                         output.append((os.path.join(path, user_path), end_index))
                         label.append(is_correct)
                 
-                if count >= 100 : break
-                count += 1
-                        
     if flag == 'make_sample':
         logger.info(f"mean length : {statistics.mean(seq_length)}")
         logger.info(f"median length : {statistics.median(seq_length)}")
@@ -166,7 +162,7 @@ def get_data_acc(sample_data_name, save_name):
         with open(data_path, 'r') as f:
             data = f.readlines()
             data = data[1:] # header exists
-            sliced_data = data[:num_of_interactions+1]
+            sliced_data = data[:num_of_interactions]
 
         for _, line in enumerate(sliced_data):
             line = line.rstrip().split(',')
