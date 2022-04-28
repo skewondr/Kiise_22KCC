@@ -116,16 +116,15 @@ def get_data_infos(user_base_path, i, mode, sub_size):
     user_path_list = os.listdir(path)
     num_of_users = len(user_path_list)
         
-    if sub_size < 100:
-        if mode == 'train':
-            user_path_list = sample(user_path_list, int(num_of_users*(ARGS.sub_size*0.01)))
-            num_of_users = len(user_path_list)
-        elif mode == 'val':
-            user_path_list = sample(user_path_list, int(num_of_users*(1*0.01)))
-            num_of_users = len(user_path_list)
-        elif mode == 'test':
-            user_path_list = sample(user_path_list, int(num_of_users*(30*0.01)))
-            num_of_users = len(user_path_list)
+    if mode == 'train':
+        user_path_list = sample(user_path_list, int(num_of_users*(ARGS.sub_size*0.01)))
+        num_of_users = len(user_path_list)
+    elif mode == 'val':
+        user_path_list = sample(user_path_list, int(num_of_users*(1*0.01)))
+        num_of_users = len(user_path_list)
+    elif mode == 'test':
+        user_path_list = sample(user_path_list, int(num_of_users*(30*0.01)))
+        num_of_users = len(user_path_list)
 
     if not os.path.isfile(target_name):
         """
