@@ -116,7 +116,10 @@ class MyCollator():
             if tag_id in ACC_DICT:
                 acc = ACC_DICT[tag_id]
                 if acc > 0.0:
-                    return math.ceil(acc*(self.token_num-1))
+                    if is_correct:
+                        return math.ceil(acc*int(self.token_num/2))
+                    else: 
+                        return math.ceil(acc*int(self.token_num/2)*2)
             return 1
                 
     def append_list(self, **kwargs): 
