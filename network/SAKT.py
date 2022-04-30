@@ -132,25 +132,44 @@ class SAKT(nn.Module):
         self._prediction = nn.Linear(hidden_dim, 1)
 
         # Embedding layers
-        self._positional_embedding = nn.Embedding(ARGS.seq_size+1, hidden_dim, padding_idx=PAD_INDEX, sparse=True)
-        self._interaction_embedding = nn.Embedding(2*question_num+1, hidden_dim, padding_idx=PAD_INDEX, sparse=True)
-        self._question_embedding = nn.Embedding(question_num+1, hidden_dim, padding_idx=PAD_INDEX, sparse=True)
+        self._target_embedding = nn.Embedding(question_num+1, hidden_dim, padding_idx=PAD_INDEX, sparse=True)
 
+        if ARGS.emb_type == "origin":
+            self._interaction_embedding = nn.Embedding(2*question_num+1, hidden_dim, padding_idx=PAD_INDEX, sparse=True)
+            self._positional_embedding = nn.Embedding(ARGS.seq_size+1, hidden_dim, padding_idx=PAD_INDEX, sparse=True)
+        else: 
+            assert hidden_dim == ARGS.qd + ARGS.cd + ARGS.pd, "hidden dim error"
+            self.token_num = int(ARGS.emb_type.split('_')[-1]) #index except unknown token
+            self._question_embedding = nn.Embedding(question_num+1, ARGS.qd, padding_idx=PAD_INDEX, sparse=True)
+            self._correctness_embedding = nn.Embedding(self.token_num+1, ARGS.cd, padding_idx=PAD_INDEX, sparse=True)
+            self._positional_embedding = nn.Embedding(ARGS.seq_size+1, ARGS.pd, padding_idx=PAD_INDEX, sparse=True)
+            
     def forward(self, X):
         """
         Query: Question (skill, exercise, ...) embedding
         Key, Value: Interaction embedding + positional embedding
         """
-        interaction_vector = self._interaction_embedding(X['input'])
-        question_vector = self._question_embedding(X['target_id'])
-        position_vector = self._positional_embedding(X['position'])
-
-        mask = get_pad_mask(X['input'], PAD_INDEX) & get_subsequent_mask(X['input'])
+        question_vector = self._target_embedding(X['target_id'])
+        x, mask = self.make_emb(X)
         # mask = None 
-        x = interaction_vector + position_vector
-
+        
         for layer in self._layers:
             x = layer(query=question_vector, key=x, value=x, mask=mask)
         output = self._prediction(x)
         output = output[:, -1, :]
         return output
+
+    def make_emb(self, X): #kwargs : {question, crtness}
+        if ARGS.emb_type == "origin":
+            interaction_vector = self._interaction_embedding(X['input'])
+            position_vector = self._positional_embedding(X['position'])
+            input_emb = interaction_vector + position_vector
+            mask = get_pad_mask(X['input'], PAD_INDEX) & get_subsequent_mask(X['input'])
+
+        else:
+            q_vector = self._question_embedding(X['question']) #Q
+            c_vector = self._correctness_embedding(X['crtness']) #3
+            p_vector = self._positional_embedding(X['position'])
+            input_emb = torch.cat((q_vector, c_vector, p_vector), -1) #batch, len, qd+cd
+            mask = get_pad_mask(X['question'], PAD_INDEX) & get_subsequent_mask(X['question'])
+        return input_emb, mask

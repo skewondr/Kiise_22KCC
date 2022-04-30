@@ -5,7 +5,7 @@
 DATASET=EdNet-KT1
 #DATASET=ASSISTments2009
 
-model=(DKT)
+model=(SAKT)
 sub=(5)
 seed=(1)
 
@@ -30,9 +30,9 @@ for m in ${model[@]}; do
                 --lr 1e-3
                 # --balance 1
                 #######################################
-                --qd 50
-                --cd 50
-                # --pd
+                --qd 75
+                --cd 75
+                --pd 50
                 --emb_type concat_9 
                 #######################################
                 --es_patience 3
