@@ -5,7 +5,7 @@
 DATASET=EdNet-KT1
 #DATASET=ASSISTments2009
 
-model=(SAKT)
+model=(DKT)
 sub=(5)
 seed=(1)
 
@@ -15,7 +15,7 @@ for m in ${model[@]}; do
         for s in ${seed[@]}; do
             args=(
                 #--mode 'eval'
-                --result_path ./aug_results.txt #---------!
+                --result_path ./emb_results.txt #---------!
                 --run_script run_model.sh #---------!
                 --dataset_name $DATASET
                 --seq_size 100 #---------!

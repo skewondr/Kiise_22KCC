@@ -9,6 +9,7 @@ import math
 from constant import PAD_INDEX
 from config import ARGS
 from network.util_network import get_pad_mask, get_subsequent_mask, clones
+import time 
 
 class ScaledDotProductAttention(nn.Module):
     def __init__(self, attn_dropout=0.1):
