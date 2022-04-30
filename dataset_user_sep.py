@@ -8,8 +8,8 @@ from constant import QUESTION_NUM
 import time 
 import re
 from logzero import logger
-from aug import *
 import random 
+import math 
 
 class UserSepDataset(Dataset):
 
@@ -29,22 +29,19 @@ class UserSepDataset(Dataset):
        
 
 class MyCollator():
-    def __init__(self, model_name, aug_flag=False):
-        self.aug_flag = aug_flag
+    def __init__(self, model_name):
+        self.emb_type = ARGS.emb_type
 
         collate_fn = {
             'DKT':self.get_sequence,
             'DKVMN':self.get_sequence,
             'SAKT':self.get_sequence,
             }
+        
+        if self.emb_type != "origin":
+            self.token_num = int(self.emb_type.split('_')[-1]) #index except unknown token
 
         self.collate_fn = collate_fn[model_name]
-
-        self.aug_fn = {
-            "deletion":Del,
-            "swapping":Swap,
-            "shuffling":Shuf,
-            }
 
     def __call__(self, batch):
         return self.collate_fn(batch)
@@ -53,11 +50,19 @@ class MyCollator():
         """
         preprocessing for DKT, SAKT, DKVMN
         """
-        batch_list = {
-            'DKT': {"label":[], "input":[], "target_id":[], "avg_len":[]},
-            'DKVMN':{"label":[], "input":[], "target_id":[], "tag_id":[], "position":[], "avg_len":[]},
-            'SAKT':{"label":[], "input":[], "target_id":[], "tag_id":[], "position":[], "avg_len":[]},
-        }
+        if self.emb_type != "origin":
+            batch_list = {
+                    'DKT': {"label":[], "target_id":[], "avg_len":[], "question":[], "crtness":[]},
+                    'DKVMN':{"label":[], "target_id":[], "tag_id":[], "avg_len":[], "question":[], "crtness":[]},
+                    'SAKT':{"label":[], "target_id":[], "position":[], "avg_len":[], "question":[], "crtness":[]},
+                    }
+        else: 
+            batch_list = {
+                    'DKT': {"label":[], "input":[], "target_id":[], "avg_len":[]},
+                    'DKVMN':{"label":[], "input":[], "target_id":[], "tag_id":[], "avg_len":[]},
+                    'SAKT':{"label":[], "input":[], "target_id":[], "position":[], "avg_len":[]},
+                    }
+
         start_time = time.time()
         batch_data_path, batch_num_interacts = zip(*batch)
         
@@ -74,82 +79,83 @@ class MyCollator():
                 user_data_length = len(sliced_data)
 
             input_list = []
-            correct_list = []
+            label_list = []
             tag_list = []
-            crt_idx = []
-            incrt_idx = []
+            crt_token_list = []
 
             for idx, line in enumerate(sliced_data):
                 line = line.rstrip().split(',')
                 tag_id = int(line[0])
                 is_correct = int(line[1])
-
-                if idx == user_data_length - 1:
-                    target_crt = is_correct
-                
                 if is_correct:
-                    if idx != user_data_length - 1:
-                        crt_idx.append(idx)
                     input_list.append(tag_id)
                 else:
-                    if idx != user_data_length - 1:
-                        incrt_idx.append(idx)
                     input_list.append(tag_id + QUESTION_NUM[ARGS.dataset_name])
-            
-                correct_list.append(is_correct)
+                
+                if self.emb_type != "origin":
+                    crt_token_list.append(self.get_token(tag_id, is_correct))
+
+                label_list.append(is_correct)
                 tag_list.append(tag_id)
 
-            self.append_list(input_list=input_list, correct_list=correct_list, tag_list=tag_list, target_crt=target_crt, crt_idx=crt_idx, incrt_idx=incrt_idx, lists=lists)
-        
+            self.append_list(input_list=input_list, label_list=label_list, tag_list=tag_list, crt_list=crt_token_list, lists=lists)
         #print("data_loader:",len(labels), f"{time.time()-start_time:.6f}") --> 0.9 avrg sec
         aug_batch = dict()
         for d in lists:
+            # logger.info(d, lists[d][0])
             aug_batch[d] = torch.as_tensor(lists[d])
         return aug_batch
-    
+
+    def get_token(self, tag_id, is_correct): 
+        if self.token_num == 3: 
+            if is_correct:
+                return 1
+            else:
+                return 2
+        elif self.token_num > 3:
+            if tag_id in ACC_DICT:
+                acc = ACC_DICT[tag_id]
+                if acc > 0.0:
+                    return math.ceil(acc*(self.token_num-1))
+            return 1
+                
     def append_list(self, **kwargs): 
         """
         input_list: 원본 데이터의 input sequence (문제 + 정답 정보) 
-        correct_list: 원본 데이터의 input sequence (정답 정보)  
+        label_list: 원본 데이터의 input sequence (정답 정보)  
         tag_list : 원본 데이터의 input sequence (문제 정보)
-        target_crt: 마지막 문제 라벨 
-        crt_idx: correct_list에서 맞힌 문제 index 
-        incrt_idx: correct_list에서 틀린 문제 index 
+        crt_list : 원본 데이터의 input sequence (정답 정보를 임베딩 유형에 따라 토큰으로 변환한 것)  
         lists: 저장할 대상 dict
         """
-        ###################################### AUGMENTATION ############################################
-        if self.aug_flag and random.uniform(0,1) < ARGS.aug_ratio:
-            # logger.info("go in aug_flag")
-            input_list, correct_list, tag_list = self.aug_fn[ARGS.aug_type](kwargs)
-        else: 
-            input_list, correct_list, tag_list = kwargs["input_list"], kwargs["correct_list"], kwargs["tag_list"]
-        ###################################### AUGMENTATION ############################################
-
+        input_list, label_list, tag_list, crt_list = kwargs["input_list"], kwargs["label_list"], kwargs["tag_list"], kwargs["crt_list"]
         pad_counts = ARGS.seq_size - len(input_list)
 
         paddings = [PAD_INDEX] * pad_counts
         pos_list = paddings + list(range(1, len(input_list)+1))
-
+        
         input_len = len(input_list)
         input_list = paddings + input_list
-        correct_list = paddings + correct_list 
+        label_list = paddings + label_list 
         tag_list = paddings + tag_list
 
         assert len(input_list) == ARGS.seq_size, "sequence size error"
-        
-        if ARGS.model in ['DKT']:
-            kwargs["lists"]["label"].append([correct_list[-1]])
-            kwargs["lists"]["input"].append(input_list[:-1])
-            kwargs["lists"]["target_id"].append([tag_list[-1]])
-            kwargs["lists"]["avg_len"].append([input_len])
 
-        elif ARGS.model in ['SAKT', 'DKVMN']:
-            kwargs["lists"]["label"].append([correct_list[-1]])
-            kwargs["lists"]["input"].append(input_list[:-1])
-            kwargs["lists"]["target_id"].append([tag_list[-1]])
+        kwargs["lists"]["label"].append([label_list[-1]])
+        kwargs["lists"]["target_id"].append([tag_list[-1]])
+        kwargs["lists"]["avg_len"].append([input_len])
+       
+        if ARGS.model in ['DKVMN']:
             kwargs["lists"]["tag_id"].append(tag_list[:-1])
-            kwargs["lists"]["position"].append(pos_list[:-1])
-            kwargs["lists"]["avg_len"].append([input_len])
+
+        elif ARGS.model in ['SAKT']:
+            kwargs["lists"]["position"].append(pos_list[:-1]) 
+
+        if self.emb_type != "origin":
+            crt_list = paddings + crt_list
+            kwargs["lists"]["question"].append(tag_list[:-1])
+            kwargs["lists"]["crtness"].append(crt_list[:-1])
+        else: 
+            kwargs["lists"]["input"].append(input_list[:-1])
 
 
 

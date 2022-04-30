@@ -30,9 +30,10 @@ for m in ${model[@]}; do
                 --lr 1e-3
                 # --balance 1
                 #######################################
-                # --aug_prob ${p} 
-                --aug_type none #none / deletion / swapping / shuffling
-                # --select_type ${t}
+                --qd 50
+                --cd 50
+                # --pd
+                --emb_type concat_9 
                 #######################################
                 --es_patience 3
                 --num_head 5

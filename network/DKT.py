@@ -3,7 +3,7 @@ import torch.nn as nn
 from constant import PAD_INDEX
 from torch.autograd import Variable
 from config import ARGS
-
+from logzero import logger
 
 class DKT(nn.Module):
     """
@@ -13,8 +13,15 @@ class DKT(nn.Module):
         super().__init__()
         self._hidden_dim = hidden_dim
         self._num_layers = num_layers
-        self._lstm = nn.LSTM(input_dim, hidden_dim, num_layers=num_layers, batch_first=True, dropout=dropout)
-        self._encoder = nn.Embedding(num_embeddings=2*question_num+1, embedding_dim=input_dim, padding_idx=PAD_INDEX, sparse=True)
+        if ARGS.emb_type == "origin":
+            self._encoder = nn.Embedding(num_embeddings=2*question_num+1, embedding_dim=input_dim, padding_idx=PAD_INDEX, sparse=True)
+            self.input_dim = input_dim 
+        else: 
+            self.token_num = int(ARGS.emb_type.split('_')[-1]) #index except unknown token
+            self._question_embedding = nn.Embedding(question_num+1, ARGS.qd, padding_idx=PAD_INDEX, sparse=True)
+            self._correctness_embedding = nn.Embedding(self.token_num+1, ARGS.cd, padding_idx=PAD_INDEX, sparse=True)
+            self.input_dim = ARGS.qd + ARGS.cd
+        self._lstm = nn.LSTM(self.input_dim, hidden_dim, num_layers=num_layers, batch_first=True, dropout=dropout)
         self._decoder = nn.Linear(hidden_dim, question_num)
 
     def forward(self, x):
@@ -24,8 +31,17 @@ class DKT(nn.Module):
         target_id: (batch_size)
         return output, a tensor of shape (batch_size, 1)
         """
-        x_input = self._encoder(x['input'])
+        x_input = self.make_emb(x)
         output, _ = self._lstm(x_input)
         output = self._decoder(output[:, -1, :])
         output = torch.gather(output, -1, x['target_id']-1)
         return output
+
+    def make_emb(self, x): #kwargs : {question, crtness}
+        if ARGS.emb_type == "origin":
+            input_emb = self._encoder(x['input'])
+        else:
+            q_vector = self._question_embedding(x['question']) #Q
+            c_vector = self._correctness_embedding(x['crtness']) #3
+            input_emb = torch.cat((q_vector, c_vector), -1) #batch, len, qd+cd
+        return input_emb 

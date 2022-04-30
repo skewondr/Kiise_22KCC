@@ -130,7 +130,6 @@ class Trainer:
         self._val_data = val_data
         self._test_data = test_data
         self._collate_fn = MyCollator(ARGS.model)
-        self._collate_fn_aug = MyCollator(ARGS.model, True)
 
         #self._opt = NoamOptimizer(model=model, lr=lr, model_size=d_model, warmup=warm_up_step_count)
         self._opt = optimizer
@@ -160,7 +159,7 @@ class Trainer:
             pin_memory=False if ARGS.device == 'cpu' else True,
             batch_size=ARGS.train_batch, 
             num_workers=ARGS.num_workers, 
-            collate_fn=self._collate_fn if ARGS.aug_type == 'none' else self._collate_fn_aug
+            collate_fn=self._collate_fn 
         )
         val_gen = data.DataLoader(
             dataset=self._val_data, 
@@ -168,7 +167,7 @@ class Trainer:
             pin_memory=False if ARGS.device == 'cpu' else True,
             batch_size=ARGS.test_batch, 
             num_workers=ARGS.num_workers, 
-            collate_fn=self._collate_fn
+            collate_fn=self._collate_fn 
         )
 
         for epoch in range(self._start_epochs, self._num_epochs):
