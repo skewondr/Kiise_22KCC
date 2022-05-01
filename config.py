@@ -129,7 +129,7 @@ train_args.add_argument('--select_type', type=str, default="rnd", help="rnd: ran
 train_args.add_argument('--qd', type=int, default=100, help="question dimension")
 train_args.add_argument('--cd', type=int, default=100, help="correctness dimension")
 train_args.add_argument('--pd', type=int, default=100, help="position dimension")
-train_args.add_argument('--emb_type', type=str, default="origin", help="origin / concat_n (n must be odd)")
+train_args.add_argument('--emb_type', type=str, default="origin", help="origin / concat_n / add_n (n must be odd)")
 
 ARGS = get_args()
 

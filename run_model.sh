@@ -6,7 +6,7 @@ DATASET=EdNet-KT1
 #DATASET=ASSISTments2009
 
 model=(DKT)
-sub=(5)
+sub=(1)
 seed=(1)
 
 # for t in ${atype[@]}; do
@@ -33,7 +33,7 @@ for m in ${model[@]}; do
                 --qd 75
                 --cd 75
                 --pd 50
-                --emb_type concat_9 
+                --emb_type add_9 
                 #######################################
                 --es_patience 3
                 --num_head 5
