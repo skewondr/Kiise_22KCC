@@ -30,10 +30,10 @@ for m in ${model[@]}; do
                 --lr 1e-3
                 # --balance 1
                 #######################################
-                --qd 75
-                --cd 75
-                --pd 50
-                --emb_type add_9 
+                --qd 100
+                --cd 100
+                --pd 100
+                --emb_type origin 
                 #######################################
                 --es_patience 3
                 --num_head 5

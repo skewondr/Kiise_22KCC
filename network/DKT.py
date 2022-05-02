@@ -13,20 +13,18 @@ class DKT(nn.Module):
         super().__init__()
         self._hidden_dim = hidden_dim
         self._num_layers = num_layers
+        self.input_dim = ARGS.qd + ARGS.cd
         if ARGS.emb_type == "origin":
-            self._encoder = nn.Embedding(num_embeddings=2*question_num+1, embedding_dim=input_dim, padding_idx=PAD_INDEX, sparse=True)
-            self.input_dim = input_dim 
+            self._encoder = nn.Embedding(num_embeddings=2*question_num+1, embedding_dim=self.input_dim, padding_idx=PAD_INDEX, sparse=True)
         else: 
             self.comb_type = ARGS.emb_type.split('_')[0] #concat / add 
             self.token_num = int(ARGS.emb_type.split('_')[-1]) #index except unknown token
             if self.comb_type == 'concat':
                 self._question_embedding = nn.Embedding(question_num+1, ARGS.qd, padding_idx=PAD_INDEX, sparse=True)
                 self._correctness_embedding = nn.Embedding(self.token_num+1, ARGS.cd, padding_idx=PAD_INDEX, sparse=True)
-                self.input_dim = ARGS.qd + ARGS.cd
             elif self.comb_type == 'add':
-                self._question_embedding = nn.Embedding(question_num+1, input_dim, padding_idx=PAD_INDEX, sparse=True)
-                self._correctness_embedding = nn.Embedding(self.token_num+1, input_dim, padding_idx=PAD_INDEX, sparse=True)
-                self.input_dim = input_dim
+                self._question_embedding = nn.Embedding(question_num+1, self.input_dim, padding_idx=PAD_INDEX, sparse=True)
+                self._correctness_embedding = nn.Embedding(self.token_num+1, self.input_dim, padding_idx=PAD_INDEX, sparse=True)
         self._lstm = nn.LSTM(self.input_dim, hidden_dim, num_layers=num_layers, batch_first=True, dropout=dropout)
         self._decoder = nn.Linear(hidden_dim, question_num)
 

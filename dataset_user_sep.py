@@ -121,6 +121,9 @@ class MyCollator():
                     else:
                         return 1+int(self.token_num/2)
 
+        if self.token_num == 1:
+            return 1
+
         if is_correct:
             return 1
         else:

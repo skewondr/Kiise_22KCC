@@ -123,33 +123,32 @@ class SAKT(nn.Module):
     """
     def __init__(self, hidden_dim, question_num, num_layers, num_head, dropout):
         super().__init__()
-        self._hidden_dim = hidden_dim
+        self._hidden_dim = ARGS.qd + ARGS.cd + ARGS.pd
         self._question_num = question_num
 
         # Blocks
-        self._layers = clones(SAKTLayer(hidden_dim, num_head, dropout), num_layers)
+        self._layers = clones(SAKTLayer(self._hidden_dim, num_head, dropout), num_layers)
 
         # prediction layer
-        self._prediction = nn.Linear(hidden_dim, 1)
+        self._prediction = nn.Linear(self._hidden_dim, 1)
 
         # Embedding layers
-        self._target_embedding = nn.Embedding(question_num+1, hidden_dim, padding_idx=PAD_INDEX, sparse=True)
+        self._target_embedding = nn.Embedding(question_num+1, self._hidden_dim, padding_idx=PAD_INDEX, sparse=True)
 
         if ARGS.emb_type == "origin":
-            self._interaction_embedding = nn.Embedding(2*question_num+1, hidden_dim, padding_idx=PAD_INDEX, sparse=True)
-            self._positional_embedding = nn.Embedding(ARGS.seq_size+1, hidden_dim, padding_idx=PAD_INDEX, sparse=True)
+            self._interaction_embedding = nn.Embedding(2*question_num+1, self._hidden_dim, padding_idx=PAD_INDEX, sparse=True)
+            self._positional_embedding = nn.Embedding(ARGS.seq_size+1, self._hidden_dim, padding_idx=PAD_INDEX, sparse=True)
         else: 
             self.comb_type = ARGS.emb_type.split('_')[0] #concat / add 
             self.token_num = int(ARGS.emb_type.split('_')[-1]) #index except unknown token
             if self.comb_type == 'concat':
-                assert hidden_dim == ARGS.qd + ARGS.cd + ARGS.pd, "hidden dim error"
                 self._question_embedding = nn.Embedding(question_num+1, ARGS.qd, padding_idx=PAD_INDEX, sparse=True)
                 self._correctness_embedding = nn.Embedding(self.token_num+1, ARGS.cd, padding_idx=PAD_INDEX, sparse=True)
                 self._positional_embedding = nn.Embedding(ARGS.seq_size+1, ARGS.pd, padding_idx=PAD_INDEX, sparse=True)
             elif self.comb_type == 'add':
-                self._question_embedding = nn.Embedding(question_num+1, hidden_dim, padding_idx=PAD_INDEX, sparse=True)
-                self._correctness_embedding = nn.Embedding(self.token_num+1, hidden_dim, padding_idx=PAD_INDEX, sparse=True)
-                self._positional_embedding = nn.Embedding(ARGS.seq_size+1, hidden_dim, padding_idx=PAD_INDEX, sparse=True)
+                self._question_embedding = nn.Embedding(question_num+1, self._hidden_dim, padding_idx=PAD_INDEX, sparse=True)
+                self._correctness_embedding = nn.Embedding(self.token_num+1, self._hidden_dim, padding_idx=PAD_INDEX, sparse=True)
+                self._positional_embedding = nn.Embedding(ARGS.seq_size+1, self._hidden_dim, padding_idx=PAD_INDEX, sparse=True)
             
     def forward(self, X):
         """
