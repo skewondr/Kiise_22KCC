@@ -26,14 +26,14 @@ for m in ${model[@]}; do
                 --train_batch 2048
                 --test_batch 2048
                 --eval_steps 40000
-                --ckpt_name Testing #---------!
+                --ckpt_name ./Kiise_emb/SAKT1_concat_11_1 #---------!
                 --lr 1e-3
                 # --balance 1
                 #######################################
-                --qd 100
-                --cd 100
-                --pd 100
-                --emb_type origin_11
+                --qd 75
+                --cd 75
+                --pd 50
+                --emb_type concat_11
                 #######################################
                 --es_patience 3
                 --num_head 5

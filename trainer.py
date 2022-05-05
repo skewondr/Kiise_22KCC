@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
 from collections import Counter
+import pickle 
 
 class EarlyStopping:
     #https://stats.stackexchange.com/questions/68893/area-under-curve-of-roc-vs-overall-accuracy
@@ -305,7 +306,13 @@ class Trainer:
             logger.info(f"model prediction: tn: fp: fn: tp = {tn}: {fp}: {fn}: {tp}")
             self.plot_cfm(labels, preds)
             logger.info(f"correct : {sorted(Counter(lcrts_o).items())}")
+            save_name = os.path.join(self._weight_path, 'lcrts_o.pickle')
+            with open(save_name, 'wb') as f: 
+                pickle.dump(lcrts_o, f)
             logger.info(f"incorrect : {sorted(Counter(lcrts_x).items())}")
+            save_name = os.path.join(self._weight_path, 'lcrts_x.pickle')
+            with open(save_name, 'wb') as f: 
+                pickle.dump(lcrts_x, f)
 
         logger.info('-'*80)
         logger.info(f'[{name}] early stop: {self.early_stopping.counter}/{self.es_patience}, loss: {loss:.4f}, acc: {acc:.4f}, auc: {auc:.4f}, time: {training_time:.2f}')
