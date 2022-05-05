@@ -30,7 +30,8 @@ class UserSepDataset(Dataset):
 
 class MyCollator():
     def __init__(self, model_name):
-        self.emb_type = ARGS.emb_type
+        self.emb_type = ARGS.emb_type.split('_')[0]
+        self.token_num = int(ARGS.emb_type.split('_')[-1]) #index except unknown token
 
         collate_fn = {
             'DKT':self.get_sequence,
@@ -38,9 +39,6 @@ class MyCollator():
             'SAKT':self.get_sequence,
             }
         
-        if self.emb_type != "origin":
-            self.token_num = int(self.emb_type.split('_')[-1]) #index except unknown token
-
         self.collate_fn = collate_fn[model_name]
 
     def __call__(self, batch):
@@ -52,15 +50,15 @@ class MyCollator():
         """
         if self.emb_type != "origin":
             batch_list = {
-                    'DKT': {"label":[], "target_id":[], "avg_len":[], "question":[], "crtness":[]},
-                    'DKVMN':{"label":[], "target_id":[], "tag_id":[], "avg_len":[], "question":[], "crtness":[]},
-                    'SAKT':{"label":[], "target_id":[], "position":[], "avg_len":[], "question":[], "crtness":[]},
+                    'DKT': {"label":[], "target_id":[], "avg_len":[], "question":[], "crtness":[], "label_crt":[]},
+                    'DKVMN':{"label":[], "target_id":[], "tag_id":[], "avg_len":[], "question":[], "crtness":[], "label_crt":[]},
+                    'SAKT':{"label":[], "target_id":[], "position":[], "avg_len":[], "question":[], "crtness":[], "label_crt":[]},
                     }
         else: 
             batch_list = {
-                    'DKT': {"label":[], "input":[], "target_id":[], "avg_len":[]},
-                    'DKVMN':{"label":[], "input":[], "target_id":[], "tag_id":[], "avg_len":[]},
-                    'SAKT':{"label":[], "input":[], "target_id":[], "position":[], "avg_len":[]},
+                    'DKT': {"label":[], "input":[], "target_id":[], "avg_len":[], "label_crt":[]},
+                    'DKVMN':{"label":[], "input":[], "target_id":[], "tag_id":[], "avg_len":[], "label_crt":[]},
+                    'SAKT':{"label":[], "input":[], "target_id":[], "position":[], "avg_len":[], "label_crt":[]},
                     }
 
         start_time = time.time()
@@ -92,8 +90,7 @@ class MyCollator():
                 else:
                     input_list.append(tag_id + QUESTION_NUM[ARGS.dataset_name])
                 
-                if self.emb_type != "origin":
-                    crt_token_list.append(self.get_token(tag_id, is_correct))
+                crt_token_list.append(self.get_token(tag_id, is_correct))
 
                 label_list.append(is_correct)
                 tag_list.append(tag_id)
@@ -153,6 +150,7 @@ class MyCollator():
         kwargs["lists"]["label"].append([label_list[-1]])
         kwargs["lists"]["target_id"].append([tag_list[-1]])
         kwargs["lists"]["avg_len"].append([input_len])
+        kwargs["lists"]["label_crt"].append([crt_list[-1]])
        
         if ARGS.model in ['DKVMN']:
             kwargs["lists"]["tag_id"].append(tag_list[:-1])

@@ -138,6 +138,7 @@ def run(i, model, start_epoch, optimizer, scheduler, other_states):
         test_data,
         other_states=other_states,
     )
+    total_tiem = 0
     if ARGS.mode == "train":
         start_time = time.time()
         logger.info("Training")

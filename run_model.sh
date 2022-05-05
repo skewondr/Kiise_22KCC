@@ -5,7 +5,7 @@
 DATASET=EdNet-KT1
 #DATASET=ASSISTments2009
 
-model=(DKT)
+model=(SAKT)
 sub=(1)
 seed=(1)
 
@@ -14,7 +14,7 @@ for m in ${model[@]}; do
     for p in ${sub[@]}; do
         for s in ${seed[@]}; do
             args=(
-                #--mode 'eval'
+                --mode 'eval'
                 --result_path ./emb_results.txt #---------!
                 --run_script run_model.sh #---------!
                 --dataset_name $DATASET
@@ -33,7 +33,7 @@ for m in ${model[@]}; do
                 --qd 100
                 --cd 100
                 --pd 100
-                --emb_type origin 
+                --emb_type origin_11
                 #######################################
                 --es_patience 3
                 --num_head 5

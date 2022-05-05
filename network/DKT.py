@@ -14,15 +14,17 @@ class DKT(nn.Module):
         self._hidden_dim = hidden_dim
         self._num_layers = num_layers
         self.input_dim = ARGS.qd + ARGS.cd
-        if ARGS.emb_type == "origin":
+
+        self.emb_type = ARGS.emb_type.split('_')[0] #concat / add 
+        self.token_num = int(ARGS.emb_type.split('_')[-1]) #index except unknown token
+        
+        if self.emb_type == "origin":
             self._encoder = nn.Embedding(num_embeddings=2*question_num+1, embedding_dim=self.input_dim, padding_idx=PAD_INDEX, sparse=True)
         else: 
-            self.comb_type = ARGS.emb_type.split('_')[0] #concat / add 
-            self.token_num = int(ARGS.emb_type.split('_')[-1]) #index except unknown token
-            if self.comb_type == 'concat':
+            if self.emb_type == 'concat':
                 self._question_embedding = nn.Embedding(question_num+1, ARGS.qd, padding_idx=PAD_INDEX, sparse=True)
                 self._correctness_embedding = nn.Embedding(self.token_num+1, ARGS.cd, padding_idx=PAD_INDEX, sparse=True)
-            elif self.comb_type == 'add':
+            elif self.emb_type == 'add':
                 self._question_embedding = nn.Embedding(question_num+1, self.input_dim, padding_idx=PAD_INDEX, sparse=True)
                 self._correctness_embedding = nn.Embedding(self.token_num+1, self.input_dim, padding_idx=PAD_INDEX, sparse=True)
         self._lstm = nn.LSTM(self.input_dim, hidden_dim, num_layers=num_layers, batch_first=True, dropout=dropout)
@@ -42,13 +44,13 @@ class DKT(nn.Module):
         return output
 
     def make_emb(self, x): #kwargs : {question, crtness}
-        if ARGS.emb_type == "origin":
+        if self.emb_type == "origin":
             input_emb = self._encoder(x['input'])
         else:
             q_vector = self._question_embedding(x['question']) #Q
             c_vector = self._correctness_embedding(x['crtness']) #3
-            if self.comb_type == 'concat':
+            if self.emb_type == 'concat':
                 input_emb = torch.cat((q_vector, c_vector), -1) #batch, len, qd+cd
-            elif self.comb_type == 'add':
+            elif self.emb_type == 'add':
                 input_emb = q_vector + c_vector 
         return input_emb 

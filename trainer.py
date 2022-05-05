@@ -17,6 +17,7 @@ from typing import Dict, Optional, Tuple, Union
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
+from collections import Counter
 
 class EarlyStopping:
     #https://stats.stackexchange.com/questions/68893/area-under-curve-of-roc-vs-overall-accuracy
@@ -182,7 +183,7 @@ class Trainer:
 
             for batch_idx, batch in enumerate(train_gen):
                 self._model.train()
-                label, out, pred = self._forward(batch)
+                label, out, pred, lcrt = self._forward(batch)
                 train_loss = self._get_loss(label, out)
                 losses.append(train_loss.item())
 
@@ -246,10 +247,11 @@ class Trainer:
     def _forward(self, batch):
         batch = {k: t.to(self._device) for k, t in batch.items()}
         label = batch['label']  # shape: (batch_size, 1)
+        lcrt = batch['label_crt']
         output = self._model(batch)
         pred = (torch.sigmoid(output) >= self._threshold).long()  # shape: (batch_size, 1)
 
-        return label, output, pred
+        return label, output, pred, lcrt
 
     def _get_loss(self, label, output):
         loss = self._loss_fn(output, label.float())
@@ -266,10 +268,12 @@ class Trainer:
         labels = []
         outs = []
         preds = []
+        lcrts_o = []
+        lcrts_x = []
 
         with torch.no_grad():
             for batch in tqdm(batches, total=len(batches), ncols=100):
-                label, out, pred = self._forward(batch)
+                label, out, pred, lcrt = self._forward(batch)
                 test_loss = self._get_loss(label, out)
                 losses.append(test_loss.item())
 
@@ -279,6 +283,9 @@ class Trainer:
                 labels.extend(label.squeeze(-1).data.cpu().numpy())
                 outs.extend(out.squeeze(-1).data.cpu().numpy())
                 preds.extend(pred.squeeze(-1).data.cpu().numpy())
+                # logger.info(f"{lcrt.size()}, {pred.size()}, {label.size()}")
+                lcrts_o.extend(lcrt[pred == label].squeeze(-1).data.cpu().numpy())
+                lcrts_x.extend(lcrt[pred != label].squeeze(-1).data.cpu().numpy())
 
         acc = num_corrects / num_total
         auc = roc_auc_score(labels, outs)
@@ -297,6 +304,8 @@ class Trainer:
             tn, fp, fn, tp = confusion_matrix(labels, preds).ravel()
             logger.info(f"model prediction: tn: fp: fn: tp = {tn}: {fp}: {fn}: {tp}")
             self.plot_cfm(labels, preds)
+            logger.info(f"correct : {sorted(Counter(lcrts_o).items())}")
+            logger.info(f"incorrect : {sorted(Counter(lcrts_x).items())}")
 
         logger.info('-'*80)
         logger.info(f'[{name}] early stop: {self.early_stopping.counter}/{self.es_patience}, loss: {loss:.4f}, acc: {acc:.4f}, auc: {auc:.4f}, time: {training_time:.2f}')

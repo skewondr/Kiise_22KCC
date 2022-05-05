@@ -135,17 +135,18 @@ class SAKT(nn.Module):
         # Embedding layers
         self._target_embedding = nn.Embedding(question_num+1, self._hidden_dim, padding_idx=PAD_INDEX, sparse=True)
 
-        if ARGS.emb_type == "origin":
+        self.emb_type = ARGS.emb_type.split('_')[0] #concat / add 
+        self.token_num = int(ARGS.emb_type.split('_')[-1]) #index except unknown token
+
+        if self.emb_type == "origin":
             self._interaction_embedding = nn.Embedding(2*question_num+1, self._hidden_dim, padding_idx=PAD_INDEX, sparse=True)
             self._positional_embedding = nn.Embedding(ARGS.seq_size+1, self._hidden_dim, padding_idx=PAD_INDEX, sparse=True)
         else: 
-            self.comb_type = ARGS.emb_type.split('_')[0] #concat / add 
-            self.token_num = int(ARGS.emb_type.split('_')[-1]) #index except unknown token
-            if self.comb_type == 'concat':
+            if self.emb_type == 'concat':
                 self._question_embedding = nn.Embedding(question_num+1, ARGS.qd, padding_idx=PAD_INDEX, sparse=True)
                 self._correctness_embedding = nn.Embedding(self.token_num+1, ARGS.cd, padding_idx=PAD_INDEX, sparse=True)
                 self._positional_embedding = nn.Embedding(ARGS.seq_size+1, ARGS.pd, padding_idx=PAD_INDEX, sparse=True)
-            elif self.comb_type == 'add':
+            elif self.emb_type == 'add':
                 self._question_embedding = nn.Embedding(question_num+1, self._hidden_dim, padding_idx=PAD_INDEX, sparse=True)
                 self._correctness_embedding = nn.Embedding(self.token_num+1, self._hidden_dim, padding_idx=PAD_INDEX, sparse=True)
                 self._positional_embedding = nn.Embedding(ARGS.seq_size+1, self._hidden_dim, padding_idx=PAD_INDEX, sparse=True)
@@ -166,7 +167,7 @@ class SAKT(nn.Module):
         return output
 
     def make_emb(self, X): #kwargs : {question, crtness}
-        if ARGS.emb_type == "origin":
+        if self.emb_type == "origin":
             interaction_vector = self._interaction_embedding(X['input'])
             position_vector = self._positional_embedding(X['position'])
             input_emb = interaction_vector + position_vector
@@ -176,9 +177,9 @@ class SAKT(nn.Module):
             q_vector = self._question_embedding(X['question']) #Q
             c_vector = self._correctness_embedding(X['crtness']) #3
             p_vector = self._positional_embedding(X['position'])
-            if self.comb_type == 'concat':
+            if self.emb_type == 'concat':
                 input_emb = torch.cat((q_vector, c_vector, p_vector), -1) #batch, len, qd+cd
-            elif self.comb_type == 'add':
+            elif self.emb_type == 'add':
                 input_emb = q_vector + c_vector + p_vector
 
             mask = get_pad_mask(X['question'], PAD_INDEX) & get_subsequent_mask(X['question'])
