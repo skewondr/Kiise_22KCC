@@ -136,7 +136,7 @@ class SAKT(nn.Module):
         self._target_embedding = nn.Embedding(question_num+1, self._hidden_dim, padding_idx=PAD_INDEX, sparse=True)
 
         self.emb_type = ARGS.emb_type.split('_')[0] #concat / add 
-        self.token_num = int(ARGS.emb_type.split('_')[-1]) #index except unknown token
+        if self.emb_type != "origin": self.token_num = int(ARGS.emb_type.split('_')[-1]) #index except unknown token
 
         if self.emb_type == "origin":
             self._interaction_embedding = nn.Embedding(2*question_num+1, self._hidden_dim, padding_idx=PAD_INDEX, sparse=True)
