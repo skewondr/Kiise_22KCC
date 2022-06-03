@@ -146,9 +146,9 @@ def run(i, model, start_epoch, optimizer, scheduler, other_states):
         total_time = time.time() - start_time
         logger.info(f"elapsed time: {total_time:.2f}s, {timedelta(seconds=total_time)}")
         trainer.plot_accuracy() 
-    ac, au  = trainer.test()
+    ac, au, e  = trainer.test()
     with open(ARGS.result_path, "a") as file:
-        file.write(f'{ARGS.ckpt_name}\t{ac:.4f}\t{au:.4f}\t{timedelta(seconds=total_time)}\n')
+        file.write(f'{ARGS.ckpt_name}\t{ac:.4f}\t{au:.4f}\t{e:.4f}\t{timedelta(seconds=total_time)}\n')
         file.close()
     return trainer.test_acc, trainer.test_auc
 

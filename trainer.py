@@ -5,7 +5,7 @@ import torch.nn as nn
 from torch.utils import data
 from dataset_user_sep import *
 from tqdm import tqdm
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_auc_score, mean_squared_error
 from itertools import repeat, chain, islice
 import os
 from logzero import logger
@@ -143,6 +143,7 @@ class Trainer:
 
         self.test_acc = 0.0
         self.test_auc = 0.0
+        self.test_rmse = 0.0
         self.es_patience = es_patience
         self.eval_steps = eval_steps
         self.early_stopping = EarlyStopping(patience=self.es_patience, verbose=True, path=self._weight_path)   
@@ -243,7 +244,7 @@ class Trainer:
         self._model.load_state_dict(torch.load(os.path.join(self._weight_path, 'best_ckpt.pt')))
         
         self._test('Test', test_gen, 0)
-        return self.test_acc, self.test_auc
+        return self.test_acc, self.test_auc, self.test_rmse
 
     def _forward(self, batch):
         batch = {k: t.to(self._device) for k, t in batch.items()}
@@ -290,6 +291,7 @@ class Trainer:
 
         acc = num_corrects / num_total
         auc = roc_auc_score(labels, outs)
+        rmse = mean_squared_error(labels, preds)**0.5
         loss = np.mean(losses)
         training_time = time.time() - start_time
         
@@ -302,6 +304,7 @@ class Trainer:
         elif name == 'Test':
             self.test_acc = acc
             self.test_auc = auc
+            self.test_rmse = rmse
             tn, fp, fn, tp = confusion_matrix(labels, preds).ravel()
             logger.info(f"model prediction: tn: fp: fn: tp = {tn}: {fp}: {fn}: {tp}")
             self.plot_cfm(labels, preds)
