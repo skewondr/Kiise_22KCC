@@ -31,7 +31,7 @@ class UserSepDataset(Dataset):
 class MyCollator():
     def __init__(self, model_name):
         self.emb_type = ARGS.emb_type.split('_')[0]
-        self.token_num = int(ARGS.emb_type.split('_')[-1]) #index except unknown token
+        if self.emb_type != "origin": self.token_num = int(ARGS.emb_type.split('_')[-1]) #index except unknown token
 
         collate_fn = {
             'DKT':self.get_sequence,
@@ -104,27 +104,28 @@ class MyCollator():
         return aug_batch
 
     def get_token(self, tag_id, is_correct): 
-        if self.token_num > 3:
-            if tag_id in ACC_DICT:
-                acc = ACC_DICT[tag_id]
-                if acc > 0.0:
-                    if is_correct:
-                        return math.ceil(acc*int(self.token_num/2))
+        if self.emb_type != "origin":
+            if self.token_num > 3:
+                if tag_id in ACC_DICT:
+                    acc = ACC_DICT[tag_id]
+                    if acc > 0.0:
+                        if is_correct:
+                            return math.ceil(acc*int(self.token_num/2))
+                        else: 
+                            return math.ceil(acc*int(self.token_num/2)+int(self.token_num/2))
                     else: 
-                        return math.ceil(acc*int(self.token_num/2)+int(self.token_num/2))
-                else: 
-                    if is_correct:
-                        return 1
-                    else:
-                        return 1+int(self.token_num/2)
+                        if is_correct:
+                            return 1
+                        else:
+                            return 1+int(self.token_num/2)
 
-        if self.token_num == 1:
-            return 1
-
-        if is_correct:
-            return 1
-        else:
-            return 2
+            if self.token_num == 1:
+                return 1
+        else: 
+            if is_correct:
+                return 1
+            else:
+                return 2
                 
     def append_list(self, **kwargs): 
         """

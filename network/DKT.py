@@ -16,7 +16,7 @@ class DKT(nn.Module):
         self.input_dim = ARGS.qd + ARGS.cd
 
         self.emb_type = ARGS.emb_type.split('_')[0] #concat / add 
-        self.token_num = int(ARGS.emb_type.split('_')[-1]) #index except unknown token
+        if self.emb_type != "origin": self.token_num = int(ARGS.emb_type.split('_')[-1]) #index except unknown token
         
         if self.emb_type == "origin":
             self._encoder = nn.Embedding(num_embeddings=2*question_num+1, embedding_dim=self.input_dim, padding_idx=PAD_INDEX, sparse=True)
