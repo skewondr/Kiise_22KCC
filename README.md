@@ -1,29 +1,22 @@
 # Knowledge Tracing Models
 
 *Implementations of various Knowledge Tracing models in [PyTorch](https://github.com/pytorch/pytorch)* 
+*Code is based on [https://github.com/seewoo5/KT](https://github.com/seewoo5/KT)*
 
 ## Pre-processed Dataset
-* Download Link: https://bit.ly/2w7J3On
-* Dataset format: log files are seperated by users. Once you download and unzip each tar.gz file, there's a folder `processed`, and there are 5 subdirectories named from `1` to `5` for cross validation. Each subdirectory has its own train/val/test separation, where test dataset is shared by all 5 separations. Separation ratio are given in the following table. 
-For each user, `{user_id}.csv` contains two columns (with headers): tag(skill_id, or question_id, which is a single positive integer) and correctness (0 or 1). 
-
-| Dataset          | Train:Val:Test | Link | 
-|------------------|----------------|------|
-| ASSISTments2009  |       56:14:30       | https://sites.google.com/site/assistmentsdata/home/assistment-2009-2010-data/skill-builder-data-2009-2010 |
-| ASSISTments2012  |     6:2:2                 | https://sites.google.com/site/assistmentsdata/home/2012-13-school-data-with-affect |
-| ASSISTments2015  |       56:14:30       | https://sites.google.com/site/assistmentsdata/home/2015-assistments-skill-builder-data |
-| ASSISTmentsChall |       6:2:2          | https://sites.google.com/view/assistmentsdatamining | 
-| STATICS          |       56:14:30       | https://pslcdatashop.web.cmu.edu/Project?id=48 |
-| Junyi Academy    |       6:2:2           | https://pslcdatashop.web.cmu.edu/Project?id=244 | 
-| KDDCup2010       |       6:2:2           | https://pslcdatashop.web.cmu.edu/KDDCup/ |
-| EdNet-KT1        |       6:2:2           | https://github.com/riiid/ednet |
-
-* For ASSISTments2009, ASSISTments2015, and STATICS data we use the same data (with different format) that used in [this](https://github.com/jennyzhang0215/DKVMN) DKVMN implementation. Also, two files with same name (same `user_id`) but belong to different subdirectories may not coincides in this case, which actually does not important when we train & test models. 
-* Currently, ASSISTments2012 and KDDCup2010 dataset is not pre-processed yet. 
-* For EdNet-KT1, the dataset has only one split. 
+* dataset location : '../dataset/<dataset_name>/processed/1/sub<sub_size>/...'
+* relevant files
+```
+util.py
+dataset_user_sep.py
+```
 
 ## Usage
-
+* use '.sh' for convinience. 
+```
+bash run_model.sh
+```
+* or directly execution.
 ```
 python main.py --num_workers=8 --gpu=0 --device=cuda --model=DKT --num_epochs=6 
 --eval_steps=5000 --train_batch=2048 --test_batch=2048 --seq_size=200 
@@ -42,30 +35,30 @@ Here are descriptions of arguments:
 
 * `model`: name of the model. DKT, DKVMN, or NPA. (SAKT is not available yet)
 * `num_layers`: number of LSTM layers, for DKT and NPA. Set to be 1 as a default value. 
-* `input_dim`: input embedding dimension of interactions, for DKT and NPA.
-* `hidden_dim`: hidden dimension of LSTM models, for DKT and NPA.
+* `input_dim`: input embedding dimension of interactions, for DKT and NPA. <span style="color:red">(set to 200)</span>
+* `hidden_dim`: hidden dimension of LSTM models, for DKT and NPA. <span style="color:red">(set to 200)</span>
 * `key_dim`: dimension of key vectors of DKVMN.
 * `value_dim`: dimension of value vectors of DKVMN.
 * `summary_dim`: dimension of the last FC layer of DKVMN.
 * `concept_num`: number of latent concepts, for DKVMN.
 * `attention_dim`: dimension of the attention layer of NPA.
 * `fc_dim`: largest dimension for the last FC layers of NPA.
-* `dropout`: dropout rate of the model.
+* `num_head`: number of head of SAKT.
+* `dropout`: dropout rate of the model. <span style="color:red">(set to 5)</span>
 
 * `random_seed`: random seed for initialization, for reproducibility. Set to be 1 as default. 
-* `num_epochs`: number of training epochs. 
-* `eval_steps`: number of steps to evaluate trained model on validation set. The model weight with best performance will be saved. 
-* `train_batch`: batch size while training.
-* `test_batch`: batch size while testing.
+* `num_epochs`: number of training epochs. <span style="color:red">(set to 20)</span>
+* `eval_steps`: number of steps to evaluate trained model on validation set. The model weight with best performance will be saved. <span style="color:red">(set to 40000)</span>
+* `train_batch`: batch size while training. <span style="color:red">(set to 2048)</span>
+* `test_batch`: batch size while testing. <span style="color:red">(set to 2048)</span>
 * `lr`: learning rate. 
+* `es_patience`: early stopping patience <span style="color:red">(set to 3)</span>
 * `warmup_step`: warmup step for Noam optimizer. 
-* `seq_size`: length of interaction sequence to be feeded into models. The sequence whose length is shorter than `seq_size` will be padded. 
+* `seq_size`: length of interaction sequence to be feeded into models. The sequence whose length is shorter than `seq_size` will be padded. <span style="color:red">(set to 100)</span>
 * `cross_validation`: if `cross_validation` is 0, then the model is trained & tested only on the first dataset. If `cross_validation` is 1, then the model is trained & tested on all 5 splits, and give average results (with standard deviation). 
 
 ## Common features
-
 * All models are trained with Noam optimizer. 
-* For Junyi Academy and EdNet-KT1, the model is trained & tested only on one train/val/test split, since dataset is huge enough and it takes long time for cross-validation. 
 
 ## DKT (Deep Knowledge Tracing)
 * Paper: https://web.stanford.edu/~cpiech/bio/papers/deepKnowledgeTracing.pdf
@@ -73,49 +66,11 @@ Here are descriptions of arguments:
 * GitHub: https://github.com/chrispiech/DeepKnowledgeTracing (Lua)
 * Performances: 
 
-| Dataset          | ACC (%) | AUC (%) | Hyper Parameters |
-|------------------|-----|-----|------------------|
-| ASSISTments2009  | 77.02 ± 0.07 | 81.81 ± 0.10 | input_dim=100, hidden_dim=100 |
-| ASSISTments2015  | 74.94 ± 0.04 |  72.94 ± 0.05 | input_dim=100, hidden_dim=100 |
-| ASSISTmentsChall |  68.67 ± 0.09 | 72.29 ± 0.06  | input_dim=100, hidden_dim=100 |
-| STATICS          |  81.27 ± 0.06 | 82.87 ± 0.10   | input_dim=100, hidden_dim=100 |
-| Junyi Academy    |  85.4   | 80.58    |  input_dim=100, hidden_dim=100  |
-| EdNet-KT1        | 72.72    | 76.99    | input_dim=100, hidden_dim=100  |
-
-* All models are trained with batch size 2048 and sequence size 200. 
-
-## DKVMN (Dynamic Key-Value Memory Network)
-* Paper: http://papers.www2017.com.au.s3-website-ap-southeast-2.amazonaws.com/proceedings/p765.pdf
-* Model: Extension of Memory-Augmented Neural Network (MANN)
-* Github: https://github.com/jennyzhang0215/DKVMN (MxNet)
-* Performances: 
-
-| Dataset          | ACC (%) | AUC (%) | Hyper Parameters |
-|------------------|-----|-----|------------------|
-| ASSISTments2009  |75.61 ± 0.21 | 79.56 ± 0.29 |key_dim = 50, value_dim = 200, summary_dim = 50, concept_num = 20, batch_size = 1024 |
-| ASSISTments2015  |74.71 ± 0.02 | 71.57 ± 0.08  | key_dim = 50, value_dim = 100, summary_dim = 50, concept_num = 20, batch_size = 2048 |
-| ASSISTmentsChall | 67.16 ± 0.05  | 67.38 ± 0.07 | key_dim = 50, value_dim = 100, summary_dim = 50, concept_num = 20, batch_size = 2048 |
-| STATICS          | 80.66 ± 0.09  | 81.16 ± 0.08  | key_dim = 50, value_dim = 100, summary_dim = 50, concept_num = 50,  batch_size = 1024 |
-| Junyi Academy    | 85.04    |  79.68 |     key_dim = 50, value_dim = 100, summary_dim = 50, concept_num = 50, batch_size = 512             |
-| EdNet-KT1        | 72.32    |  76.48   |    key_dim = 100, value_dim = 100, summary_dim = 100, concept_num = 100, batch_size = 256 |
-
-* Due to memory issues, not all models are trained with batch size 2048.
-
-## NPA (Neural Padagogical Agency)
-* Paper: https://arxiv.org/abs/1906.10910
-* Model: Bi-LSTM + Attention
-* Performances: 
-
-| Dataset          | ACC (%) | AUC (%) | Hyper Parameters |
-|------------------|-----|-----|------------------|
-| ASSISTments2009  | 77.11 ± 0.08 | 81.82 ± 0.13 |input_dim=100, hidden_dim=100, attention_dim=100, fc_dim=200 |
-| ASSISTments2015  | 75.02 ± 0.05| 72.94 ± 0.08  |input_dim=100, hidden_dim=100, attention_dim=100, fc_dim=200  |
-| ASSISTmentsChall | 69.34 ± 0.03  | 73.26 ± 0.03 | input_dim=100, hidden_dim=100, attention_dim=100, fc_dim=200 |
-| STATICS          | 81.38 ± 0.14  | 83.1 ± 0.25  | input_dim=100, hidden_dim=100, attention_dim=100, fc_dim=200 |
-| Junyi Academy    |  85.57   |  81.10   |     input_dim=100, hidden_dim=100, attention_dim=100, fc_dim=200             |
-| EdNet-KT1        |  73.05   |  77.58   |    input_dim=100, hidden_dim=100, attention_dim=100, fc_dim=200              |
-
-* All models are trained with batch size 2048 and sequence size 200. 
+| Dataset          | RMSE (%) | ACC (%) | AUC (%) | Time |
+|------------------|-----|-----|-----|-----|
+| EdNet-KT1(SUB 1)  | 58.80 ± 0.03 | 65.43 ± 0.04 | 70.20 ± 0.04 | 48sec | 
+| EdNet-KT1(SUB 5)  | 57.41 ± 0.06 | 67.03 ± 0.08 | 72.65 ± 0.13 | 2min 41sec | 
+| EdNet-KT1(SUB 50)  | 55.53 ± 0.01 | 69.16 ± 0.01 | 75.54 ± 0.04 | 13min 51sec | 
 
 ## SAKT (Self-Attentive Knowledge Tracing)
 * Paper: https://files.eric.ed.gov/fulltext/ED599186.pdf
@@ -123,12 +78,11 @@ Here are descriptions of arguments:
 * Github: https://github.com/shalini1194/SAKT (Tensorflow)
 * Performances: 
 
-| Dataset          | ACC (%) | AUC (%) | Hyper Parameters |
-|------------------|-----|-----|------------------|
-| ASSISTments2009  | 76.36 ± 0.15 | 80.78 ± 0.10 |hidden_dim=100, seq_size=100, batch_size=512 |
-| ASSISTments2015  | 74.57 ± 0.07| 71.49 ± 0.03  |hidden_dim=100, seq_size=50, batch_size=512|
-| ASSISTmentsChall | 67.53 ± 0.06  | 69.70 ± 0.32 |hidden_dim=100, seq_size=200, batch_size=512|
-| STATICS          | 80.45 ± 0.13  | 80.30 ± 0.31  |hidden_dim=100, seq_size=500, batch_size=128|
-| Junyi Academy    |  85.27   |  80.36   |hidden_dim=100, seq_size=200, batch_size=512|
-| EdNet-KT1        |  72.44   |  76.60   |hidden_dim=200, seq_size=200, batch_size=512|
+| Dataset          | RMSE (%) | ACC (%) | AUC (%) | Time |
+|------------------|-----|-----|-----|-----|
+| EdNet-KT1(SUB 1)  | 59.36 ± 0.12 | 64.76 ± 0.14 | 68.77 ± 0.16 | 1min 29sec | 
+| EdNet-KT1(SUB 5)  | 57.29 ± 0.04 | 67.13 ± 0.12 | 72.77 ± 0.10 | 12min | 
+| EdNet-KT1(SUB 50)  | 55.35 ± 0.01 | 69.36 ± 0.02 | 75.82 ± 0.01 | 1h 4min | 
+
+
 
