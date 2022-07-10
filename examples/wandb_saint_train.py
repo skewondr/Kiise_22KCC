@@ -33,6 +33,8 @@ if __name__ == "__main__":
     parser.add_argument("--seq_len", type=int, default=100)
     parser.add_argument("--es_patience", type=int, default=3)
     # parser.add_argument("--qid2acc", type=str2bool, default='0')
+    parser.add_argument("--q2a", type=int, default=1)
+    parser.add_argument("--r2a", type=int, default=1)
    
     args = parser.parse_args()
 

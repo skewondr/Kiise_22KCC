@@ -2,20 +2,25 @@
 
 #!/usr/bin/env bash
 
-DATASET=(assist2009 assist2015_q2a_k5 assist2015_q2a_k25 assist2015_q2a_k50)
-# DATASET=ednet
+DATASET=assist2015
 
-model=(saint)
-seed=(1)
+k_emb=(5 25 50)
+for k in ${k_emb[@]}; do
+    args=(
+        --dataset_name $DATASET
+        --q2a ${k}
+        # --batch_size
+        # --num_epochs
+    )
+    echo `PYTHONPATH=/home/tako/yoonjin/pykt-toolkit python wandb_saint_train.py ${args[@]}`
+done
 
-# for t in ${atype[@]}; do
-for m in ${model[@]}; do
-    for d in ${DATASET[@]}; do
-        args=(
-            --dataset_name ${d}
-            # --batch_size
-            # --num_epochs
-        )
-        echo `PYTHONPATH=/home/tako/yoonjin/pykt-toolkit python wandb_${m}_train.py ${args[@]}`
-    done
+for k in ${k_emb[@]}; do
+    args=(
+        --dataset_name $DATASET
+        --r2a ${k}
+        # --batch_size
+        # --num_epochs
+    )
+    echo `PYTHONPATH=/home/tako/yoonjin/pykt-toolkit python wandb_saint_train.py ${args[@]}`
 done
