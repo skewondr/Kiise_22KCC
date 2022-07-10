@@ -120,7 +120,12 @@ def main(params):
             if model_name in ["gkt"]:
                 train_config["batch_size"] = 16 
             model_config = copy.deepcopy(params)
-            for key in ["model_name", "emb_type", "save_dir", "fold", "seed", "batch_size", "num_epochs", "seq_len", "es_patience"]:
+            if model_name == "saint":
+                rm_config = ["model_name", "emb_type", "save_dir", "fold", "seed", "batch_size", "num_epochs", "seq_len", "es_patience"]
+            else: 
+                rm_config = ["model_name", "dataset_name", "emb_type", "save_dir", "fold", "seed", "batch_size", "num_epochs", "seq_len", "es_patience"]
+
+            for key in rm_config:
                 del model_config[key]
             # model_config = {"d_model": params["d_model"], "n_blocks": params["n_blocks"], "dropout": params["dropout"], "d_ff": params["d_ff"]}
 
