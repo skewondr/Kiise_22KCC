@@ -7,6 +7,7 @@ from .evaluate_model import evaluate
 from torch.autograd import Variable, grad
 from .atkt import _l2_normalize_adv
 from ..utils.utils import debug_print
+from IPython import embed
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -101,7 +102,7 @@ def model_forward(model, data):
     return loss
     
 
-def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, test_loader=None, test_window_loader=None, save_model=False):
+def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, early_stopping, test_loader=None, test_window_loader=None, save_model=False):
     max_auc, best_epoch = 0, -1
     train_step = 0
     for i in range(1, num_epochs + 1):
@@ -144,9 +145,13 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, t
             # trainauc, trainacc = model.evaluate(train_loader, emb_type)
             testauc, testacc, window_testauc, window_testacc = round(testauc, 4), round(testacc, 4), round(window_testauc, 4), round(window_testacc, 4)
             max_auc = round(max_auc, 4)
-        print(f"Epoch: {i}, validauc: {validauc}, validacc: {validacc}, best epoch: {best_epoch}, best auc: {max_auc}, loss: {loss_mean}, emb_type: {model.emb_type}, model: {model.model_name}, save_dir: {ckpt_path}")
-        print(f"            testauc: {testauc}, testacc: {testacc}, window_testauc: {window_testauc}, window_testacc: {window_testacc}")
+        print(f"Epoch: {i}, validauc: {validauc:.4f}, validacc: {validacc:.4f}, best epoch: {best_epoch:.4f}, best auc: {max_auc:.4f}, loss: {loss_mean:.4f}")
+        # print(f"            testauc: {testauc}, testacc: {testacc}, window_testauc: {window_testauc}, window_testacc: {window_testacc}")
 
-        if i - best_epoch >= 10:
+        early_stopping(auc, i)
+
+        if early_stopping.early_stop:
+            print("Early stopped...")
             break
+
     return testauc, testacc, window_testauc, window_testacc, validauc, validacc, best_epoch

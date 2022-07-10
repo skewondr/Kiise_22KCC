@@ -1,6 +1,6 @@
 {
     "assist2015": {
-        "dpath": "../data/assist2015",
+        "dpath": "../data/assist2015/fold3",
         "num_q": 0,
         "num_c": 100,
         "input_type": [
@@ -12,9 +12,7 @@
         "folds": [
             0,
             1,
-            2,
-            3,
-            4
+            2
         ],
         "test_original_file": "test.csv",
         "test_file": "test_sequences.csv",
@@ -43,5 +41,105 @@
         "test_window_file": "test_window_sequences.csv",
         "test_question_file": "test_question_sequences.csv",
         "test_question_window_file": "test_question_window_sequences.csv"
+    },
+    "assist2009": {
+        "dpath": "../data/2009_skill_builder_data_corrected",
+        "num_q": 17737,
+        "num_c": 123,
+        "input_type": [
+            "questions",
+            "concepts"
+        ],
+        "emb_path": "",
+        "train_valid_original_file": "train_valid.csv",
+        "train_valid_file": "train_valid_sequences.csv",
+        "folds": [
+            0,
+            1,
+            2,
+            3,
+            4
+        ],
+        "test_original_file": "test.csv",
+        "test_file": "test_sequences.csv",
+        "test_window_file": "test_window_sequences.csv",
+        "test_question_file": "test_question_sequences.csv",
+        "test_question_window_file": "test_question_window_sequences.csv"
+    },
+    "ednet": {
+        "dpath": "../data/EdNet/EdNet-KT1/sub1_fold3",
+        "num_q": 0,
+        "num_c": 12088,
+        "input_type": [
+            "concepts"
+        ],
+        "emb_path": "",
+        "train_valid_original_file": "train_valid.csv",
+        "train_valid_file": "train_valid_sequences.csv",
+        "folds": [
+            0,
+            1,
+            2
+        ],
+        "test_original_file": "test.csv",
+        "test_file": "test_sequences.csv",
+        "test_window_file": "test_window_sequences.csv"
+    },
+    "assist2015_q2a_k5": {
+        "dpath": "../data/assist2015/q2a_k5_fold3",
+        "num_q": 0,
+        "num_c": 5,
+        "input_type": [
+            "concepts"
+        ],
+        "emb_path": "",
+        "train_valid_original_file": "train_valid.csv",
+        "train_valid_file": "train_valid_sequences.csv",
+        "folds": [
+            0,
+            1,
+            2
+        ],
+        "test_original_file": "test.csv",
+        "test_file": "test_sequences.csv",
+        "test_window_file": "test_window_sequences.csv"
+    },
+    "assist2015_q2a_k25": {
+        "dpath": "../data/assist2015/q2a_k25_fold3",
+        "num_q": 0,
+        "num_c": 25,
+        "input_type": [
+            "concepts"
+        ],
+        "emb_path": "",
+        "train_valid_original_file": "train_valid.csv",
+        "train_valid_file": "train_valid_sequences.csv",
+        "folds": [
+            0,
+            1,
+            2
+        ],
+        "test_original_file": "test.csv",
+        "test_file": "test_sequences.csv",
+        "test_window_file": "test_window_sequences.csv"
+    },
+    "assist2015_q2a_k50": {
+        "dpath": "../data/assist2015/q2a_k50_fold3",
+        "num_q": 0,
+        "num_c": 50,
+        "input_type": [
+            "concepts"
+        ],
+        "emb_path": "",
+        "train_valid_original_file": "train_valid.csv",
+        "train_valid_file": "train_valid_sequences.csv",
+        "folds": [
+            0,
+            1,
+            2
+        ],
+        "test_original_file": "test.csv",
+        "test_file": "test_sequences.csv",
+        "test_window_file": "test_window_sequences.csv"
     }
 }

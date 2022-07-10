@@ -8,7 +8,8 @@ KEYS = ["user_id", "skill_id", "problem_id"]
 def read_data_from_csv(read_file, write_file):
     stares = []
 
-    df = pd.read_csv(read_file, encoding = 'utf-8', dtype=str)
+    df = pd.read_csv(read_file, encoding = 'ISO-8859-1', dtype=str)
+    # df = pd.read_csv(read_file, encoding = 'utf-8', dtype=str)
 
     ins, us, qs, cs, avgins, avgcq, na = sta_infos(df, KEYS, stares)
     print(f"original interaction num: {ins}, user num: {us}, question num: {qs}, concept num: {cs}, avg(ins) per s: {avgins}, avg(c) per q: {avgcq}, na: {na}")

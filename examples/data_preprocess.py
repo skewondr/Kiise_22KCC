@@ -3,14 +3,21 @@ import argparse
 from pykt.preprocess import process_raw_data
 from pykt.preprocess.split_datasets import main as split
 
+sys.path.append('/home/tako/yoonjin/pykt-toolkit')
+
 dname2paths = {
-    "assist2009": "../data/assist2009/skill_builder_data_corrected_collapsed.csv",
+    # "assist2009": "../data/assist2009/skill_builder_data_corrected_collapsed.csv",
+    "assist2009": "../data/2009_skill_builder_data_corrected/skill_builder_data_corrected.csv",
     "assist2015": "../data/assist2015/2015_100_skill_builders_main_problems.csv",
+    "assist2015_q2a_k5": "../data/assist2015/2015_100_skill_builders_main_problems.csv",
+    "assist2015_q2a_k25": "../data/assist2015/2015_100_skill_builders_main_problems.csv",
+    "assist2015_q2a_k50": "../data/assist2015/2015_100_skill_builders_main_problems.csv",
     "algebra2005": "../data/algebra2005/algebra_2005_2006_train.txt",
     "bridge2algebra2006": "../data/bridge2algebra2006/bridge_to_algebra_2006_2007_train.txt",
     "statics2011": "../data/statics2011/AllData_student_step_2011F.csv",
     "nips_task34": "../data/nips_task34/train_task_3_4.csv",
-    "poj": "../data/poj/poj_log.csv"
+    "poj": "../data/poj/poj_log.csv",
+    "ednet": "../data/EdNet/EdNet-KT1/KT1/",
 }
 configf = "../configs/data_config.json"
 
@@ -18,8 +25,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset_name", type=str, default="assist2015")
     parser.add_argument("--min_seq_len", type=int, default=3)
-    parser.add_argument("--maxlen", type=int, default=200)
-    parser.add_argument("--kfold", type=int, default=5)
+    parser.add_argument("--maxlen", type=int, default=100)
+    parser.add_argument("--kfold", type=int, default=3)
     args = parser.parse_args()
 
     print(args)
@@ -29,5 +36,5 @@ if __name__ == "__main__":
     print("-"*50)
     # split
     os.system("rm " + dname + "/*.pkl")
-    split(dname, writef, args.dataset_name, configf, args.min_seq_len,args.maxlen, args.kfold)
+    split(dname, writef, args.dataset_name, configf, args.min_seq_len, args.maxlen, args.kfold)
     print("="*100)

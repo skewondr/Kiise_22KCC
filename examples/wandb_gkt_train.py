@@ -1,5 +1,8 @@
 import argparse
 from wandb_train import main
+import sys 
+
+sys.path.append('/home/tako/yoonjin/pykt-toolkit')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -11,6 +14,13 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--fold", type=int, default=0)
     parser.add_argument("--learning_rate", type=float, default=1e-2)
+
+    #train params
+    parser.add_argument("--batch_size", type=int, default=256)
+    parser.add_argument("--num_epochs", type=int, default=20)
+    parser.add_argument("--seq_len", type=int, default=100)
+    parser.add_argument("--es_patience", type=int, default=3)
+
     # model params
     parser.add_argument("--dropout", type=float, default=0.5)
     parser.add_argument("--hidden_dim", type=int, default=64)

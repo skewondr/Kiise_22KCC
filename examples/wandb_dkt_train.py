@@ -17,6 +17,12 @@ if __name__ == "__main__":
 
     parser.add_argument("--use_wandb", type=int, default=1)
     parser.add_argument("--add_uuid", type=int, default=1)
+
+    #train params
+    parser.add_argument("--batch_size", type=int, default=256)
+    parser.add_argument("--num_epochs", type=int, default=20)
+    parser.add_argument("--seq_len", type=int, default=100)
+    parser.add_argument("--es_patience", type=int, default=3)
     
     args = parser.parse_args()
 
