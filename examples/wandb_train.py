@@ -186,4 +186,15 @@ def main(train_params, model_params):
             wandb.log({"testauc": testauc, "testacc": testacc, "window_testauc": window_testauc, "window_testacc": window_testacc, 
                         "validauc": validauc, "validacc": validacc, "best_epoch": best_epoch,"model_save_path":model_save_path})
 
-    wandb.log({"kfolds":train_params['fold'], "mean testauc": np.array(tst_auc_list).mean(), "mean testacc": np.array(tst_acc_list).mean(), "mean validauc": np.array(val_auc_list).mean(), "mean validacc": np.array(val_acc_list).mean(), "best_fold(auc)": tst_auc_list.index(max(tst_auc_list))})
+    wandb.log({
+        "dataset":train_params['dataset_name'],
+        "model":train_params['model_name'],
+        "emb type":train_params['emb_type'],
+        "seed":train_params['seed'],
+        "kfolds":train_params['fold'],
+        "mean testauc": np.array(tst_auc_list).mean(),
+        "mean testauc": np.array(tst_auc_list).mean(),
+        "mean testacc": np.array(tst_acc_list).mean(),
+        "mean validauc": np.array(val_auc_list).mean(),
+        "mean validacc": np.array(val_acc_list).mean(),
+        "best_fold(auc)": tst_auc_list.index(max(tst_auc_list))})
