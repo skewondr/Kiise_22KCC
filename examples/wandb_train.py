@@ -74,6 +74,11 @@ def main(train_params, model_params):
     tst_auc_list = []
     val_acc_list = []
     val_auc_list = []
+    ckpt_name_list = ['dataset_name', 'model_name', 'seed', 'fold']
+    params_str = "_".join([str(train_params[_]) for _ in ckpt_name_list]) 
+    tm = localtime(time.time())
+    params_str += f'_{tm.tm_mday}{tm.tm_hour}{tm.tm_min}{tm.tm_sec}'
+
     for i in range(train_params['fold']):
         if "use_wandb" not in model_params:
             model_params['use_wandb'] = 1
@@ -81,6 +86,8 @@ def main(train_params, model_params):
         if model_params['use_wandb']==1:
             import wandb
             wandb.init()
+            wandb.run.name = params_str
+            wandb.run.save()
 
         set_seed(train_params["seed"])
         model_name, dataset_name, fold, emb_type, save_dir = train_params["model_name"], train_params["dataset_name"], \
@@ -112,10 +119,6 @@ def main(train_params, model_params):
         debug_print(text="init_dataset",fuc_name="main")
         train_loader, valid_loader, test_loader, test_window_loader = init_dataset4train(dataset_name, model_name, data_config, fold, batch_size)
 
-        ckpt_name_list = ['dataset_name', 'model_name', 'seed', 'fold']
-        params_str = "_".join([str(train_params[_]) for _ in ckpt_name_list]) 
-        tm = localtime(time.time())
-        params_str += f'_{tm.tm_mday}{tm.tm_hour}{tm.tm_min}{tm.tm_sec}'
         if model_params['add_uuid'] == 1:
             import uuid
         ckpt_path = os.path.join(save_dir, params_str)
@@ -182,19 +185,20 @@ def main(train_params, model_params):
         total_time = time.time() - start_time
         print(f"elapsed time: {total_time:.2f}s, {timedelta(seconds=total_time)}")
         
-        if model_params['use_wandb']==1:
-            wandb.log({"testauc": testauc, "testacc": testacc, "window_testauc": window_testauc, "window_testacc": window_testacc, 
-                        "validauc": validauc, "validacc": validacc, "best_epoch": best_epoch,"model_save_path":model_save_path})
-
-    wandb.log({
-        "dataset":train_params['dataset_name'],
-        "model":train_params['model_name'],
-        "emb type":train_params['emb_type'],
-        "seed":train_params['seed'],
-        "kfolds":train_params['fold'],
-        "mean testauc": np.array(tst_auc_list).mean(),
-        "mean testauc": np.array(tst_auc_list).mean(),
-        "mean testacc": np.array(tst_acc_list).mean(),
-        "mean validauc": np.array(val_auc_list).mean(),
-        "mean validacc": np.array(val_acc_list).mean(),
-        "best_fold(auc)": tst_auc_list.index(max(tst_auc_list))})
+        # if model_params['use_wandb']==1:
+        #     wandb.log({"testauc": testauc, "testacc": testacc, "window_testauc": window_testauc, "window_testacc": window_testacc, 
+        #                 "validauc": validauc, "validacc": validacc, "best_epoch": best_epoch,"model_save_path":model_save_path})
+        
+    if model_params['use_wandb']==1:
+        wandb.log({
+            "dataset":train_params['dataset_name'],
+            "model":train_params['model_name'],
+            "emb type":train_params['emb_type'],
+            "seed":train_params['seed'],
+            "kfolds":train_params['fold'],
+            "mean testauc": np.array(tst_auc_list).mean(),
+            "mean testauc": np.array(tst_auc_list).mean(),
+            "mean testacc": np.array(tst_acc_list).mean(),
+            "mean validauc": np.array(val_auc_list).mean(),
+            "mean validacc": np.array(val_acc_list).mean(),
+            "best_fold(auc)": tst_auc_list.index(max(tst_auc_list))})
