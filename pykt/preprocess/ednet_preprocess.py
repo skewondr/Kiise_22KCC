@@ -26,7 +26,7 @@ content_df = pd.read_csv(content_path)
 
 KEYS = ["user_id", "question_id", "user_answer", "correct_answer"]
 
-def read_data_from_csv(read_file, write_file):
+def read_data_from_csv(read_file, write_file, subset):
     stares = []
     user_inters = []
     sample_stat = np.array([0, 0, 0, 0]) #ins, us, qs, cs
@@ -37,7 +37,7 @@ def read_data_from_csv(read_file, write_file):
     total_q_acc = {}
 
     user_path_list = os.listdir(read_file)
-    user_path_list = sample(user_path_list, int(len(user_path_list)*(0.01)))
+    user_path_list = sample(user_path_list, int(len(user_path_list)*subset*0.01))
     us = len(user_path_list)
 
     dname = "/".join(write_file.split("/")[0:-1])

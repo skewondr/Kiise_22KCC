@@ -2,12 +2,12 @@ import os, sys
 from .split_datasets import main as split
 import shutil
 
-def process_raw_data(dataset_name,dname2paths):
+def process_raw_data(dataset_name, kfold, subset, dname2paths):
     readf = dname2paths[dataset_name]
     if dataset_name == "ednet": 
-        dname = "/".join(readf.split("/")[0:-2]) + "/sub1_fold3"
+        dname = "/".join(readf.split("/")[0:-2]) + f"/sub{subset}_fold{kfold}"
     else: 
-        dname = "/".join(readf.split("/")[0:-1]) + "/fold3"
+        dname = "/".join(readf.split("/")[0:-1]) + f"/sub{subset}_fold{kfold}"
 
     if os.path.exists(dname):
         shutil.rmtree(dname)
@@ -32,7 +32,9 @@ def process_raw_data(dataset_name,dname2paths):
     elif dataset_name == "ednet":
         from .ednet_preprocess import read_data_from_csv
 
-    if dataset_name != "nips_task34":
+    if dataset_name == "ednet":
+        read_data_from_csv(readf, writef, subset)
+    elif dataset_name != "nips_task34":
         read_data_from_csv(readf, writef)
     else:
         metap = os.path.join(dname, "metadata")

@@ -6,7 +6,7 @@ from data_config import ARGS as args
 
 dname2paths = {
     # "assist2009": "../data/assist2009/skill_builder_data_corrected_collapsed.csv",
-    "assist2009": "../data/2009_skill_builder_data_corrected/skill_builder_data_corrected.csv",
+    "assist2009": "../data/assist2009/skill_builder_data_corrected.csv",
     "assist2015": "../data/assist2015/2015_100_skill_builders_main_problems.csv",
     "algebra2005": "../data/algebra2005/algebra_2005_2006_train.txt",
     "bridge2algebra2006": "../data/bridge2algebra2006/bridge_to_algebra_2006_2007_train.txt",
@@ -19,7 +19,7 @@ configf = "../configs/data_config.json"
 
 if __name__ == "__main__":
     # process raw data
-    dname, writef = process_raw_data(args.dataset_name, dname2paths)
+    dname, writef = process_raw_data(args.dataset_name, args.kfold, args.subset, dname2paths)
     print("-"*50)
     # split
     os.system("rm " + dname + "/*.pkl")
