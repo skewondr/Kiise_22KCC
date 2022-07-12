@@ -4,16 +4,11 @@ from torch.nn import Dropout
 import pandas as pd
 from .utils import transformer_FFN, get_clones, ut_mask, pos_encode
 from torch.nn import Embedding, Linear
-import json
-import pickle 
-import os 
-import numpy as np
-from IPython import embed
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
 class SAINT(nn.Module):
-    def __init__(self, num_q, num_c, dataset_name, q2a, r2a, seq_len, emb_size, num_attn_heads, dropout, n_blocks=1, emb_type="qid", emb_path="", pretrain_dim=768):
+    def __init__(self, num_q, num_c, seq_len, emb_size, num_attn_heads, dropout, n_blocks=1, emb_type="qid", emb_path="", pretrain_dim=768):
         super().__init__()
         print(f"num_q: {num_q}, num_c: {num_c}")
         if num_q == num_c and num_q == 0:
@@ -32,93 +27,12 @@ class SAINT(nn.Module):
         if emb_type.startswith("qid"):
             self.encoder = get_clones(Encoder_block(emb_size, num_attn_heads, num_q, num_c, seq_len, dropout), self.num_en)
         
-        self.decoder = get_clones(Decoder_block(emb_size, 2*max(q2a, r2a)+1, num_attn_heads, seq_len, dropout), self.num_de)
+        self.decoder = get_clones(Decoder_block(emb_size, 2, num_attn_heads, seq_len, dropout), self.num_de)
 
         self.dropout = Dropout(dropout)
         self.out = nn.Linear(in_features=emb_size, out_features=1)
-
-        self.q2a = q2a
-        self.r2a = r2a
-
-        acc_name = f"../data/{dataset_name}/fold3/correct_rate.pickle"
-        if os.path.isfile(acc_name):
-            with open(acc_name, 'rb') as f: 
-                self.q_acc = pickle.load(f)
-                print("open accuracy dict")
-        self.quantile = np.quantile(list(self.q_acc.values()), q=np.arange(0,1,1/max(q2a, r2a)))
-
-        dkeyid2idx_name = f"../data/{dataset_name}/fold3/keyid2idx.json"
-        if os.path.isfile(dkeyid2idx_name):
-            with open(dkeyid2idx_name) as f: 
-                self.dkeyid2idx = json.load(f)
-                print("open dkeyid2idx dict")
-        self.inv_dkeyid2idx = {value:key for key, value in self.dkeyid2idx['concepts'].items()}
-
-    def seq2acc(self, cat):
-        batch_size = cat.shape[0]
-        seq_size = cat.shape[1]
-        acc_scores = []
-        for i in range(batch_size):
-            acc_score = []
-            non_padding_num = (cat[i] != 0).sum(-1).item()
-            for j in range(non_padding_num):
-                if cat[i][j].item() > 0 and cat[i][j].item() in self.inv_dkeyid2idx.keys():
-                    cid = self.inv_dkeyid2idx[cat[i][j].item()]
-                    if int(cid) in self.q_acc.keys():
-                        score = self.q_acc[int(cid)]
-                    else: 
-                        score = 0
-                    idx = np.abs(self.quantile - score).argmin()
-                    if self.quantile.flat[idx] <= score:
-                        idx +=1
-                    acc_score.append(idx)
-                else: acc_score.append(1)
-            acc_score = acc_score + [0] * (seq_size - non_padding_num)
-            acc_scores.append(acc_score)
-        return torch.tensor(acc_scores, dtype=int).to(device)
-
-    def ans2acc(self, cat, ans):
-        # embed()
-        batch_size = ans.shape[0] #
-        seq_size = ans.shape[1] # 99
-        acc_scores = []
-        for i in range(batch_size):
-            acc_score = []
-            non_padding_num = (cat[i] != 0).sum(-1).item() # 100
-            for j in range(non_padding_num-1): # 0~98
-                if cat[i][j].item() > 0 and cat[i][j].item() in self.inv_dkeyid2idx.keys():
-                    cid = self.inv_dkeyid2idx[cat[i][j].item()]
-                    if int(cid) in self.q_acc.keys():
-                        score = self.q_acc[int(cid)]
-                    else: 
-                        score = 0
-                    idx = np.abs(self.quantile - score).argmin()
-                    if self.quantile.flat[idx] <= score:
-                        idx +=1
-                    if ans[i][j].item() == 1:
-                        acc_score.append(idx)
-                    else: 
-                        acc_score.append(self.r2a + idx)
-                else: 
-                    if ans[i][j].item() == 1:
-                        acc_score.append(1)
-                    else: 
-                        acc_score.append(self.r2a + 1)
-            if non_padding_num == 0:
-                acc_score = acc_score + [0] * (seq_size - len(acc_score))
-            else: 
-                acc_score = acc_score + [0] * (seq_size - (non_padding_num-1))
-            acc_scores.append(acc_score)
-        return torch.tensor(acc_scores, dtype=int).to(device)
-
+    
     def forward(self, in_ex, in_cat, in_res, qtest=False):
-
-        if self.q2a > 1:
-            in_cat = self.seq2acc(in_cat)
-        
-        if self.r2a > 1:
-            in_res = self.ans2acc(in_cat, in_res)
-
         emb_type = self.emb_type        
 
         if self.num_q > 0:
@@ -136,7 +50,7 @@ class SAINT(nn.Module):
                 in_ex = self.encoder[i](in_ex, in_cat, in_pos, first_block=first_block)
             in_cat = in_ex
         ## pass through each decoder blocks in sequence
-        start_token = torch.tensor([[2*max(self.q2a, self.r2a)+1]]).repeat(in_res.shape[0], 1).to(device)
+        start_token = torch.tensor([[2]]).repeat(in_res.shape[0], 1).to(device)
         in_res = torch.cat((start_token, in_res), dim=-1)
         r = in_res
         first_block = True
