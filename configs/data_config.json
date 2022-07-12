@@ -43,7 +43,7 @@
         "test_question_window_file": "test_question_window_sequences.csv"
     },
     "assist2009": {
-        "dpath": "../data/2009_skill_builder_data_corrected",
+        "dpath": "../data/2009_skill_builder_data_corrected/fold3",
         "num_q": 17737,
         "num_c": 123,
         "input_type": [
@@ -56,9 +56,7 @@
         "folds": [
             0,
             1,
-            2,
-            3,
-            4
+            2
         ],
         "test_original_file": "test.csv",
         "test_file": "test_sequences.csv",
