@@ -14,14 +14,16 @@ from pykt.datasets import init_dataset4train
 import time
 from datetime import timedelta, datetime
 import numpy as np
+import time
+from time import localtime 
 from IPython import embed
 
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 os.environ['CUBLAS_WORKSPACE_CONFIG']=':4096:2'
 
-def save_config(train_config, model_config, data_config, params, save_dir):
-    d = {"train_config": train_config, 'model_config': model_config, "data_config": data_config, "params": params}
+def save_config(train_config, model_config, data_config, train_params, model_params, save_dir):
+    d = {"train_config": train_config, 'model_config': model_config, "data_config": data_config, "train_params": train_params, "model_params": model_params}
     save_path = os.path.join(save_dir, "config.json")
     with open(save_path, "w") as fout:
         json.dump(d, fout)
@@ -67,68 +69,38 @@ class EarlyStopping:
             self.best_score = score
             self.counter = 0
         
-    # def save_best_ckpt(self, score, model, path):
-    #     if self.verbose:
-    #         logger.info(f'[Validation] AUC ({self.best_score:.6f} --> {score:.6f}). Saving model {path}')
-    #     torch.save(model.state_dict(), path)
-
-    # def save_last_ckpt(self, score, model, path, epoch, optim, scheduler):
-    #     if self.verbose:
-    #         logger.info(f'[Validation] AUC ({self.best_score:.6f} --> {score:.6f}). Saving model {path}')
-    #     other_states = {
-    #             "early": self.counter,
-    #             "best": self.best_score,
-    #         }
-    #     save_checkpoint(
-    #         path, 
-    #         model,
-    #         epoch,  
-    #         optim, 
-    #         scheduler,
-    #         other_states
-    #     )
-
-def main(params):
+def main(train_params, model_params):
     tst_acc_list = []
     tst_auc_list = []
     val_acc_list = []
     val_auc_list = []
-    k_folds = 3
-    for i in range(k_folds):
-        params["fold"] = i
-        if "use_wandb" not in params:
-            params['use_wandb'] = 1
+    for i in range(train_params['fold']):
+        if "use_wandb" not in model_params:
+            model_params['use_wandb'] = 1
 
-        if params['use_wandb']==1:
+        if model_params['use_wandb']==1:
             import wandb
             wandb.init()
 
-        set_seed(params["seed"])
-        model_name, dataset_name, fold, emb_type, save_dir = params["model_name"], params["dataset_name"], \
-            params["fold"], params["emb_type"], params["save_dir"]
+        set_seed(train_params["seed"])
+        model_name, dataset_name, fold, emb_type, save_dir = train_params["model_name"], train_params["dataset_name"], \
+            i, train_params["emb_type"], train_params["save_dir"]
             
         debug_print(text = "load config files.",fuc_name="main")
         
         with open("../configs/kt_config.json") as f:
             config = json.load(f)
             train_config = config["train_config"]
-            train_config["batch_size"] = params["batch_size"]
-            train_config["num_epochs"] = params["num_epochs"]
-            train_config["seq_len"] = params["seq_len"]
+            train_config["batch_size"] = train_params["batch_size"]
+            train_config["num_epochs"] = train_params["num_epochs"]
+            train_config["seq_len"] = train_params["seq_len"]
             if model_name in ["dkvmn", "sakt", "saint", "akt", "atkt"]:
                 train_config["batch_size"] = 64 ## because of OOM
             if model_name in ["gkt"]:
                 train_config["batch_size"] = 16 
-            model_config = copy.deepcopy(params)
-            if model_name == "saint":
-                rm_config = ["model_name", "emb_type", "save_dir", "fold", "seed", "batch_size", "num_epochs", "seq_len", "es_patience"]
-            else: 
-                rm_config = ["model_name", "dataset_name", "emb_type", "save_dir", "fold", "seed", "batch_size", "num_epochs", "seq_len", "es_patience"]
 
-            for key in rm_config:
-                del model_config[key]
-            # model_config = {"d_model": params["d_model"], "n_blocks": params["n_blocks"], "dropout": params["dropout"], "d_ff": params["d_ff"]}
-
+            model_config = copy.deepcopy(model_params)
+       
         batch_size, num_epochs, optimizer = train_config["batch_size"], train_config["num_epochs"], train_config["optimizer"]
         seq_len = train_config["seq_len"]
 
@@ -140,12 +112,12 @@ def main(params):
         debug_print(text="init_dataset",fuc_name="main")
         train_loader, valid_loader, test_loader, test_window_loader = init_dataset4train(dataset_name, model_name, data_config, fold, batch_size)
 
-        params_str = "_".join([str(_) for _ in params.values()])
-        print(f"params: {params}, params_str: {params_str}")
-        if params['add_uuid'] == 1:
+        ckpt_name_list = ['dataset_name', 'model_name', 'seed', 'fold']
+        params_str = "_".join([str(train_params[_]) for _ in ckpt_name_list]) 
+        tm = localtime(time.time())
+        params_str += f'_{tm.tm_mday}{tm.tm_hour}{tm.tm_min}{tm.tm_sec}'
+        if model_params['add_uuid'] == 1:
             import uuid
-            if not model_name in ['saint']:
-                params_str = params_str+f"_{ str(uuid.uuid4())}"
         ckpt_path = os.path.join(save_dir, params_str)
         if not os.path.isdir(ckpt_path):
             os.makedirs(ckpt_path)
@@ -153,8 +125,8 @@ def main(params):
         print(f"model_config: {model_config}")
         print(f"train_config: {train_config}")
 
-        save_config(train_config, model_config, data_config[dataset_name], params, ckpt_path)
-        learning_rate = params["learning_rate"]
+        save_config(train_config, model_config, data_config[dataset_name], train_params, model_params, ckpt_path)
+        learning_rate = model_params["learning_rate"]
         for remove_item in ['use_wandb','learning_rate','add_uuid']:
             if remove_item in model_config:
                 del model_config[remove_item]
@@ -177,7 +149,7 @@ def main(params):
         
         debug_print(text = "train model",fuc_name="main")
         
-        early_stopping = EarlyStopping(patience=params["es_patience"], verbose=True, path=ckpt_path)   
+        early_stopping = EarlyStopping(patience=train_params["es_patience"], verbose=True, path=ckpt_path)   
         start_time = time.time()
         testauc, testacc, window_testauc, window_testacc, validauc, validacc, best_epoch = train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, early_stopping, test_loader, test_window_loader, save_model)
         
@@ -210,8 +182,8 @@ def main(params):
         total_time = time.time() - start_time
         print(f"elapsed time: {total_time:.2f}s, {timedelta(seconds=total_time)}")
         
-        if params['use_wandb']==1:
+        if model_params['use_wandb']==1:
             wandb.log({"testauc": testauc, "testacc": testacc, "window_testauc": window_testauc, "window_testacc": window_testacc, 
                         "validauc": validauc, "validacc": validacc, "best_epoch": best_epoch,"model_save_path":model_save_path})
 
-    wandb.log({"kfolds":k_folds, "mean testauc": np.array(tst_auc_list).mean(), "mean testacc": np.array(tst_acc_list).mean(), "mean validauc": np.array(val_auc_list).mean(), "mean validacc": np.array(val_acc_list).mean(), "best_fold(auc)": tst_auc_list.index(max(tst_auc_list))})
+    wandb.log({"kfolds":train_params['fold'], "mean testauc": np.array(tst_auc_list).mean(), "mean testacc": np.array(tst_acc_list).mean(), "mean validauc": np.array(val_auc_list).mean(), "mean validacc": np.array(val_acc_list).mean(), "best_fold(auc)": tst_auc_list.index(max(tst_auc_list))})
