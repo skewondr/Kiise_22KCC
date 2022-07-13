@@ -7,7 +7,7 @@ import torch.nn.functional as F
 from enum import IntEnum
 import numpy as np
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class Dim(IntEnum):
     batch = 0
@@ -15,7 +15,7 @@ class Dim(IntEnum):
     feature = 2
 
 class AKT(nn.Module):
-    def __init__(self, n_question, n_pid, d_model, n_blocks, dropout, d_ff=256, 
+    def __init__(self, device, n_question, n_pid, d_model, n_blocks, dropout, d_ff=256, 
             kq_same=1, final_fc_dim=512, num_attn_heads=8, separate_qa=False, l2=1e-5, emb_type="qid", emb_path="", pretrain_dim=768):
         super().__init__()
         """
@@ -26,6 +26,7 @@ class AKT(nn.Module):
             d_ff : dimension for fully conntected net inside the basic block
             kq_same: if key query same, kq_same=1, else = 0
         """
+        self.device = device
         self.model_name = "akt"
         self.n_question = n_question
         self.dropout = dropout
@@ -49,7 +50,7 @@ class AKT(nn.Module):
             else: # false default
                 self.qa_embed = nn.Embedding(2, embed_l)
         # Architecture Object. It contains stack of attention block
-        self.model = Architecture(n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
+        self.model = Architecture(device, n_question=n_question, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
                                     d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff,  kq_same=self.kq_same, model_type=self.model_type)
 
         self.out = nn.Sequential(
@@ -116,7 +117,7 @@ class AKT(nn.Module):
 
 
 class Architecture(nn.Module):
-    def __init__(self, n_question,  n_blocks, d_model, d_feature,
+    def __init__(self, device, n_question,  n_blocks, d_model, d_feature,
                  d_ff, n_heads, dropout, kq_same, model_type):
         super().__init__()
         """
@@ -130,12 +131,12 @@ class Architecture(nn.Module):
 
         if model_type in {'akt'}:
             self.blocks_1 = nn.ModuleList([
-                TransformerLayer(d_model=d_model, d_feature=d_model // n_heads,
+                TransformerLayer(device, d_model=d_model, d_feature=d_model // n_heads,
                                  d_ff=d_ff, dropout=dropout, n_heads=n_heads, kq_same=kq_same)
                 for _ in range(n_blocks)
             ])
             self.blocks_2 = nn.ModuleList([
-                TransformerLayer(d_model=d_model, d_feature=d_model // n_heads,
+                TransformerLayer(device, d_model=d_model, d_feature=d_model // n_heads,
                                  d_ff=d_ff, dropout=dropout, n_heads=n_heads, kq_same=kq_same)
                 for _ in range(n_blocks*2)
             ])
@@ -168,7 +169,7 @@ class Architecture(nn.Module):
         return x
 
 class TransformerLayer(nn.Module):
-    def __init__(self, d_model, d_feature,
+    def __init__(self, device, d_model, d_feature,
                  d_ff, n_heads, dropout,  kq_same):
         super().__init__()
         """
@@ -176,8 +177,9 @@ class TransformerLayer(nn.Module):
         """
         kq_same = kq_same == 1
         # Multi-Head Attention Block
+        self.device = device 
         self.masked_attn_head = MultiHeadAttention(
-            d_model, d_feature, n_heads, dropout, kq_same=kq_same)
+            device, d_model, d_feature, n_heads, dropout, kq_same=kq_same)
 
         # Two layer norm layer and two droput layer
         self.layer_norm1 = nn.LayerNorm(d_model)
@@ -208,7 +210,7 @@ class TransformerLayer(nn.Module):
         seqlen, batch_size = query.size(1), query.size(0)
         nopeek_mask = np.triu(
             np.ones((1, 1, seqlen, seqlen)), k=mask).astype('uint8')
-        src_mask = (torch.from_numpy(nopeek_mask) == 0).to(device)
+        src_mask = (torch.from_numpy(nopeek_mask) == 0).to(self.device)
         if mask == 0:  # If 0, zero-padding is needed.
             # Calls block.masked_attn_head.forward() method
             query2 = self.masked_attn_head(
@@ -229,11 +231,12 @@ class TransformerLayer(nn.Module):
 
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, d_model, d_feature, n_heads, dropout, kq_same, bias=True):
+    def __init__(self, device, d_model, d_feature, n_heads, dropout, kq_same, bias=True):
         super().__init__()
         """
         It has projection layer for getting keys, queries and values. Followed by attention and a connected layer.
         """
+        self.device = device 
         self.d_model = d_model
         self.d_k = d_feature
         self.h = n_heads
@@ -284,7 +287,7 @@ class MultiHeadAttention(nn.Module):
         v = v.transpose(1, 2)
         # calculate attention using function we will define next
         gammas = self.gammas
-        scores = attention(q, k, v, self.d_k,
+        scores = attention(self.device, q, k, v, self.d_k,
                            mask, self.dropout, zero_pad, gammas)
 
         # concatenate heads and put through final linear layer
@@ -296,7 +299,7 @@ class MultiHeadAttention(nn.Module):
         return output
 
 
-def attention(q, k, v, d_k, mask, dropout, zero_pad, gamma=None):
+def attention(device, q, k, v, d_k, mask, dropout, zero_pad, gamma=None):
     """
     This is called by Multi-head atention object to find the values.
     """

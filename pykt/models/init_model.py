@@ -14,9 +14,9 @@ from .akt import AKT
 from .gkt import GKT
 from .gkt_utils import get_gkt_graph
 
-device = "cpu" if not torch.cuda.is_available() else "cuda"
+# device = "cpu" if not torch.cuda.is_available() else "cuda"
 
-def init_model(model_name, model_config, data_config, emb_type):
+def init_model(device, model_name, model_config, data_config, emb_type):
     if model_name == "dkt":
         model = DKT(data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "dkt+":
@@ -26,13 +26,13 @@ def init_model(model_name, model_config, data_config, emb_type):
     elif model_name == "sakt":
         model = SAKT(data_config["num_c"],  **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "saint":
-        model = SAINT(data_config["num_q"], data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+        model = SAINT(device, data_config["num_q"], data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "dkt_forget":
-        model = DKTForget(data_config["num_c"], data_config["num_rgap"], data_config["num_sgap"], data_config["num_pcount"], **model_config).to(device)
+        model = DKTForget(device, data_config["num_c"], data_config["num_rgap"], data_config["num_sgap"], data_config["num_pcount"], **model_config).to(device)
     elif model_name == "akt":
-        model = AKT(data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+        model = AKT(device, data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "kqn":
-        model = KQN(data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+        model = KQN(device, data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "atkt":
         model = ATKT(data_config["num_c"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"], fix=False).to(device)
     elif model_name == "atktfix":
@@ -47,7 +47,7 @@ def init_model(model_name, model_config, data_config, emb_type):
             graph = get_gkt_graph(data_config["num_c"], data_config["dpath"], 
                     data_config["train_valid_original_file"], data_config["test_original_file"], graph_type=graph_type, tofile=fname)
             graph = torch.tensor(graph).float()
-        model = GKT(data_config["num_c"], **model_config,graph=graph,emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+        model = GKT(device, data_config["num_c"], **model_config,graph=graph,emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     else:
         print("The wrong model name was used...")
         return None

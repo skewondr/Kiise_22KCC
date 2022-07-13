@@ -18,9 +18,9 @@ import time
 from time import localtime 
 from IPython import embed
 
-os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
-device = "cpu" if not torch.cuda.is_available() else "cuda"
-os.environ['CUBLAS_WORKSPACE_CONFIG']=':4096:2'
+# os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
+# device = "cpu" if not torch.cuda.is_available() else "cuda"
+# os.environ['CUBLAS_WORKSPACE_CONFIG']=':4096:2'
 
 def save_config(train_config, model_config, data_config, train_params, model_params, save_dir):
     d = {"train_config": train_config, 'model_config': model_config, "data_config": data_config, "train_params": train_params, "model_params": model_params}
@@ -70,6 +70,11 @@ class EarlyStopping:
             self.counter = 0
         
 def main(train_params, model_params):
+
+    os.environ["CUDA_VISIBLE_DEVICES"] = train_params['gpu']
+    torch.cuda.set_device(int(train_params['gpu']))
+    device = "cpu" if not torch.cuda.is_available() else f"cuda:{train_params['gpu']}"
+
     tst_acc_list = []
     tst_auc_list = []
     val_acc_list = []
@@ -114,10 +119,10 @@ def main(train_params, model_params):
         with open("../configs/data_config.json") as fin:
             data_config = json.load(fin)
         print("Start init data")
-        print(dataset_name, model_name, data_config, fold, batch_size)
+        # print(dataset_name, model_name, data_config, fold, batch_size)
         
         debug_print(text="init_dataset",fuc_name="main")
-        train_loader, valid_loader, test_loader, test_window_loader = init_dataset4train(dataset_name, model_name, data_config, fold, batch_size)
+        train_loader, valid_loader, test_loader, test_window_loader = init_dataset4train(device, dataset_name, model_name, data_config, fold, batch_size)
 
         if model_params['add_uuid'] == 1:
             import uuid
@@ -137,7 +142,7 @@ def main(train_params, model_params):
             model_config["seq_len"] = seq_len
             
         debug_print(text = "init_model",fuc_name="main")
-        model = init_model(model_name, model_config, data_config[dataset_name], emb_type)
+        model = init_model(device, model_name, model_config, data_config[dataset_name], emb_type)
 
         if optimizer == "sgd":
             opt = SGD(model.parameters(), learning_rate, momentum=0.9)
@@ -154,23 +159,23 @@ def main(train_params, model_params):
         
         early_stopping = EarlyStopping(patience=train_params["es_patience"], verbose=True, path=ckpt_path)   
         start_time = time.time()
-        testauc, testacc, window_testauc, window_testacc, validauc, validacc, best_epoch = train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, early_stopping, test_loader, test_window_loader, save_model)
+        testauc, testacc, window_testauc, window_testacc, validauc, validacc, best_epoch = train_model(device, model, train_loader, valid_loader, num_epochs, opt, ckpt_path, early_stopping, test_loader, test_window_loader, save_model)
         
         val_acc_list.append(validacc)
         val_auc_list.append(validauc)
 
         if save_model:
-            best_model = init_model(model_name, model_config, data_config[dataset_name], emb_type)
+            best_model = init_model(device, model_name, model_config, data_config[dataset_name], emb_type)
             net = torch.load(os.path.join(ckpt_path, emb_type+"_model.ckpt"))
             best_model.load_state_dict(net)
             # evaluate test
             
             if test_loader != None:
                 save_test_path = os.path.join(ckpt_path, emb_type+"_test_predictions.txt")
-                testauc, testacc = evaluate(best_model, test_loader, model_name)#, save_test_path)
+                testauc, testacc = evaluate(device, best_model, test_loader, model_name)#, save_test_path)
             if test_window_loader != None:
                 save_test_path = os.path.join(ckpt_path, emb_type+"_test_window_predictions.txt")
-                window_testauc, window_testacc = evaluate(best_model, test_window_loader, model_name)#, save_test_path)
+                window_testauc, window_testacc = evaluate(device, best_model, test_window_loader, model_name)#, save_test_path)
             # window_testauc, window_testacc = -1, -1
             # trainauc, trainacc = self.evaluate(train_loader, emb_type)
             testauc, testacc, window_testauc, window_testacc = round(testauc, 4), round(testacc, 4), round(window_testauc, 4), round(window_testacc, 4)
@@ -188,7 +193,7 @@ def main(train_params, model_params):
         # if model_params['use_wandb']==1:
         #     wandb.log({"testauc": testauc, "testacc": testacc, "window_testauc": window_testauc, "window_testacc": window_testacc, 
         #                 "validauc": validauc, "validacc": validacc, "best_epoch": best_epoch,"model_save_path":model_save_path})
-        
+
     if model_params['use_wandb']==1:
         wandb.log({
             "dataset":train_params['dataset_name'],

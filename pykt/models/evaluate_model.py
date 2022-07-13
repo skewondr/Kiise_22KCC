@@ -42,7 +42,7 @@ def save_cur_predict_result(dres, q, r, d, t, m, sm, p):
         results.append(str([qs, rs, ds, ts, ps, prelabels, auc, acc]))
     return "\n".join(results)
 
-def evaluate(model, test_loader, model_name, save_path=""):
+def evaluate(local_device, model, test_loader, model_name, save_path=""):
     if save_path != "":
         fout = open(save_path, "w", encoding="utf8")
     with torch.no_grad():
@@ -54,7 +54,7 @@ def evaluate(model, test_loader, model_name, save_path=""):
                 q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
             else:
                 q, c, r, qshft, cshft, rshft, m, sm = data
-            q, c, r, qshft, cshft, rshft, m, sm = q.to(device), c.to(device), r.to(device), qshft.to(device), cshft.to(device), rshft.to(device), m.to(device), sm.to(device)
+            q, c, r, qshft, cshft, rshft, m, sm = q.to(local_device), c.to(local_device), r.to(local_device), qshft.to(local_device), cshft.to(local_device), rshft.to(local_device), m.to(local_device), sm.to(local_device)
 
             model.eval()
 

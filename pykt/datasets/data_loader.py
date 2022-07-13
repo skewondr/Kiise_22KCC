@@ -22,8 +22,9 @@ class KTDataset(Dataset):
         folds (set(int)): the folds used to generate dataset, -1 for test data
         qtest (bool, optional): is question evaluation or not. Defaults to False.
     """
-    def __init__(self, file_path, input_type, folds, qtest=False):
+    def __init__(self, device, file_path, input_type, folds, qtest=False):
         super(KTDataset, self).__init__()
+        self.device = device
         sequence_path = file_path
         self.input_type = input_type
         self.qtest = qtest
@@ -49,6 +50,7 @@ class KTDataset(Dataset):
                 self.q_seqs, self.c_seqs, self.r_seqs, self.mask_seqs, self.select_masks, self.dqtest = pd.read_pickle(processed_data)
             else:
                 self.q_seqs, self.c_seqs, self.r_seqs, self.mask_seqs, self.select_masks = pd.read_pickle(processed_data)
+                self.q_seqs, self.c_seqs, self.r_seqs, self.mask_seqs, self.select_masks = self.q_seqs.to(self.device), self.c_seqs.to(self.device), self.r_seqs.to(self.device), self.mask_seqs.to(self.device), self.select_masks.to(self.device)
         print(f"file path: {file_path}, qlen: {len(self.q_seqs)}, clen: {len(self.c_seqs)}, rlen: {len(self.r_seqs)}")
 
     def __len__(self):
@@ -67,28 +69,28 @@ class KTDataset(Dataset):
         Returns:
             (tuple): tuple containing:
             
-            - **q_seqs (torch.tensor)**: question id sequence of the 0~seqlen-2 interactions
-            - **c_seqs (torch.tensor)**: knowledge concept id sequence of the 0~seqlen-2 interactions
+            - **q_seqs (torch.tensor)**: question id sequence of the 0~seqlen-2 interactions *
+            - **c_seqs (torch.tensor)**: knowledge concept id sequence of the 0~seqlen-2 interactions 
             - **r_seqs (torch.tensor)**: response id sequence of the 0~seqlen-2 interactions
-            - **qshft_seqs (torch.tensor)**: question id sequence of the 1~seqlen-1 interactions
+            - **qshft_seqs (torch.tensor)**: question id sequence of the 1~seqlen-1 interactions *
             - **cshft_seqs (torch.tensor)**: knowledge concept id sequence of the 1~seqlen-1 interactions
             - **rshft_seqs (torch.tensor)**: response id sequence of the 1~seqlen-1 interactions
             - **mask_seqs (torch.tensor)**: masked value sequence, shape is seqlen-1
             - **select_masks (torch.tensor)**: is select to calculate the performance or not, 0 is not selected, 1 is selected, only available for 1~seqlen-1, shape is seqlen-1
             - **dcur (dict)**: used only self.qtest is True, for question level evaluation
         """
-        q_seqs, qshft_seqs, c_seqs, cshft_seqs = torch.tensor([]), torch.tensor([]), torch.tensor([]), torch.tensor([])
+        q_seqs, qshft_seqs, c_seqs, cshft_seqs = torch.tensor([]).to(self.device), torch.tensor([]).to(self.device), torch.tensor([]).to(self.device), torch.tensor([]).to(self.device)
         if "questions" in self.input_type:
-            q_seqs = self.q_seqs[index][:-1] * self.mask_seqs[index]
-            qshft_seqs = self.q_seqs[index][1:] * self.mask_seqs[index]
+            q_seqs = self.q_seqs[index][:-1] * self.mask_seqs[index].to(self.device)
+            qshft_seqs = self.q_seqs[index][1:] * self.mask_seqs[index].to(self.device)
         if "concepts" in self.input_type:
-            c_seqs = self.c_seqs[index][:-1] * self.mask_seqs[index]
-            cshft_seqs = self.c_seqs[index][1:] * self.mask_seqs[index]
-        r_seqs = self.r_seqs[index][:-1] * self.mask_seqs[index]
-        rshft_seqs = self.r_seqs[index][1:] * self.mask_seqs[index]
+            c_seqs = self.c_seqs[index][:-1] * self.mask_seqs[index].to(self.device)
+            cshft_seqs = self.c_seqs[index][1:] * self.mask_seqs[index].to(self.device)
+        r_seqs = self.r_seqs[index][:-1] * self.mask_seqs[index].to(self.device)
+        rshft_seqs = self.r_seqs[index][1:] * self.mask_seqs[index].to(self.device)
 
-        mask_seqs = self.mask_seqs[index]
-        select_masks = self.select_masks[index]
+        mask_seqs = self.mask_seqs[index].to(self.device)
+        select_masks = self.select_masks[index].to(self.device)
         if not self.qtest:
             return q_seqs, c_seqs, r_seqs, qshft_seqs, cshft_seqs, rshft_seqs, mask_seqs, select_masks
         else:
@@ -96,6 +98,7 @@ class KTDataset(Dataset):
             for key in self.dqtest:
                 dcur[key] = self.dqtest[key][index]
             return q_seqs, c_seqs, r_seqs, qshft_seqs, cshft_seqs, rshft_seqs, mask_seqs, select_masks, dcur
+
 
 
 
@@ -140,8 +143,8 @@ class KTDataset(Dataset):
                 dqtest["rests"].append([int(_) for _ in row["rest"].split(",")])
                 dqtest["orirow"].append([int(_) for _ in row["orirow"].split(",")])
 
-        q_seqs, c_seqs, r_seqs = FloatTensor(seq_qids), FloatTensor(seq_cids), FloatTensor(seq_rights)
-        seq_mask = LongTensor(seq_mask)
+        q_seqs, c_seqs, r_seqs = FloatTensor(seq_qids).to(self.device), FloatTensor(seq_cids).to(self.device), FloatTensor(seq_rights).to(self.device)
+        seq_mask = LongTensor(seq_mask).to(self.device)
 
         mask_seqs = (c_seqs[:,:-1] != pad_val) * (c_seqs[:,1:] != pad_val)
         select_masks = (seq_mask[:, 1:] != pad_val)#(seq_mask[:,:-1] != pad_val) * (seq_mask[:,1:] != pad_val)
@@ -149,8 +152,7 @@ class KTDataset(Dataset):
 
         if self.qtest:
             for key in dqtest:
-                dqtest[key] = LongTensor(dqtest[key])[:, 1:]
-            
+                dqtest[key] = LongTensor(dqtest[key])[:, 1:].to(self.device)
             return q_seqs, c_seqs, r_seqs, mask_seqs, select_masks, dqtest
         
         return q_seqs, c_seqs, r_seqs, mask_seqs, select_masks

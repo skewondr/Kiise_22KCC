@@ -5,7 +5,7 @@ from torch.autograd import Variable
 import numpy as np
 from .utils import ut_mask
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class ATKT(nn.Module):
     def __init__(self, num_c, skill_dim, answer_dim, hidden_dim, attention_dim=80, epsilon=10, beta=0.2, dropout=0.2, emb_type="qid", emb_path="", fix=True):

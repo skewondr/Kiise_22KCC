@@ -7,7 +7,7 @@ import torch
 from pykt.models import evaluate,evaluate_question,load_model
 from pykt.datasets import init_test_datasets
 
-device = "cpu" if not torch.cuda.is_available() else "cuda"
+# device = "cpu" if not torch.cuda.is_available() else "cuda"
 os.environ['CUBLAS_WORKSPACE_CONFIG']=':4096:2'
 
 with open("../configs/wandb.json") as fin:

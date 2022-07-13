@@ -37,7 +37,7 @@ def update_gap(max_rgap, max_sgap, max_pcount, cur):
     max_pcount = cur.max_pcount if cur.max_pcount > max_pcount else max_pcount
     return max_rgap, max_sgap, max_pcount
 
-def init_dataset4train(dataset_name, model_name, data_config, i, batch_size):
+def init_dataset4train(device, dataset_name, model_name, data_config, i, batch_size):
     data_config = data_config[dataset_name]
     all_folds = set(data_config["folds"])
     if model_name == "dkt_forget":
@@ -47,8 +47,8 @@ def init_dataset4train(dataset_name, model_name, data_config, i, batch_size):
         max_rgap, max_sgap, max_pcount = update_gap(max_rgap, max_sgap, max_pcount, curtrain)
         max_rgap, max_sgap, max_pcount = update_gap(max_rgap, max_sgap, max_pcount, curvalid)
     else:
-        curvalid = KTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], {i})
-        curtrain = KTDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], all_folds - {i})
+        curvalid = KTDataset(device, os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], {i})
+        curtrain = KTDataset(device, os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], all_folds - {i})
     train_loader = DataLoader(curtrain, batch_size=batch_size)
     valid_loader = DataLoader(curvalid, batch_size=batch_size)
     
@@ -58,8 +58,8 @@ def init_dataset4train(dataset_name, model_name, data_config, i, batch_size):
                                         data_config["input_type"], {-1})
         max_rgap, max_sgap, max_pcount = update_gap(max_rgap, max_sgap, max_pcount, test_dataset)
     else:
-        test_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_file"]), data_config["input_type"], {-1})
-        test_window_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_window_file"]), data_config["input_type"], {-1})
+        test_dataset = KTDataset(device, os.path.join(data_config["dpath"], data_config["test_file"]), data_config["input_type"], {-1})
+        test_window_dataset = KTDataset(device, os.path.join(data_config["dpath"], data_config["test_window_file"]), data_config["input_type"], {-1})
     
     if model_name == "dkt_forget":
         data_config["num_rgap"] = max_rgap + 1

@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 
-device = "cpu" if not torch.cuda.is_available() else "cuda"
+# device = "cpu" if not torch.cuda.is_available() else "cuda"
 
 class KQN(nn.Module):
     # n_skills: number of skills in dataset
@@ -12,8 +12,9 @@ class KQN(nn.Module):
     # n_mlp_hidden: number of hidden units in mlp skill encoder
     # n_rnn_layers: number of layers in rnn knowledge encoder
     # rnn_type: type of rnn cell, chosen from ['gru', 'lstm']
-    def __init__(self, n_skills:int, n_hidden:int, n_rnn_hidden:int, n_mlp_hidden:int, dropout, n_rnn_layers:int=1, rnn_type='lstm', emb_type="qid", emb_path="", pretrain_dim=768):
+    def __init__(self, device, n_skills:int, n_hidden:int, n_rnn_hidden:int, n_mlp_hidden:int, dropout, n_rnn_layers:int=1, rnn_type='lstm', emb_type="qid", emb_path="", pretrain_dim=768):
         super(KQN, self).__init__()
+        self.device = device 
         self.model_name = "kqn"
         self.emb_type = emb_type
         self.num_c = n_skills
@@ -74,8 +75,8 @@ class KQN(nn.Module):
         emb_type = self.emb_type
         # print(f"in_data: {in_data.shape}")
         if emb_type == "qid":
-            encoded_knowledge = self.encode_knowledge(in_data.to(device)) # (batch_size, max_seq_len, n_hidden)
-        encoded_skills = self.encode_skills(next_skills.to(device)) # (batch_size, max_seq_len, n_hidden)
+            encoded_knowledge = self.encode_knowledge(in_data.to(self.device)) # (batch_size, max_seq_len, n_hidden)
+        encoded_skills = self.encode_skills(next_skills.to(self.device)) # (batch_size, max_seq_len, n_hidden)
         encoded_knowledge = self.drop_layer(encoded_knowledge)
         
         # query the knowledge state with respect to the encoded skills

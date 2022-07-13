@@ -18,11 +18,13 @@ if __name__ == "__main__":
     train_args.add_argument("--num_epochs", type=int, default=20)
     train_args.add_argument("--seq_len", type=int, default=100)
     train_args.add_argument("--es_patience", type=int, default=3)
+    train_args.add_argument("--gpu", type=str, default="0") #
 
     model_args = parser.add_argument_group('Model_args')
 
     model_args.add_argument("--dropout", type=float, default=0.5)
     model_args.add_argument("--hidden_dim", type=int, default=64)
+    model_args.add_argument("--emb_size", type=int, default=64)
     model_args.add_argument("--graph_type", type=str, default='transition',help='dense or transition')
     model_args.add_argument("--learning_rate", type=float, default=1e-2)
 
@@ -30,7 +32,7 @@ if __name__ == "__main__":
     model_args.add_argument("--add_uuid", type=int, default=1)
 
     args = parser.parse_args()
-    args.emb_size = args.hidden_dim
+    # args.emb_size = args.hidden_dim
     
     arg_groups = {}
     for group in parser._action_groups:

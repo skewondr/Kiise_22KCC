@@ -8,7 +8,7 @@ from torch.autograd import Variable
 
 # refs https://github.com/jhljx/GKT
 import torch
-device = "cpu" if not torch.cuda.is_available() else "cuda"
+# device = "cpu" if not torch.cuda.is_available() else "cuda"
 
 class GKT(nn.Module):
     """Graph-based Knowledge Tracing Modeling Student Proficiency Using Graph Neural Network
@@ -24,8 +24,9 @@ class GKT(nn.Module):
         emb_path (str, optional): emb_path. Defaults to "".
         bias (bool, optional): add bias for DNN. Defaults to True.
     """
-    def __init__(self, num_c, hidden_dim, emb_size, graph_type="dense", graph=None, dropout=0.5, emb_type="qid", emb_path="",bias=True):
+    def __init__(self, device, num_c, hidden_dim, emb_size, graph_type="dense", graph=None, dropout=0.5, emb_type="qid", emb_path="",bias=True):
         super(GKT, self).__init__()
+        self.device = device 
         self.model_name = "gkt"
         self.num_c = num_c
         self.hidden_dim = hidden_dim
@@ -39,12 +40,12 @@ class GKT(nn.Module):
 
 
         # one-hot feature and question
-        one_hot_feat = torch.eye(self.res_len * self.num_c).to(device)
+        one_hot_feat = torch.eye(self.res_len * self.num_c).to(self.device)
         self.one_hot_feat = one_hot_feat
         # self.one_hot_q = torch.eye(self.num_c, device=self.one_hot_feat.device)
         # zero_padding = torch.zeros(1, self.num_c, device=self.one_hot_feat.device)
-        self.one_hot_q = torch.eye(self.num_c).to(device)
-        zero_padding = torch.zeros(1, self.num_c).to(device)
+        self.one_hot_q = torch.eye(self.num_c).to(self.device)
+        zero_padding = torch.zeros(1, self.num_c).to(self.device)
         self.one_hot_q = torch.cat((self.one_hot_q, zero_padding), dim=0)
         
         if emb_type.startswith("qid"):
@@ -90,7 +91,7 @@ class GKT(nn.Module):
             tmp_ht: aggregation results of concept hidden knowledge state and concept(& response) embedding
         """
         qt_mask = torch.ne(qt, -1)  # [batch_size], qt != -1
-        x_idx_mat = torch.arange(self.res_len * self.num_c, device=device)
+        x_idx_mat = torch.arange(self.res_len * self.num_c, device=self.device)
         x_embedding = self.interaction_emb(x_idx_mat)  # [res_len * num_c, emb_size]#the emb for each concept with answer?
         # print(xt[qt_mask])
         # print(self.one_hot_feat)
@@ -99,11 +100,11 @@ class GKT(nn.Module):
         res_embedding = masked_feat.mm(x_embedding)  # [mask_num, emb_size]
         mask_num = res_embedding.shape[0]
 
-        concept_idx_mat = self.num_c * torch.ones((batch_size, self.num_c), device=device).long()
-        concept_idx_mat[qt_mask, :] = torch.arange(self.num_c, device=device)
+        concept_idx_mat = self.num_c * torch.ones((batch_size, self.num_c), device=self.device).long()
+        concept_idx_mat[qt_mask, :] = torch.arange(self.num_c, device=self.device)
         concept_embedding = self.emb_c(concept_idx_mat)  # [batch_size, num_c, emb_size]
 
-        index_tuple = (torch.arange(mask_num, device=device), qt[qt_mask].long())
+        index_tuple = (torch.arange(mask_num, device=self.device), qt[qt_mask].long())
         concept_embedding[qt_mask] = concept_embedding[qt_mask].index_put(index_tuple, res_embedding)
         tmp_ht = torch.cat((ht, concept_embedding), dim=-1)  # [batch_size, num_c, hidden_dim + emb_size]
         return tmp_ht
@@ -232,7 +233,7 @@ class GKT(nn.Module):
         questions = q
         
         batch_size, seq_len = features.shape
-        ht = Variable(torch.zeros((batch_size, self.num_c, self.hidden_dim), device=device))
+        ht = Variable(torch.zeros((batch_size, self.num_c, self.hidden_dim), device=self.device))
         
         pred_list = []
         for i in range(seq_len):

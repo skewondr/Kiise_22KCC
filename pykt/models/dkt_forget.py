@@ -4,8 +4,9 @@ from torch.nn import Module, Embedding, LSTM, Linear, Dropout
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
 class DKTForget(Module):
-    def __init__(self, num_c, num_rgap, num_sgap, num_pcount, emb_size, dropout=0.1, emb_type='qid', emb_path=""):
+    def __init__(self, device, num_c, num_rgap, num_sgap, num_pcount, emb_size, dropout=0.1, emb_type='qid', emb_path=""):
         super().__init__()
+        self.device = device 
         self.model_name = "dkt_forget"
         self.num_c = num_c
         self.emb_size = emb_size
@@ -15,7 +16,7 @@ class DKTForget(Module):
         if emb_type.startswith("qid"):
             self.interaction_emb = Embedding(self.num_c * 2, self.emb_size)
 
-        self.c_integration = CIntegration(num_rgap, num_sgap, num_pcount, emb_size)
+        self.c_integration = CIntegration(device, num_rgap, num_sgap, num_pcount, emb_size)
         ntotal = num_rgap + num_sgap + num_pcount
     
         self.lstm_layer = LSTM(self.emb_size + ntotal, self.hidden_size, batch_first=True)
@@ -40,8 +41,9 @@ class DKTForget(Module):
 
 
 class CIntegration(Module):
-    def __init__(self, num_rgap, num_sgap, num_pcount, emb_dim) -> None:
+    def __init__(self, device, num_rgap, num_sgap, num_pcount, emb_dim) -> None:
         super().__init__()
+        self.device = device 
         self.rgap_eye = torch.eye(num_rgap)
         self.sgap_eye = torch.eye(num_sgap)
         self.pcount_eye = torch.eye(num_pcount)
@@ -51,7 +53,7 @@ class CIntegration(Module):
         # print(f"total: {ntotal}, self.cemb.weight: {self.cemb.weight.shape}")
 
     def forward(self, vt, rgap, sgap, pcount):
-        rgap, sgap, pcount = self.rgap_eye[rgap].to(device), self.sgap_eye[sgap].to(device), self.pcount_eye[pcount].to(device)
+        rgap, sgap, pcount = self.rgap_eye[rgap].to(self.device), self.sgap_eye[sgap].to(self.device), self.pcount_eye[pcount].to(self.device)
         # print(f"vt: {vt.shape}, rgap: {rgap.shape}, sgap: {sgap.shape}, pcount: {pcount.shape}")
         ct = torch.cat((rgap, sgap, pcount), -1) # bz * seq_len * num_fea
         # print(f"ct: {ct.shape}, self.cemb.weight: {self.cemb.weight.shape}")

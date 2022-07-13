@@ -5,12 +5,12 @@ import pandas as pd
 from .utils import transformer_FFN, get_clones, ut_mask, pos_encode
 from torch.nn import Embedding, Linear
 
-device = "cpu" if not torch.cuda.is_available() else "cuda"
+# device = "cpu" if not torch.cuda.is_available() else "cuda"
 
 class SAINT(nn.Module):
-    def __init__(self, num_q, num_c, seq_len, emb_size, num_attn_heads, dropout, n_blocks=1, emb_type="qid", emb_path="", pretrain_dim=768):
+    def __init__(self, device, num_q, num_c, seq_len, emb_size, num_attn_heads, dropout, n_blocks=1, emb_type="qid", emb_path="", pretrain_dim=768):
         super().__init__()
-        print(f"num_q: {num_q}, num_c: {num_c}")
+        # print(f"num_q: {num_q}, num_c: {num_c}")
         if num_q == num_c and num_q == 0:
             assert num_q != 0
         self.num_q = num_q
@@ -23,11 +23,11 @@ class SAINT(nn.Module):
         self.embd_pos = nn.Embedding(seq_len, embedding_dim = emb_size) 
         # self.embd_pos = Parameter(torch.Tensor(seq_len-1, emb_size))
         # kaiming_normal_(self.embd_pos)
-
+        self.device = device
         if emb_type.startswith("qid"):
-            self.encoder = get_clones(Encoder_block(emb_size, num_attn_heads, num_q, num_c, seq_len, dropout), self.num_en)
+            self.encoder = get_clones(Encoder_block(device, emb_size, num_attn_heads, num_q, num_c, seq_len, dropout), self.num_en)
         
-        self.decoder = get_clones(Decoder_block(emb_size, 2, num_attn_heads, seq_len, dropout), self.num_de)
+        self.decoder = get_clones(Decoder_block(device, emb_size, 2, num_attn_heads, seq_len, dropout), self.num_de)
 
         self.dropout = Dropout(dropout)
         self.out = nn.Linear(in_features=emb_size, out_features=1)
@@ -36,9 +36,9 @@ class SAINT(nn.Module):
         emb_type = self.emb_type        
 
         if self.num_q > 0:
-            in_pos = pos_encode(in_ex.shape[1])
+            in_pos = pos_encode(self.device, in_ex.shape[1])
         else:
-            in_pos = pos_encode(in_cat.shape[1])
+            in_pos = pos_encode(self.device, in_cat.shape[1])
         in_pos = self.embd_pos(in_pos)
         # in_pos = self.embd_pos.unsqueeze(0)
         ## pass through each of the encoder blocks in sequence
@@ -50,7 +50,7 @@ class SAINT(nn.Module):
                 in_ex = self.encoder[i](in_ex, in_cat, in_pos, first_block=first_block)
             in_cat = in_ex
         ## pass through each decoder blocks in sequence
-        start_token = torch.tensor([[2]]).repeat(in_res.shape[0], 1).to(device)
+        start_token = torch.tensor([[2]]).repeat(in_res.shape[0], 1).to(self.device)
         in_res = torch.cat((start_token, in_res), dim=-1)
         r = in_res
         first_block = True
@@ -75,12 +75,13 @@ class Encoder_block(nn.Module):
     O = SkipConct(FFN(LayerNorm(M)))
     """
 
-    def __init__(self, dim_model, heads_en, total_ex, total_cat, seq_len, dropout, emb_path="", pretrain_dim=768):
+    def __init__(self, device, dim_model, heads_en, total_ex, total_cat, seq_len, dropout, emb_path="", pretrain_dim=768):
         super().__init__()
         self.seq_len = seq_len
         self.emb_path = emb_path
         self.total_cat = total_cat
         self.total_ex = total_ex
+        self.device = device
         if total_ex > 0:
             if emb_path == "":
                 self.embd_ex = nn.Embedding(total_ex, embedding_dim = dim_model)                   # embedings  q,k,v = E = exercise ID embedding, category embedding, and positionembedding.
@@ -133,7 +134,7 @@ class Encoder_block(nn.Module):
         out = self.layer_norm1(out)                           # Layer norm
         skip_out = out 
         out, attn_wt = self.multi_en(out, out, out,
-                                attn_mask=ut_mask(seq_len=n))  # attention mask upper triangular
+                                attn_mask=ut_mask(self.device, seq_len=n))  # attention mask upper triangular
         out = self.dropout1(out)
         out = out + skip_out                                    # skip connection
 
@@ -155,7 +156,7 @@ class Decoder_block(nn.Module):
     L = SkipConct(FFN(LayerNorm(M2)))
     """
 
-    def __init__(self, dim_model, total_res, heads_de, seq_len, dropout):
+    def __init__(self, device, dim_model, total_res, heads_de, seq_len, dropout):
         super().__init__()
         self.seq_len    = seq_len
         self.embd_res    = nn.Embedding(total_res+1, embedding_dim = dim_model)                  #response embedding, include a start token
@@ -171,6 +172,8 @@ class Decoder_block(nn.Module):
         self.dropout1 = Dropout(dropout)
         self.dropout2 = Dropout(dropout)
         self.dropout3 = Dropout(dropout)
+
+        self.device = device 
 
 
     def forward(self, in_res, in_pos, en_out,first_block=True):
@@ -194,7 +197,7 @@ class Decoder_block(nn.Module):
         out = self.layer_norm1(out)
         skip_out = out
         out, attn_wt = self.multi_de1(out, out, out, 
-                                     attn_mask=ut_mask(seq_len=n)) # attention mask upper triangular
+                                     attn_mask=ut_mask(self.device, seq_len=n)) # attention mask upper triangular
         out = self.dropout1(out)
         out = skip_out + out                                        # skip connection
 
@@ -203,7 +206,7 @@ class Decoder_block(nn.Module):
         en_out = self.layer_norm2(en_out)
         skip_out = out
         out, attn_wt = self.multi_de2(out, en_out, en_out,
-                                    attn_mask=ut_mask(seq_len=n))  # attention mask upper triangular
+                                    attn_mask=ut_mask(self.device, seq_len=n))  # attention mask upper triangular
         out = self.dropout2(out)
         out = out + skip_out
 

@@ -8,7 +8,7 @@ import torch
 import torch.nn.functional as F
 
 
-device = "cpu" if not torch.cuda.is_available() else "cuda"
+# device = "cpu" if not torch.cuda.is_available() else "cuda"
 
 class transformer_FFN(Module):
     def __init__(self, emb_size, dropout) -> None:
@@ -25,17 +25,17 @@ class transformer_FFN(Module):
     def forward(self, in_fea):
         return self.FFN(in_fea)
 
-def ut_mask(seq_len):
+def ut_mask(device, seq_len):
     """ Upper Triangular Mask
     """
     return torch.triu(torch.ones(seq_len,seq_len),diagonal=1).to(dtype=torch.bool).to(device)
 
-def lt_mask(seq_len):
+def lt_mask(device, seq_len):
     """ Upper Triangular Mask
     """
     return torch.tril(torch.ones(seq_len,seq_len),diagonal=-1).to(dtype=torch.bool).to(device)
 
-def pos_encode(seq_len):
+def pos_encode(device, seq_len):
     """ position Encoding
     """
     return torch.arange(seq_len).unsqueeze(0).to(device)

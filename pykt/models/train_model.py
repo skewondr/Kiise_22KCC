@@ -9,7 +9,7 @@ from .atkt import _l2_normalize_adv
 from ..utils.utils import debug_print
 from IPython import embed
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def cal_loss(model, ys, r, rshft, sm, preloss=[]):
     model_name = model.model_name
@@ -41,7 +41,7 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
     return loss
 
 
-def model_forward(model, data):
+def model_forward(device, model, data):
     model_name = model.model_name
     if model_name in ["dkt_forget"]:
         q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
@@ -102,7 +102,7 @@ def model_forward(model, data):
     return loss
     
 
-def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, early_stopping, test_loader=None, test_window_loader=None, save_model=False):
+def train_model(device, model, train_loader, valid_loader, num_epochs, opt, ckpt_path, early_stopping, test_loader=None, test_window_loader=None, save_model=False):
     max_auc, best_epoch = 0, -1
     train_step = 0
     for i in range(1, num_epochs + 1):
@@ -110,7 +110,7 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, e
         for data in train_loader:
             train_step+=1
             model.train()
-            loss = model_forward(model, data)
+            loss = model_forward(device, model, data)
             opt.zero_grad()
             loss.backward()
             opt.step()
@@ -122,7 +122,7 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, e
 
 
         loss_mean = np.mean(loss_mean)
-        auc, acc = evaluate(model, valid_loader, model.model_name)
+        auc, acc = evaluate(device, model, valid_loader, model.model_name)
         ### atkt 有diff， 以下代码导致的
         ### auc, acc = round(auc, 4), round(acc, 4)
 
@@ -136,10 +136,10 @@ def train_model(model, train_loader, valid_loader, num_epochs, opt, ckpt_path, e
             if not save_model:
                 if test_loader != None:
                     save_test_path = os.path.join(ckpt_path, model.emb_type+"_test_predictions.txt")
-                    testauc, testacc = evaluate(model, test_loader, model.model_name, save_test_path)
+                    testauc, testacc = evaluate(device, model, test_loader, model.model_name, save_test_path)
                 if test_window_loader != None:
                     save_test_path = os.path.join(ckpt_path, model.emb_type+"_test_window_predictions.txt")
-                    window_testauc, window_testacc = evaluate(model, test_window_loader, model.model_name, save_test_path)
+                    window_testauc, window_testacc = evaluate(device, model, test_window_loader, model.model_name, save_test_path)
             # window_testauc, window_testacc = -1, -1
             validauc, validacc = round(auc, 4), round(acc, 4)#model.evaluate(valid_loader, emb_type)
             # trainauc, trainacc = model.evaluate(train_loader, emb_type)
