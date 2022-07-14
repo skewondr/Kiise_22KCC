@@ -32,7 +32,7 @@ class SAKT(Module):
         x = q + self.num_c * r
         qshftemb, xemb = self.exercise_emb(qry), self.interaction_emb(x)
     
-        posemb = self.position_emb(pos_encode(xemb.shape[1]))
+        posemb = self.position_emb(pos_encode(xemb.shape[1], self.seq_len))
         xemb = xemb + posemb
         return qshftemb, xemb
 

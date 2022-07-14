@@ -42,14 +42,17 @@ def sta_infos(df, keys, stares, split_str="_"):
 
 def ednet_sta_infos(df, content_df, keys, split_str="_"):
     # keys: 0: user_id , 1: question_id, 2: user_answer, 3: correct_answer
-    uids = df[keys[0]].unique()
-    cids = df[keys[1]].unique()
-    correct = df[keys[2]].values == content_df[content_df[keys[1]].isin(df[keys[1]])].loc[:,[keys[3]]].values.flatten()
-    correct = np.array(correct).astype(int)
-    df['correct'] = correct
-    
-    ins, us, qs, cs = df.shape[0], len(uids), 0, len(cids)
-    return np.array([ins, us, qs, cs])
+    try:
+        uids = df[keys[0]].unique()
+        cids = df[keys[1]].unique()
+        correct = df[keys[2]].values == content_df[content_df[keys[1]].isin(df[keys[1]])].loc[:,[keys[3]]].values.flatten()
+        correct = np.array(correct).astype(int)
+        df['correct'] = correct
+        
+        ins, us, qs, cs = df.shape[0], len(uids), 0, len(cids)
+        return np.array([ins, us, qs, cs])
+    except:
+        return np.array([0, 0, 0, 0])
 
 def write_txt(file, data):
     with open(file, "w") as f:

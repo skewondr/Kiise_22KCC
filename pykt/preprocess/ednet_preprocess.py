@@ -44,11 +44,13 @@ def read_data_from_csv(read_file, write_file, subset):
     save_name = os.path.join(dname, "correct_rate.pickle")
 
     for idx, user_path in enumerate(tqdm(user_path_list, total=us, ncols=100)):
-        uid = user_path.split('/')[-1]
-        uid = int(re.sub(r'[^0-9]', '', uid))
-
-        df = pd.read_csv(os.path.join(read_file, user_path), encoding = 'ISO-8859-1', dtype=str)
-        df["user_id"] = uid
+        try:
+            df = pd.read_csv(os.path.join(read_file, user_path), encoding = 'ISO-8859-1', dtype=str)
+            uid = user_path.split('/')[-1]
+            uid = int(re.sub(r'[^0-9]', '', uid))
+            df["user_id"] = uid
+        except:
+            df["user_id"] = "NA"
 
         tmp = ednet_sta_infos(df, content_df, KEYS)
         sample_stat += tmp
