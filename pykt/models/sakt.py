@@ -4,8 +4,9 @@ from torch.nn import Module, Embedding, Linear, MultiheadAttention, LayerNorm, D
 from .utils import transformer_FFN, pos_encode, ut_mask, get_clones
 
 class SAKT(Module):
-    def __init__(self, num_c, seq_len, emb_size, num_attn_heads, dropout, num_en=2, emb_type="qid", emb_path="", pretrain_dim=768):
+    def __init__(self, device, num_c, seq_len, emb_size, num_attn_heads, dropout, num_en=2, emb_type="qid", emb_path="", pretrain_dim=768):
         super().__init__()
+        self.device = device 
         self.model_name = "sakt"
         self.emb_type = emb_type
 
@@ -23,7 +24,7 @@ class SAKT(Module):
             # self.P = Parameter(torch.Tensor(self.seq_len, self.emb_size))
         self.position_emb = Embedding(seq_len, emb_size)
 
-        self.blocks = get_clones(Blocks(emb_size, num_attn_heads, dropout), self.num_en)
+        self.blocks = get_clones(Blocks(device, emb_size, num_attn_heads, dropout), self.num_en)
 
         self.dropout_layer = Dropout(dropout)
         self.pred = Linear(self.emb_size, 1)
@@ -32,7 +33,7 @@ class SAKT(Module):
         x = q + self.num_c * r
         qshftemb, xemb = self.exercise_emb(qry), self.interaction_emb(x)
     
-        posemb = self.position_emb(pos_encode(xemb.shape[1], self.seq_len))
+        posemb = self.position_emb(pos_encode(self.device, xemb.shape[1]))
         xemb = xemb + posemb
         return qshftemb, xemb
 
@@ -52,9 +53,9 @@ class SAKT(Module):
             return p, xemb
 
 class Blocks(Module):
-    def __init__(self, emb_size, num_attn_heads, dropout) -> None:
+    def __init__(self, device, emb_size, num_attn_heads, dropout) -> None:
         super().__init__()
-
+        self.device = device
         self.attn = MultiheadAttention(emb_size, num_attn_heads, dropout=dropout)
         self.attn_dropout = Dropout(dropout)
         self.attn_layer_norm = LayerNorm(emb_size)
@@ -67,7 +68,7 @@ class Blocks(Module):
         q, k, v = q.permute(1, 0, 2), k.permute(1, 0, 2), v.permute(1, 0, 2)
         # attn -> drop -> skip -> norm 
         # transformer: attn -> drop -> skip -> norm transformer default
-        causal_mask = ut_mask(seq_len = k.shape[0])
+        causal_mask = ut_mask(self.device, seq_len = k.shape[0])
         attn_emb, _ = self.attn(q, k, v, attn_mask=causal_mask)
 
         attn_emb = self.attn_dropout(attn_emb)
