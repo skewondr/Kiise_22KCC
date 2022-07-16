@@ -90,7 +90,7 @@ def main(train_params, model_params):
 
         if model_params['use_wandb']==1:
             import wandb
-            wandb.init()
+            wandb.init(project="0715-project")
             wandb.run.name = params_str
             wandb.run.save()
 
@@ -201,6 +201,7 @@ def main(train_params, model_params):
             "emb type":train_params['emb_type'],
             "seed":train_params['seed'],
             "kfolds":train_params['fold'],
+            "elapsed time": timedelta(seconds=total_time),
             "mean testauc": np.array(tst_auc_list).mean(),
             "mean testauc": np.array(tst_auc_list).mean(),
             "mean testacc": np.array(tst_acc_list).mean(),
