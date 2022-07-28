@@ -22,6 +22,14 @@ source activate pykt
 pip install -U pykt-toolkit -i  https://pypi.python.org/simple 
 ```
 
+## Updated
+1. data_config.py 추가. wandb_{model}_train.py config를 train config와 model config로 나누어 관리가 편하도록 함. 
+2. 데이터 폴더 내 새로운 폴더 안 만들어도 자동으로 만들어지도록 함. 
+3. ednet 데이터는 subset 비율을 지정하면 랜덤하게 샘플링하여 preprocessing해주도록 함
+4. wandb 새롭게 학습할 때마다 랜덤한 이름이 아닌 관련 config 이름으로 저장되도록함. 
+   wandb 결과 log에 config 정보도 성능이랑 같이 저장해서 나중에 차트 볼 때 grouping해서 편하게 볼 수 있도록 함. 
+5. gpu index 지정하면 원하는 gpu에서 실행 가능하도록 함. 서로 다른 gpu에서 다른 실험 돌릴 수 있음. 
+
 ## References
 ### Projects
 
