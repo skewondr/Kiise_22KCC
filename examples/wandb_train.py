@@ -191,7 +191,7 @@ def main(train_params, model_params):
         print('-'*80)
         model_save_path = os.path.join(ckpt_path, emb_type+"_model.ckpt")
         total_time = str(timedelta(seconds=time.time() - start_time))
-        print(f"elapsed time: {total_time:.2f}s, {total_time}")
+        print(f"elapsed time: {total_time}")
         
         # if model_params['use_wandb']==1:
         #     wandb.log({"testauc": testauc, "testacc": testacc, "window_testauc": window_testauc, "window_testacc": window_testacc, 

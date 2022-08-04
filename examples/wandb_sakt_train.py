@@ -10,7 +10,7 @@ if __name__ == "__main__":
     train_args.add_argument("--emb_type", type=str, default="qid")
     train_args.add_argument("--save_dir", type=str, default="saved_model")
     train_args.add_argument("--seed", type=int, default=42)
-    train_args.add_argument("--fold", type=int, default=0)
+    train_args.add_argument("--fold", type=int, default=5) #
 
     train_args.add_argument("--batch_size", type=int, default=256) #
     train_args.add_argument("--num_epochs", type=int, default=20) #
