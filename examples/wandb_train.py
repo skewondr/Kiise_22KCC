@@ -90,7 +90,7 @@ def main(train_params, model_params):
 
         if model_params['use_wandb']==1:
             import wandb
-            wandb.init(project="0715-project")
+            wandb.init(project="pykt-yj-examples", entity="pykt-framework")
             wandb.run.name = params_str
             wandb.run.save()
 
@@ -112,6 +112,8 @@ def main(train_params, model_params):
                 train_config["batch_size"] = 16 
 
             model_config = copy.deepcopy(model_params)
+            # for k, v in config[train_params["model_name"]].items():
+            #     model_config[k] = v
        
         batch_size, num_epochs, optimizer = train_config["batch_size"], train_config["num_epochs"], train_config["optimizer"]
         seq_len = train_config["seq_len"]
@@ -201,7 +203,7 @@ def main(train_params, model_params):
             "emb type":train_params['emb_type'],
             "seed":train_params['seed'],
             "kfolds":train_params['fold'],
-            "elapsed time": timedelta(seconds=total_time),
+            "elapsed time": str(timedelta(seconds=total_time)),
             "mean testauc": np.array(tst_auc_list).mean(),
             "mean testauc": np.array(tst_auc_list).mean(),
             "mean testacc": np.array(tst_acc_list).mean(),

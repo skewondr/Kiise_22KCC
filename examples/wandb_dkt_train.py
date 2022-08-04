@@ -14,9 +14,9 @@ if __name__ == "__main__":
     train_args.add_argument("--fold", type=int, default=0)
 
     train_args.add_argument("--batch_size", type=int, default=256) #
-    train_args.add_argument("--num_epochs", type=int, default=20) #
-    train_args.add_argument("--seq_len", type=int, default=100) #
-    train_args.add_argument("--es_patience", type=int, default=3) #
+    train_args.add_argument("--num_epochs", type=int, default=200) #
+    train_args.add_argument("--seq_len", type=int, default=200) #
+    train_args.add_argument("--es_patience", type=int, default=10) #
     train_args.add_argument("--gpu", type=str, default="0") #
 
     model_args = parser.add_argument_group('Model_args')
