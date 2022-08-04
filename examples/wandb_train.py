@@ -17,6 +17,7 @@ import numpy as np
 import time
 from time import localtime 
 from IPython import embed
+import wandb
 
 # os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 # device = "cpu" if not torch.cuda.is_available() else "cuda"
@@ -83,13 +84,13 @@ def main(train_params, model_params):
     params_str = "_".join([str(train_params[_]) for _ in ckpt_name_list]) 
     tm = localtime(time.time())
     params_str += f'_{tm.tm_mday}{tm.tm_hour}{tm.tm_min}{tm.tm_sec}'
+    total_time = ""
 
     for i in range(train_params['fold']):
         if "use_wandb" not in model_params:
             model_params['use_wandb'] = 1
 
         if model_params['use_wandb']==1:
-            import wandb
             wandb.init(project="pykt-yj-examples", entity="pykt-framework")
             wandb.run.name = params_str
             wandb.run.save()
@@ -189,24 +190,26 @@ def main(train_params, model_params):
         print(f"{str(fold)}\t{model_name}\t\t{emb_type}\t{str(testauc)}\t{str(testacc)}\t{str(validauc)}\t{str(validacc)}\t{str(best_epoch)}")
         print('-'*80)
         model_save_path = os.path.join(ckpt_path, emb_type+"_model.ckpt")
-        total_time = time.time() - start_time
-        print(f"elapsed time: {total_time:.2f}s, {timedelta(seconds=total_time)}")
+        total_time = str(timedelta(seconds=time.time() - start_time))
+        print(f"elapsed time: {total_time:.2f}s, {total_time}")
         
         # if model_params['use_wandb']==1:
         #     wandb.log({"testauc": testauc, "testacc": testacc, "window_testauc": window_testauc, "window_testacc": window_testacc, 
         #                 "validauc": validauc, "validacc": validacc, "best_epoch": best_epoch,"model_save_path":model_save_path})
 
-    if model_params['use_wandb']==1:
-        wandb.log({
+    print_result = {
             "dataset":train_params['dataset_name'],
             "model":train_params['model_name'],
             "emb type":train_params['emb_type'],
             "seed":train_params['seed'],
             "kfolds":train_params['fold'],
-            "elapsed time": str(timedelta(seconds=total_time)),
+            "elapsed time": total_time,
             "mean testauc": np.array(tst_auc_list).mean(),
             "mean testauc": np.array(tst_auc_list).mean(),
             "mean testacc": np.array(tst_acc_list).mean(),
             "mean validauc": np.array(val_auc_list).mean(),
             "mean validacc": np.array(val_acc_list).mean(),
-            "best_fold(auc)": tst_auc_list.index(max(tst_auc_list))})
+            "best_fold(auc)": tst_auc_list.index(max(tst_auc_list))}
+    print(print_result)
+    if model_params['use_wandb']==1:
+        wandb.log(print_result)
