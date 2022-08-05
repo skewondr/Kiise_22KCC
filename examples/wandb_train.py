@@ -107,10 +107,10 @@ def main(train_params, model_params):
             train_config["batch_size"] = train_params["batch_size"]
             train_config["num_epochs"] = train_params["num_epochs"]
             train_config["seq_len"] = train_params["seq_len"]
-            if model_name in ["dkvmn", "sakt", "saint", "akt", "atkt"]:
-                train_config["batch_size"] = 64 ## because of OOM
-            if model_name in ["gkt"]:
-                train_config["batch_size"] = 16 
+            # if model_name in ["dkvmn", "sakt", "saint", "akt", "atkt"]:
+            #     train_config["batch_size"] = 64 ## because of OOM
+            # if model_name in ["gkt"]:
+            #     train_config["batch_size"] = 16 
 
             model_config = copy.deepcopy(model_params)
             # for k, v in config[train_params["model_name"]].items():
