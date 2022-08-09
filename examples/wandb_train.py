@@ -191,11 +191,11 @@ def main(train_params, model_params):
         #                 "validauc": validauc, "validacc": validacc, "best_epoch": best_epoch,"model_save_path":model_save_path})
 
     print_result = {
-            "dataset":train_config['dataset_name'],
-            "model":train_config['model_name'],
-            "emb type":train_config['emb_type'],
-            "seed":train_config['seed'],
-            "kfolds":train_config['fold'],
+            "dataset":train_params['dataset_name'],
+            "model":train_params['model_name'],
+            "emb type":train_params['emb_type'],
+            "seed":train_params['seed'],
+            "kfolds":train_params['fold'],
             "elapsed time": total_time,
             "mean testauc": np.array(tst_auc_list).mean(),
             "mean testauc": np.array(tst_auc_list).mean(),
@@ -204,5 +204,5 @@ def main(train_params, model_params):
             "mean validacc": np.array(val_acc_list).mean(),
             "best_fold(auc)": tst_auc_list.index(max(tst_auc_list))}
     print(print_result)
-    if model_config['use_wandb']==1:
+    if model_params['use_wandb']==1:
         wandb.log(print_result)
