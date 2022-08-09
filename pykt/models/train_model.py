@@ -43,10 +43,13 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
 
 def model_forward(device, model, data):
     model_name = model.model_name
+    emb_type = model.emb_type
     if model_name in ["dkt_forget"]:
         q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
-    else:
+    elif model_name in ["saint", "akt"] or emb_type != "qid":
         q, c, r, qshft, cshft, rshft, m, sm = data
+    else:
+        c, q, r, cshft, qshft, rshft, m, sm = data
 
     ys, preloss = [], []
     cq = torch.cat((q[:,0:1], qshft), dim=1)

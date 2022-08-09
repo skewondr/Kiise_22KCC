@@ -43,6 +43,7 @@ def save_cur_predict_result(dres, q, r, d, t, m, sm, p):
     return "\n".join(results)
 
 def evaluate(local_device, model, test_loader, model_name, save_path=""):
+    emb_type = model.emb_type
     if save_path != "":
         fout = open(save_path, "w", encoding="utf8")
     with torch.no_grad():
@@ -52,8 +53,11 @@ def evaluate(local_device, model, test_loader, model_name, save_path=""):
         for data in test_loader:
             if model_name in ["dkt_forget"]:
                 q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
-            else:
+            elif model_name in ["saint", "akt"] or emb_type != "qid":
                 q, c, r, qshft, cshft, rshft, m, sm = data
+            else:
+                c, q, r, cshft, qshft, rshft, m, sm = data
+            
             q, c, r, qshft, cshft, rshft, m, sm = q.to(local_device), c.to(local_device), r.to(local_device), qshft.to(local_device), cshft.to(local_device), rshft.to(local_device), m.to(local_device), sm.to(local_device)
 
             model.eval()
