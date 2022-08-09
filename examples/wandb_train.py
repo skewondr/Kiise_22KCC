@@ -19,6 +19,8 @@ from time import localtime
 from IPython import embed
 import wandb
 
+print("hello")
+
 # os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 # device = "cpu" if not torch.cuda.is_available() else "cuda"
 # os.environ['CUBLAS_WORKSPACE_CONFIG']=':4096:2'
