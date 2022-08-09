@@ -9,7 +9,7 @@
     "dkt": {
         "assist2009":{
             "learning_rate": 1e-3,
-            "emb_size": 200,
+            "emb_size": 300,
             "dropout": 0.5
         },
         "assist2015":{
@@ -33,9 +33,9 @@
     "dkvmn": {
         "assist2009":{
             "learning_rate": 1e-3,
-            "dim_s": 300,
+            "dim_s": 200,
             "size_m": 10,
-            "dropout": 0.2
+            "dropout": 0.05
         },
         "assist2015":{
             "learning_rate": 1e-3,
@@ -53,7 +53,7 @@
     "sakt": {
         "assist2009":{
             "learning_rate": 1e-3,
-            "emb_size": 200,
+            "emb_size": 100,
             "num_attn_heads": 4,
             "dropout": 0.5,
             "num_en": 1
