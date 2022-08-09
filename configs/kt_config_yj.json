@@ -1,0 +1,156 @@
+{
+    "train_config": {
+        "batch_size": 256,
+        "num_epochs": 200,
+        "optimizer": "adam",
+        "seq_len": 200,
+        "es_patience": 10
+    },
+    "dkt": {
+        "assist2009":{
+            "learning_rate": 1e-3,
+            "emb_size": 200,
+            "dropout": 0.5
+        },
+        "assist2015":{
+            "learning_rate": 1e-3,
+            "emb_size": 200,
+            "dropout": 0.5
+        },
+        "ednet":{
+            "learning_rate": 1e-3,
+            "emb_size": 200,
+            "dropout": 0.2
+        }
+    },
+    "dkt+": {
+        "learning_rate": 1e-3,
+        "emb_size": 200,
+        "lambda_r": 0.2,
+        "lambda_w1": 1.0,
+        "lambda_w2": 10.0
+    },
+    "dkvmn": {
+        "assist2009":{
+            "learning_rate": 1e-3,
+            "dim_s": 300,
+            "size_m": 10,
+            "dropout": 0.2
+        },
+        "assist2015":{
+            "learning_rate": 1e-3,
+            "dim_s": 100,
+            "size_m": 20,
+            "dropout": 0.05
+        },
+        "ednet":{
+            "learning_rate": 1e-3,
+            "dim_s": 100,
+            "size_m": 20,
+            "dropout": 0.5
+        }
+    },
+    "sakt": {
+        "assist2009":{
+            "learning_rate": 1e-3,
+            "emb_size": 200,
+            "num_attn_heads": 4,
+            "dropout": 0.5,
+            "num_en": 1
+        },
+        "assist2015":{
+            "learning_rate": 1e-3,
+            "emb_size": 100,
+            "num_attn_heads": 4,
+            "dropout": 0.5,
+            "num_en": 1
+        },
+        "ednet":{
+            "learning_rate": 1e-3,
+            "emb_size": 100,
+            "num_attn_heads": 4,
+            "dropout": 0.5,
+            "num_en": 1
+        }
+    },
+    "saint": {
+        "assist2009":{
+            "learning_rate": 1e-3,
+            "emb_size": 256,
+            "num_attn_heads": 4,
+            "dropout": 0.2,
+            "n_blocks": 4
+        },
+        "assist2015":{
+            "learning_rate": 1e-3,
+            "emb_size": 256,
+            "num_attn_heads": 4,
+            "dropout": 0.5,
+            "n_blocks": 2
+        },
+        "ednet":{
+            "learning_rate": 1e-3,
+            "emb_size": 512,
+            "num_attn_heads": 4,
+            "dropout": 0.05,
+            "n_blocks": 1
+        }
+    },
+    "akt": {
+        "assist2009":{
+            "learning_rate": 1e-4,
+            "d_model":256,
+            "n_blocks":4,
+            "dropout":0.2,
+            "d_ff":2048,
+            "num_attn_heads":4
+        },
+        "assist2015":{
+            "learning_rate": 1e-4,
+            "d_model":256,
+            "n_blocks":2,
+            "dropout":0.05,
+            "d_ff":2048,
+            "num_attn_heads":4
+        },
+        "ednet":{
+            "learning_rate": 1e-4,
+            "d_model":256,
+            "n_blocks":4,
+            "dropout":0.05,
+            "d_ff":2048,
+            "num_attn_heads":4
+        }
+    },
+    "kqn": {
+        "learning_rate": 1e-3,
+        "n_hidden": 128,
+        "n_rnn_hidden": 128,
+        "n_mlp_hidden": 128,
+        "n_rnn_layers": 1,
+        "dropout":0.4
+    },
+    "atkt": {
+        "learning_rate": 1e-3,
+        "skill_dim": 80,
+        "answer_dim": 80,
+        "hidden_dim": 80
+    },
+    "atktfix": {
+        "learning_rate": 1e-3,
+        "skill_dim": 80,
+        "answer_dim": 80,
+        "hidden_dim": 80
+    },
+    "dkt_forget": {
+        "learning_rate": 1e-3,
+        "emb_size": 200,
+        "dropout": 0.1
+    },
+    "gkt": {
+        "learning_rate": 1e-3,
+        "hidden_dim": 32,
+        "emb_size": 32,
+        "dropout": 0.5
+    }
+}
