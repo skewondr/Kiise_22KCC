@@ -23,8 +23,8 @@ import wandb
 # device = "cpu" if not torch.cuda.is_available() else "cuda"
 # os.environ['CUBLAS_WORKSPACE_CONFIG']=':4096:2'
 
-def save_config(train_config, model_config, data_config, train_params, model_params, save_dir):
-    d = {"train_config": train_config, 'model_config': model_config, "data_config": data_config, "train_params": train_params, "model_params": model_params}
+def save_config(train_config, model_config, data_config, save_dir):
+    d = {"train_config": train_config, 'model_config': model_config, "data_config": data_config}
     save_path = os.path.join(save_dir, "config.json")
     with open(save_path, "w") as fout:
         json.dump(d, fout)
@@ -100,22 +100,15 @@ def main(train_params, model_params):
             i, train_params["emb_type"], train_params["save_dir"]
             
         debug_print(text = "load config files.",fuc_name="main")
-        
-        with open("../configs/kt_config.json") as f:
+
+        with open("../configs/kt_config_yj.json") as f:
             config = json.load(f)
             train_config = config["train_config"]
-            train_config["batch_size"] = train_params["batch_size"]
-            train_config["num_epochs"] = train_params["num_epochs"]
-            train_config["seq_len"] = train_params["seq_len"]
-            # if model_name in ["dkvmn", "sakt", "saint", "akt", "atkt"]:
-            #     train_config["batch_size"] = 64 ## because of OOM
-            # if model_name in ["gkt"]:
-            #     train_config["batch_size"] = 16 
+            model_config = config[model_name][dataset_name]
+            for k, v in model_params.items():
+                if k not in model_config:
+                    model_config[k] = v
 
-            model_config = copy.deepcopy(model_params)
-            # for k, v in config[train_params["model_name"]].items():
-            #     model_config[k] = v
-       
         batch_size, num_epochs, optimizer = train_config["batch_size"], train_config["num_epochs"], train_config["optimizer"]
         seq_len = train_config["seq_len"]
 
@@ -127,7 +120,7 @@ def main(train_params, model_params):
         debug_print(text="init_dataset",fuc_name="main")
         train_loader, valid_loader, test_loader, test_window_loader = init_dataset4train(device, dataset_name, model_name, data_config, fold, batch_size)
 
-        if model_params['add_uuid'] == 1:
+        if model_config['add_uuid'] == 1:
             import uuid
         ckpt_path = os.path.join(save_dir, params_str)
         if not os.path.isdir(ckpt_path):
@@ -136,8 +129,8 @@ def main(train_params, model_params):
         print(f"model_config: {model_config}")
         print(f"train_config: {train_config}")
 
-        save_config(train_config, model_config, data_config[dataset_name], train_params, model_params, ckpt_path)
-        learning_rate = model_params["learning_rate"]
+        save_config(train_config, model_config, data_config[dataset_name], ckpt_path)
+        learning_rate = model_config["learning_rate"]
         for remove_item in ['use_wandb','learning_rate','add_uuid']:
             if remove_item in model_config:
                 del model_config[remove_item]
@@ -160,7 +153,7 @@ def main(train_params, model_params):
         
         debug_print(text = "train model",fuc_name="main")
         
-        early_stopping = EarlyStopping(patience=train_params["es_patience"], verbose=True, path=ckpt_path)   
+        early_stopping = EarlyStopping(patience=train_config["es_patience"], verbose=True, path=ckpt_path)   
         start_time = time.time()
         testauc, testacc, window_testauc, window_testacc, validauc, validacc, best_epoch = train_model(device, model, train_loader, valid_loader, num_epochs, opt, ckpt_path, early_stopping, test_loader, test_window_loader, save_model)
         
@@ -198,11 +191,11 @@ def main(train_params, model_params):
         #                 "validauc": validauc, "validacc": validacc, "best_epoch": best_epoch,"model_save_path":model_save_path})
 
     print_result = {
-            "dataset":train_params['dataset_name'],
-            "model":train_params['model_name'],
-            "emb type":train_params['emb_type'],
-            "seed":train_params['seed'],
-            "kfolds":train_params['fold'],
+            "dataset":train_config['dataset_name'],
+            "model":train_config['model_name'],
+            "emb type":train_config['emb_type'],
+            "seed":train_config['seed'],
+            "kfolds":train_config['fold'],
             "elapsed time": total_time,
             "mean testauc": np.array(tst_auc_list).mean(),
             "mean testauc": np.array(tst_auc_list).mean(),
@@ -211,5 +204,5 @@ def main(train_params, model_params):
             "mean validacc": np.array(val_acc_list).mean(),
             "best_fold(auc)": tst_auc_list.index(max(tst_auc_list))}
     print(print_result)
-    if model_params['use_wandb']==1:
+    if model_config['use_wandb']==1:
         wandb.log(print_result)
