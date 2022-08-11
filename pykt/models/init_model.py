@@ -55,7 +55,7 @@ def init_model(device, model_name, model_config, data_config, emb_type):
             graph = torch.tensor(graph).float()
         model = GKT(device, emb_num, **model_config,graph=graph,emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "emb":
-        model = EMB(device, emb_num, model_config["emb_size"], model_config["dropout"], emb_type=emb_type).to(device)
+        model = EMB(emb_num, model_config["emb_size"], model_config["dropout"], emb_type=emb_type).to(device)
     else:
         print("The wrong model name was used...")
         return None

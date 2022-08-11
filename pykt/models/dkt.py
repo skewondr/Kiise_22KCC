@@ -52,7 +52,7 @@ class DKT(Module):
 
     def forward(self, q, r, diff):
         emb_type = self.emb_type
-        if emb_type == "qid":
+        if emb_type.startswith("qid"):
             x = q + self.num_c * r
             xemb = self.interaction_emb(x)
             

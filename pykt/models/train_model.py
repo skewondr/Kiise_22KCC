@@ -8,6 +8,7 @@ from torch.autograd import Variable, grad
 from .atkt import _l2_normalize_adv
 from ..utils.utils import debug_print
 from IPython import embed
+from .emb import EMB
 
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -106,8 +107,17 @@ def model_forward(device, model, dataset_name, data):
         y = model(cc.long())
         loss = mse_loss(torch.masked_select(y, mm), torch.masked_select(c_diff, mm))
     # cal loss
-    if model_name not in ["atkt", "atktfix", "emb"]:
+    if model_name not in ["atkt", "atktfix", "emb"] :
         loss = cal_loss(model, ys, r, rshft, sm, preloss)
+    if emb_type.startswith("qid_"):
+        emb_model = EMB(model.num_c, 512, 0.5, emb_type="qid").to(device) 
+        mse_loss = nn.MSELoss()
+        y = emb_model(cc.long())
+        loss2 = mse_loss(torch.masked_select(y, mm), torch.masked_select(c_diff, mm))
+        lambda_ = float(emb_type.split("_")[-1])
+        assert lambda_ >= 0, "set proper lambda"
+        loss = loss + lambda_*loss2 
+        embed()
     return loss
     
 
