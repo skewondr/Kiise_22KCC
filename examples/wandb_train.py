@@ -78,8 +78,10 @@ def main(train_params, model_params):
 
     tst_acc_list = []
     tst_auc_list = []
+    tst_mse_list = []
     val_acc_list = []
     val_auc_list = []
+    val_mse_list = []
     ckpt_name_list = ['dataset_name', 'model_name', 'seed', 'fold']
     params_str = "_".join([str(train_params[_]) for _ in ckpt_name_list]) 
     tm = localtime(time.time())
@@ -118,7 +120,7 @@ def main(train_params, model_params):
         # print(dataset_name, model_name, data_config, fold, batch_size)
         
         debug_print(text="init_dataset",fuc_name="main")
-        train_loader, valid_loader, test_loader, test_window_loader = init_dataset4train(device, dataset_name, model_name, data_config, fold, batch_size)
+        train_loader, valid_loader, test_loader, test_window_loader = init_dataset4train(device, dataset_name, model_name, data_config, fold, batch_size, emb_type)
 
         if model_config['add_uuid'] == 1:
             import uuid
@@ -128,6 +130,13 @@ def main(train_params, model_params):
         print(f"Start training model: {model_name}, embtype: {emb_type}, save_dir: {ckpt_path}, dataset_name: {dataset_name}")
         print(f"model_config: {model_config}")
         print(f"train_config: {train_config}")
+
+        # pre_trained_emb = {
+        #     "assist2009":"",
+        #     "assist2015":"",
+        #     "ednet":"",
+        # }
+        # data_config[dataset_name]["emb_path"] = os.path.join(data_config[dataset_name]["dpath"], pre_trained_emb[dataset_name]+f"/qid_model_{fold}.ckpt")
 
         save_config(train_config, model_config, data_config[dataset_name], ckpt_path)
         learning_rate = model_config["learning_rate"]
@@ -145,9 +154,9 @@ def main(train_params, model_params):
         elif optimizer == "adam":
             opt = Adam(model.parameters(), learning_rate)
     
-        testauc, testacc = -1, -1
-        window_testauc, window_testacc = -1, -1
-        validauc, validacc = -1, -1
+        testauc, testacc, testmse = -1, -1, -1
+        window_testauc, window_testacc, window_testmse = -1, -1, -1
+        validauc, validacc, validmse = -1, -1, -1
         best_epoch = -1
         save_model = True
         
@@ -155,10 +164,11 @@ def main(train_params, model_params):
         
         early_stopping = EarlyStopping(patience=train_config["es_patience"], verbose=True, path=ckpt_path)   
         start_time = time.time()
-        testauc, testacc, window_testauc, window_testacc, validauc, validacc, best_epoch = train_model(device, model, train_loader, valid_loader, num_epochs, opt, ckpt_path, early_stopping, test_loader, test_window_loader, save_model)
+        testauc, testacc, window_testauc, window_testacc, validauc, validacc, validmse, best_epoch = train_model(device, fold, model, train_loader, valid_loader, num_epochs, opt, ckpt_path, early_stopping, test_loader, test_window_loader, save_model)
         
         val_acc_list.append(validacc)
         val_auc_list.append(validauc)
+        val_mse_list.append(validmse)
 
         if save_model:
             best_model = init_model(device, model_name, model_config, data_config[dataset_name], emb_type)
