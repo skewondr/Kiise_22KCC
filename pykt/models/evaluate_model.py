@@ -49,18 +49,20 @@ def evaluate(local_device, model, dataset_name, test_loader, model_name, save_pa
     with torch.no_grad():
         y_trues = []
         y_scores = []
+        mse_scores = []
         dres = dict()
         for data in test_loader:
             if model_name in ["dkt_forget"]:
                 q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
             elif model_name in ["saint", "akt"]:
-                q, c, r, qshft, cshft, rshft, m, sm = data
+                q, c, r, qshft, cshft, rshft, m, sm, qshft_diff, cshft_diff = data
             elif emb_type != "qid" or dataset_name in ["assist2015", "ednet"]:
-                q, c, r, qshft, cshft, rshft, m, sm = data
+                q, c, r, qshft, cshft, rshft, m, sm, qshft_diff, cshft_diff = data
             else: 
-                c, q, r, cshft, qshft, rshft, m, sm = data
+                c, q, r, cshft, qshft, rshft, m, sm, cshft_diff, qshft_diff = data
             
             q, c, r, qshft, cshft, rshft, m, sm = q.to(local_device), c.to(local_device), r.to(local_device), qshft.to(local_device), cshft.to(local_device), rshft.to(local_device), m.to(local_device), sm.to(local_device)
+            qshft_diff, cshft_diff =  qshft_diff.to(local_device), cshft_diff.to(local_device) 
 
             model.eval()
 
@@ -69,7 +71,7 @@ def evaluate(local_device, model, dataset_name, test_loader, model_name, save_pa
             cc = torch.cat((c[:,0:1], cshft), dim=1)
             cr = torch.cat((r[:,0:1], rshft), dim=1)
             if model_name in ["dkt", "dkt+"]:
-                y = model(c.long(), r.long())
+                y = model(c.long(), r.long(), cshft_diff.long())
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
             elif model_name in ["dkt_forget"]:
                 y = model(c.long(), r.long(), d, dshft)
@@ -90,7 +92,11 @@ def evaluate(local_device, model, dataset_name, test_loader, model_name, save_pa
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
             elif model_name == "gkt":
                 y = model(cc.long(), cr.long())
-                
+            elif model_name == "emb":
+                mse_loss = nn.MSELoss()
+                y = model(cshft.long())
+                loss = mse_loss(torch.masked_select(y, sm), torch.masked_select(cshft_diff, sm))
+                mse_scores.append(loss.cpu().numpy())
             # print(f"after y: {y.shape}")
             # save predict result
             if save_path != "":
@@ -111,7 +117,10 @@ def evaluate(local_device, model, dataset_name, test_loader, model_name, save_pa
         acc = metrics.accuracy_score(ts, prelabels)
     # if save_path != "":
     #     pd.to_pickle(dres, save_path+".pkl")
-    return auc, acc
+    if model.model_name == "emb":
+        return auc, acc, np.mean(mse_scores)
+    else:
+        return auc, acc, -1
 
 def early_fusion(curhs, model, model_name):
     if model_name == "dkvmn":

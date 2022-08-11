@@ -47,11 +47,11 @@ def model_forward(device, model, dataset_name, data):
     if model_name in ["dkt_forget"]:
         q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
     elif model_name in ["saint", "akt"]:
-        q, c, r, qshft, cshft, rshft, m, sm = data
+        q, c, r, qshft, cshft, rshft, m, sm, qshft_diff, cshft_diff = data
     elif emb_type != "qid" or dataset_name in ["assist2015", "ednet"]:
-        q, c, r, qshft, cshft, rshft, m, sm = data
+        q, c, r, qshft, cshft, rshft, m, sm, qshft_diff, cshft_diff = data
     else: 
-        c, q, r, cshft, qshft, rshft, m, sm = data
+        c, q, r, cshft, qshft, rshft, m, sm, cshft_diff, qshft_diff = data
 
     ys, preloss = [], []
     cq = torch.cat((q[:,0:1], qshft), dim=1)
@@ -59,7 +59,7 @@ def model_forward(device, model, dataset_name, data):
     cr = torch.cat((r[:,0:1], rshft), dim=1)
 
     if model_name in ["dkt"]:
-        y = model(c.long(), r.long())
+        y = model(c.long(), r.long(), cshft_diff.long())
         y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
         ys.append(y) # first: yshft
     elif model_name == "dkt+":
@@ -96,19 +96,22 @@ def model_forward(device, model, dataset_name, data):
         # second loss
         pred_res = (pred_res * one_hot(cshft.long(), model.num_c)).sum(-1)
         adv_loss = cal_loss(model, [pred_res], r, rshft, sm)
-
         loss = loss + model.beta * adv_loss
     elif model_name == "gkt":
         y = model(cc.long(), cr.long())
         ys.append(y)  
+    elif model_name == "emb":
+        mse_loss = nn.MSELoss()
+        y = model(cshft.long())
+        loss = mse_loss(torch.masked_select(y, sm), torch.masked_select(cshft_diff, sm))
     # cal loss
-    if model_name not in ["atkt", "atktfix"]:
+    if model_name not in ["atkt", "atktfix", "emb"]:
         loss = cal_loss(model, ys, r, rshft, sm, preloss)
     return loss
     
 
 def train_model(device, fold, model, dataset_name, train_loader, valid_loader, num_epochs, opt, ckpt_path, early_stopping, test_loader=None, test_window_loader=None, save_model=False):
-    max_auc, best_epoch = 0, -1
+    max_auc, best_epoch, min_loss = 0, -1, 100
     train_step = 0
     for i in range(1, num_epochs + 1):
         loss_mean = []
@@ -127,36 +130,64 @@ def train_model(device, fold, model, dataset_name, train_loader, valid_loader, n
 
 
         loss_mean = np.mean(loss_mean)
-        auc, acc = evaluate(device, model, dataset_name, valid_loader, model.model_name)
+        auc, acc, mse = evaluate(device, model, dataset_name, valid_loader, model.model_name)
         ### atkt 有diff， 以下代码导致的
         ### auc, acc = round(auc, 4), round(acc, 4)
 
-        if auc > max_auc:
-            if save_model:
-                torch.save(model.state_dict(), os.path.join(ckpt_path, model.emb_type+f"_model_{fold}.ckpt"))
-            max_auc = auc
-            best_epoch = i
-            testauc, testacc = -1, -1
-            window_testauc, window_testacc = -1, -1
-            if not save_model:
-                if test_loader != None:
-                    save_test_path = os.path.join(ckpt_path, model.emb_type+"_test_predictions.txt")
-                    testauc, testacc = evaluate(device, model, dataset_name, test_loader, model.model_name, save_test_path)
-                if test_window_loader != None:
-                    save_test_path = os.path.join(ckpt_path, model.emb_type+"_test_window_predictions.txt")
-                    window_testauc, window_testacc = evaluate(device, model, dataset_name, test_window_loader, model.model_name, save_test_path)
+        if model.model_name == "emb":
+            if mse < min_loss:
+                if save_model:
+                    torch.save(model.state_dict(), os.path.join(ckpt_path, model.emb_type+f"_model_{fold}.ckpt"))
+                min_loss = mse
+                best_epoch = i
+                testauc, testacc = -1, -1
+                window_testauc, window_testacc = -1, -1
+                if not save_model:
+                    if test_loader != None:
+                        save_test_path = os.path.join(ckpt_path, model.emb_type+"_test_predictions.txt")
+                        testauc, testacc, test_mse = evaluate(device, model, dataset_name, test_loader, model.model_name, save_test_path)
+                    if test_window_loader != None:
+                        save_test_path = os.path.join(ckpt_path, model.emb_type+"_test_window_predictions.txt")
+                        window_testauc, window_testacc, window_testmse= evaluate(device, model, dataset_name, test_window_loader, model.model_name, save_test_path)
+                    testauc, testacc, window_testauc, window_testacc = round(testauc, 4), round(testacc, 4), round(window_testauc, 4), round(window_testacc, 4)
             # window_testauc, window_testacc = -1, -1
-            validauc, validacc = round(auc, 4), round(acc, 4)#model.evaluate(valid_loader, emb_type)
+            validauc, validacc, validmse = round(auc, 4), round(acc, 4), round(mse, 4)#model.evaluate(valid_loader, emb_type)
             # trainauc, trainacc = model.evaluate(train_loader, emb_type)
-            testauc, testacc, window_testauc, window_testacc = round(testauc, 4), round(testacc, 4), round(window_testauc, 4), round(window_testacc, 4)
+            # max_auc = round(max_auc, 4)
+            print(f"Epoch: {i}, validmse: {validmse:.4f}, best epoch: {best_epoch:.4f}, best min_loss: {min_loss:.4f}, train loss: {loss_mean:.4f}")
+            # print(f"            testauc: {testauc}, testacc: {testacc}, window_testauc: {window_testauc}, window_testacc: {window_testacc}")
+    
+            if i - best_epoch > early_stopping.patience: 
+                print("Early stopped...")
+                break
+
+        else: 
+            if auc > max_auc:
+                if save_model:
+                    torch.save(model.state_dict(), os.path.join(ckpt_path, model.emb_type+f"_model_{fold}.ckpt"))
+                max_auc = auc
+                best_epoch = i
+                testauc, testacc = -1, -1
+                window_testauc, window_testacc = -1, -1
+                if not save_model:
+                    if test_loader != None:
+                        save_test_path = os.path.join(ckpt_path, model.emb_type+"_test_predictions.txt")
+                        testauc, testacc, _ = evaluate(device, model, dataset_name, test_loader, model.model_name, save_test_path)
+                    if test_window_loader != None:
+                        save_test_path = os.path.join(ckpt_path, model.emb_type+"_test_window_predictions.txt")
+                        window_testauc, window_testacc, _ = evaluate(device, model, dataset_name, test_window_loader, model.model_name, save_test_path)
+                    testauc, testacc, window_testauc, window_testacc = round(testauc, 4), round(testacc, 4), round(window_testauc, 4), round(window_testacc, 4)
+            # window_testauc, window_testacc = -1, -1
+            validauc, validacc, validmse = round(auc, 4), round(acc, 4), round(mse, 4)#model.evaluate(valid_loader, emb_type)
+            # trainauc, trainacc = model.evaluate(train_loader, emb_type)
             max_auc = round(max_auc, 4)
-        print(f"Epoch: {i}, validauc: {validauc:.4f}, validacc: {validacc:.4f}, best epoch: {best_epoch:.4f}, best auc: {max_auc:.4f}, loss: {loss_mean:.4f}")
-        # print(f"            testauc: {testauc}, testacc: {testacc}, window_testauc: {window_testauc}, window_testacc: {window_testacc}")
+            print(f"Epoch: {i}, validauc: {validauc:.4f}, validacc: {validacc:.4f}, best epoch: {best_epoch:.4f}, best auc: {max_auc:.4f}, loss: {loss_mean:.4f}")
+            # print(f"            testauc: {testauc}, testacc: {testacc}, window_testauc: {window_testauc}, window_testacc: {window_testacc}")
+    
+            early_stopping(auc, i)
 
-        early_stopping(auc, i)
+            if early_stopping.early_stop:
+                print("Early stopped...")
+                break
 
-        if early_stopping.early_stop:
-            print("Early stopped...")
-            break
-
-    return testauc, testacc, window_testauc, window_testacc, validauc, validacc, best_epoch
+    return testauc, testacc, window_testauc, window_testacc, validauc, validacc, validmse, best_epoch

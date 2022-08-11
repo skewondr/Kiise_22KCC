@@ -8,19 +8,19 @@ from .dkt_forget_dataloader import DktForgetDataset
 def init_test_datasets(data_config, model_name, batch_size):
     test_question_loader, test_question_window_loader = None, None
     if model_name in ["dkt_forget"]:
-        test_dataset = DktForgetDataset(os.path.join(data_config["dpath"], data_config["test_file"]), data_config["input_type"], {-1})
+        test_dataset = DktForgetDataset(os.path.join(data_config["dpath"], data_config["test_file"]), data_config, {-1})
         test_window_dataset = DktForgetDataset(os.path.join(data_config["dpath"], data_config["test_window_file"]),
-                                        data_config["input_type"], {-1})
+                                        data_config, {-1})
         if "test_question_file" in data_config:
-            test_question_dataset = DktForgetDataset(os.path.join(data_config["dpath"], data_config["test_question_file"]), data_config["input_type"], {-1}, True)
-            test_question_window_dataset = DktForgetDataset(os.path.join(data_config["dpath"], data_config["test_question_window_file"]), data_config["input_type"], {-1}, True)
+            test_question_dataset = DktForgetDataset(os.path.join(data_config["dpath"], data_config["test_question_file"]), data_config, {-1}, True)
+            test_question_window_dataset = DktForgetDataset(os.path.join(data_config["dpath"], data_config["test_question_window_file"]), data_config, {-1}, True)
     else:
 
-        test_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_file"]), data_config["input_type"], {-1})
-        test_window_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_window_file"]), data_config["input_type"], {-1})
+        test_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_file"]), data_config, {-1})
+        test_window_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_window_file"]), data_config, {-1})
         if "test_question_file" in data_config:
-            test_question_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_question_file"]), data_config["input_type"], {-1}, True)
-            test_question_window_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_question_window_file"]), data_config["input_type"], {-1}, True)
+            test_question_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_question_file"]), data_config, {-1}, True)
+            test_question_window_dataset = KTDataset(os.path.join(data_config["dpath"], data_config["test_question_window_file"]), data_config, {-1}, True)
 
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
     test_window_loader = DataLoader(test_window_dataset, batch_size=batch_size, shuffle=False)
@@ -42,24 +42,24 @@ def init_dataset4train(device, dataset_name, model_name, data_config, i, batch_s
     all_folds = set(data_config["folds"])
     if model_name == "dkt_forget":
         max_rgap, max_sgap, max_pcount = 0, 0, 0
-        curvalid = DktForgetDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], {i})
-        curtrain = DktForgetDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], all_folds - {i})
+        curvalid = DktForgetDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config, {i})
+        curtrain = DktForgetDataset(os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config, all_folds - {i})
         max_rgap, max_sgap, max_pcount = update_gap(max_rgap, max_sgap, max_pcount, curtrain)
         max_rgap, max_sgap, max_pcount = update_gap(max_rgap, max_sgap, max_pcount, curvalid)
     else:
-        curvalid = KTDataset(device, os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], {i})
-        curtrain = KTDataset(device, os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config["input_type"], all_folds - {i})
+        curvalid = KTDataset(device, os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config, {i})
+        curtrain = KTDataset(device, os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config, all_folds - {i})
     train_loader = DataLoader(curtrain, batch_size=batch_size)
     valid_loader = DataLoader(curvalid, batch_size=batch_size)
     
     if model_name == "dkt_forget":
-        test_dataset = DktForgetDataset(os.path.join(data_config["dpath"], data_config["test_file"]), data_config["input_type"], {-1})
+        test_dataset = DktForgetDataset(os.path.join(data_config["dpath"], data_config["test_file"]), data_config, {-1})
         test_window_dataset = DktForgetDataset(os.path.join(data_config["dpath"], data_config["test_window_file"]),
-                                        data_config["input_type"], {-1})
+                                        data_config, {-1})
         max_rgap, max_sgap, max_pcount = update_gap(max_rgap, max_sgap, max_pcount, test_dataset)
     else:
-        test_dataset = KTDataset(device, os.path.join(data_config["dpath"], data_config["test_file"]), data_config["input_type"], {-1})
-        test_window_dataset = KTDataset(device, os.path.join(data_config["dpath"], data_config["test_window_file"]), data_config["input_type"], {-1})
+        test_dataset = KTDataset(device, os.path.join(data_config["dpath"], data_config["test_file"]), data_config, {-1})
+        test_window_dataset = KTDataset(device, os.path.join(data_config["dpath"], data_config["test_window_file"]), data_config, {-1})
     
     if model_name == "dkt_forget":
         data_config["num_rgap"] = max_rgap + 1

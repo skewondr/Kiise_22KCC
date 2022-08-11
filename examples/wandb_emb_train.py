@@ -6,7 +6,7 @@ if __name__ == "__main__":
     train_args = parser.add_argument_group('Train_args')
 
     train_args.add_argument("--dataset_name", type=str, default="assist2015") #
-    train_args.add_argument("--model_name", type=str, default="emb_training") #
+    train_args.add_argument("--model_name", type=str, default="emb") #
     train_args.add_argument("--emb_type", type=str, default="qid") #
     train_args.add_argument("--save_dir", type=str, default="saved_model") #
     train_args.add_argument("--seed", type=int, default=42) #

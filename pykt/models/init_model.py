@@ -12,6 +12,7 @@ from .atkt import ATKT
 from .dkt_forget import DKTForget
 from .akt import AKT
 from .gkt import GKT
+from .emb import EMB
 from .gkt_utils import get_gkt_graph
 
 # device = "cpu" if not torch.cuda.is_available() else "cuda"
@@ -53,6 +54,8 @@ def init_model(device, model_name, model_config, data_config, emb_type):
                     data_config["train_valid_original_file"], data_config["test_original_file"], graph_type=graph_type, tofile=fname)
             graph = torch.tensor(graph).float()
         model = GKT(device, emb_num, **model_config,graph=graph,emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+    elif model_name == "emb":
+        model = EMB(device, emb_num, model_config["emb_size"], model_config["dropout"], emb_type=emb_type).to(device)
     else:
         print("The wrong model name was used...")
         return None
