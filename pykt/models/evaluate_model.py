@@ -99,6 +99,7 @@ def evaluate(local_device, model, dataset_name, test_loader, model_name, save_pa
                 y = model(cc.long())
                 loss = mse_loss(torch.masked_select(y, mm), torch.masked_select(c_diff, mm))
                 mse_scores.append(loss.cpu().numpy())
+                return -1, -1, np.mean(mse_scores)
             # print(f"after y: {y.shape}")
             # save predict result
             if save_path != "":
@@ -119,10 +120,8 @@ def evaluate(local_device, model, dataset_name, test_loader, model_name, save_pa
         acc = metrics.accuracy_score(ts, prelabels)
     # if save_path != "":
     #     pd.to_pickle(dres, save_path+".pkl")
-    if model.model_name == "emb":
-        return auc, acc, np.mean(mse_scores)
-    else:
-        return auc, acc, -1
+  
+    return auc, acc, -1
 
 def early_fusion(curhs, model, model_name):
     if model_name == "dkvmn":
