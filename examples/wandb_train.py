@@ -84,7 +84,7 @@ def main(train_params, model_params):
     params_str = "_".join([str(train_params[_]) for _ in ckpt_name_list]) 
     tm = localtime(time.time())
     params_str += f'_{tm.tm_mday}{tm.tm_hour}{tm.tm_min}{tm.tm_sec}'
-    total_time = ""
+    total_time = time.time()
 
     for i in range(train_params['fold']):
         if "use_wandb" not in model_params:
@@ -154,24 +154,24 @@ def main(train_params, model_params):
         debug_print(text = "train model",fuc_name="main")
         
         early_stopping = EarlyStopping(patience=train_config["es_patience"], verbose=True, path=ckpt_path)   
-        start_time = time.time()
-        testauc, testacc, window_testauc, window_testacc, validauc, validacc, best_epoch = train_model(device, model, train_loader, valid_loader, num_epochs, opt, ckpt_path, early_stopping, test_loader, test_window_loader, save_model)
+        fold_time = time.time()
+        testauc, testacc, window_testauc, window_testacc, validauc, validacc, best_epoch = train_model(device, fold, model, dataset_name, train_loader, valid_loader, num_epochs, opt, ckpt_path, early_stopping, test_loader, test_window_loader, save_model)
         
         val_acc_list.append(validacc)
         val_auc_list.append(validauc)
 
         if save_model:
             best_model = init_model(device, model_name, model_config, data_config[dataset_name], emb_type)
-            net = torch.load(os.path.join(ckpt_path, emb_type+"_model.ckpt"))
+            net = torch.load(os.path.join(ckpt_path, emb_type+f"_model_{fold}.ckpt"))
             best_model.load_state_dict(net)
             # evaluate test
             
             if test_loader != None:
                 save_test_path = os.path.join(ckpt_path, emb_type+"_test_predictions.txt")
-                testauc, testacc = evaluate(device, best_model, test_loader, model_name)#, save_test_path)
+                testauc, testacc = evaluate(device, best_model, dataset_name, test_loader, model_name)#, save_test_path)
             if test_window_loader != None:
                 save_test_path = os.path.join(ckpt_path, emb_type+"_test_window_predictions.txt")
-                window_testauc, window_testacc = evaluate(device, best_model, test_window_loader, model_name)#, save_test_path)
+                window_testauc, window_testacc = evaluate(device, best_model, dataset_name, test_window_loader, model_name)#, save_test_path)
             # window_testauc, window_testacc = -1, -1
             # trainauc, trainacc = self.evaluate(train_loader, emb_type)
             testauc, testacc, window_testauc, window_testacc = round(testauc, 4), round(testacc, 4), round(window_testauc, 4), round(window_testacc, 4)
@@ -183,12 +183,13 @@ def main(train_params, model_params):
         print(f"{str(fold)}\t{model_name}\t\t{emb_type}\t{str(testauc)}\t{str(testacc)}\t{str(validauc)}\t{str(validacc)}\t{str(best_epoch)}")
         print('-'*80)
         model_save_path = os.path.join(ckpt_path, emb_type+"_model.ckpt")
-        total_time = str(timedelta(seconds=time.time() - start_time))
-        print(f"elapsed time: {total_time}")
+        fold_time = str(timedelta(seconds=time.time() - fold_time))
+        print(f"{fold}th fold elapsed time: {fold_time}")
         
         # if model_params['use_wandb']==1:
         #     wandb.log({"testauc": testauc, "testacc": testacc, "window_testauc": window_testauc, "window_testacc": window_testacc, 
         #                 "validauc": validauc, "validacc": validacc, "best_epoch": best_epoch,"model_save_path":model_save_path})
+    total_time = str(timedelta(seconds=time.time() - total_time))
 
     print_result = {
             "dataset":train_params['dataset_name'],

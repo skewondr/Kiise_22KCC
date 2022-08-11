@@ -41,14 +41,16 @@ def cal_loss(model, ys, r, rshft, sm, preloss=[]):
     return loss
 
 
-def model_forward(device, model, data):
+def model_forward(device, model, dataset_name, data):
     model_name = model.model_name
     emb_type = model.emb_type
     if model_name in ["dkt_forget"]:
         q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
-    elif model_name in ["saint", "akt"] or emb_type != "qid":
+    elif model_name in ["saint", "akt"]:
         q, c, r, qshft, cshft, rshft, m, sm = data
-    else:
+    elif emb_type != "qid" or dataset_name in ["assist2015", "ednet"]:
+        q, c, r, qshft, cshft, rshft, m, sm = data
+    else: 
         c, q, r, cshft, qshft, rshft, m, sm = data
 
     ys, preloss = [], []
@@ -105,7 +107,7 @@ def model_forward(device, model, data):
     return loss
     
 
-def train_model(device, model, train_loader, valid_loader, num_epochs, opt, ckpt_path, early_stopping, test_loader=None, test_window_loader=None, save_model=False):
+def train_model(device, fold, model, dataset_name, train_loader, valid_loader, num_epochs, opt, ckpt_path, early_stopping, test_loader=None, test_window_loader=None, save_model=False):
     max_auc, best_epoch = 0, -1
     train_step = 0
     for i in range(1, num_epochs + 1):
@@ -113,7 +115,7 @@ def train_model(device, model, train_loader, valid_loader, num_epochs, opt, ckpt
         for data in train_loader:
             train_step+=1
             model.train()
-            loss = model_forward(device, model, data)
+            loss = model_forward(device, model, dataset_name, data)
             opt.zero_grad()
             loss.backward()
             opt.step()
@@ -125,13 +127,13 @@ def train_model(device, model, train_loader, valid_loader, num_epochs, opt, ckpt
 
 
         loss_mean = np.mean(loss_mean)
-        auc, acc = evaluate(device, model, valid_loader, model.model_name)
+        auc, acc = evaluate(device, model, dataset_name, valid_loader, model.model_name)
         ### atkt 有diff， 以下代码导致的
         ### auc, acc = round(auc, 4), round(acc, 4)
 
         if auc > max_auc:
             if save_model:
-                torch.save(model.state_dict(), os.path.join(ckpt_path, model.emb_type+"_model.ckpt"))
+                torch.save(model.state_dict(), os.path.join(ckpt_path, model.emb_type+f"_model_{fold}.ckpt"))
             max_auc = auc
             best_epoch = i
             testauc, testacc = -1, -1
@@ -139,10 +141,10 @@ def train_model(device, model, train_loader, valid_loader, num_epochs, opt, ckpt
             if not save_model:
                 if test_loader != None:
                     save_test_path = os.path.join(ckpt_path, model.emb_type+"_test_predictions.txt")
-                    testauc, testacc = evaluate(device, model, test_loader, model.model_name, save_test_path)
+                    testauc, testacc = evaluate(device, model, dataset_name, test_loader, model.model_name, save_test_path)
                 if test_window_loader != None:
                     save_test_path = os.path.join(ckpt_path, model.emb_type+"_test_window_predictions.txt")
-                    window_testauc, window_testacc = evaluate(device, model, test_window_loader, model.model_name, save_test_path)
+                    window_testauc, window_testacc = evaluate(device, model, dataset_name, test_window_loader, model.model_name, save_test_path)
             # window_testauc, window_testacc = -1, -1
             validauc, validacc = round(auc, 4), round(acc, 4)#model.evaluate(valid_loader, emb_type)
             # trainauc, trainacc = model.evaluate(train_loader, emb_type)
