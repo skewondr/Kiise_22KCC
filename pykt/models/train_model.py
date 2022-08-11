@@ -60,7 +60,7 @@ def model_forward(device, model, dataset_name, data):
     mm = torch.cat([torch.ones((m.shape[0], 1), dtype=torch.bool).to(device), m], dim=1)
 
     if model_name in ["dkt"]:
-        y = model(c.long(), r.long(), c_diff.long())
+        y = model(c.long(), r.long(), c_diff[:,:-1].long())
         y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
         ys.append(y) # first: yshft
     elif model_name == "dkt+":

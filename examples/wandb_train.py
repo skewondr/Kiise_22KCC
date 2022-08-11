@@ -132,12 +132,13 @@ def main(train_params, model_params):
         print(f"model_config: {model_config}")
         print(f"train_config: {train_config}")
 
-        # pre_trained_emb = {
-        #     "assist2009":"",
-        #     "assist2015":"",
-        #     "ednet":"",
-        # }
-        # data_config[dataset_name]["emb_path"] = os.path.join(data_config[dataset_name]["dpath"], pre_trained_emb[dataset_name]+f"/qid_model_{fold}.ckpt")
+        if emb_type == "Q_pretrain":
+            pre_trained_emb = {
+                "assist2009":"assist2009_emb_42_5_119423",
+                "assist2015":"assist2015_emb_42_5_1195853",
+                "ednet":"ednet_emb_42_5_11101418",
+            }
+            data_config[dataset_name]["emb_path"] = os.path.join(data_config[dataset_name]["dpath"], pre_trained_emb[dataset_name]+f"/qid_model_{fold}.ckpt")
 
         save_config(train_config, model_config, data_config[dataset_name], ckpt_path)
         learning_rate = model_config["learning_rate"]
