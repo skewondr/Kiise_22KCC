@@ -117,7 +117,6 @@ def model_forward(device, model, dataset_name, data):
         lambda_ = float(emb_type.split("_")[-1])
         assert lambda_ >= 0, "set proper lambda"
         loss = loss + lambda_*loss2 
-        embed()
     return loss
     
 
