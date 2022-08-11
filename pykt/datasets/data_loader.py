@@ -7,6 +7,7 @@ import torch
 from torch.utils.data import Dataset
 from torch.cuda import FloatTensor, LongTensor
 import numpy as np
+from IPython import embed 
 
 class KTDataset(Dataset):
     """Dataset for KT
@@ -98,19 +99,19 @@ class KTDataset(Dataset):
             - **dcur (dict)**: used only self.qtest is True, for question level evaluation
         """
         q_seqs, qshft_seqs, c_seqs, cshft_seqs = torch.tensor([]).to(self.device), torch.tensor([]).to(self.device), torch.tensor([]).to(self.device), torch.tensor([]).to(self.device)
-        qshft_diffs, cshft_diffs = torch.tensor([]).to(self.device), torch.tensor([]).to(self.device)
+        q_diffs, c_diffs = torch.tensor([]).to(self.device), torch.tensor([]).to(self.device)
         if "questions" in self.input_type:
             q_seqs = self.q_seqs[index][:-1] * self.mask_seqs[index].to(self.device)
             qshft_seqs = self.q_seqs[index][1:] * self.mask_seqs[index].to(self.device)
-            _ = torch.where(qshft_seqs.long() <=0, self.q_num, qshft_seqs.long()) 
+            _ = torch.where(self.q_seqs[index].long() <=0, self.q_num, self.q_seqs[index].long()) 
             _ = self.q_diff[_.cpu().int()]
-            qshft_diffs = torch.from_numpy(_).float().to(self.device)
+            q_diffs = torch.from_numpy(_).float().to(self.device)
         if "concepts" in self.input_type:
             c_seqs = self.c_seqs[index][:-1] * self.mask_seqs[index].to(self.device)
             cshft_seqs = self.c_seqs[index][1:] * self.mask_seqs[index].to(self.device)
-            _ = torch.where(cshft_seqs.long() <=0, self.c_num, cshft_seqs.long()) 
+            _ = torch.where(self.c_seqs[index].long() <=0, self.c_num, self.c_seqs[index].long()) 
             _ = self.c_diff[_.cpu().int()]
-            cshft_diffs = torch.from_numpy(_).float().to(self.device)
+            c_diffs = torch.from_numpy(_).float().to(self.device)
 
         r_seqs = self.r_seqs[index][:-1] * self.mask_seqs[index].to(self.device)
         rshft_seqs = self.r_seqs[index][1:] * self.mask_seqs[index].to(self.device)
@@ -118,12 +119,12 @@ class KTDataset(Dataset):
         mask_seqs = self.mask_seqs[index].to(self.device)
         select_masks = self.select_masks[index].to(self.device)
         if not self.qtest:
-            return q_seqs, c_seqs, r_seqs, qshft_seqs, cshft_seqs, rshft_seqs, mask_seqs, select_masks, qshft_diffs, cshft_diffs
+            return q_seqs, c_seqs, r_seqs, qshft_seqs, cshft_seqs, rshft_seqs, mask_seqs, select_masks, q_diffs, c_diffs
         else:
             dcur = dict()
             for key in self.dqtest:
                 dcur[key] = self.dqtest[key][index]
-            return q_seqs, c_seqs, r_seqs, qshft_seqs, cshft_seqs, rshft_seqs, mask_seqs, select_masks, dcur, qshft_diffs, cshft_diffs
+            return q_seqs, c_seqs, r_seqs, qshft_seqs, cshft_seqs, rshft_seqs, mask_seqs, select_masks, dcur, q_diffs, c_diffs
 
     def __load_data__(self, sequence_path, folds, pad_val=-1):
         """

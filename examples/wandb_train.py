@@ -192,8 +192,8 @@ def main(train_params, model_params):
             tst_mse_list.append(testmse)
 
         print('-'*80)
-        print("fold\tmodelname\tembtype\ttestauc\ttestacc\tvalidauc\tvalidacc\tbest_epoch")
-        print(f"{str(fold)}\t{model_name}\t\t{emb_type}\t{str(testauc)}\t{str(testacc)}\t{str(validauc)}\t{str(validacc)}\t{str(best_epoch)}")
+        print("fold\tmodelname\tembtype\ttestauc\ttestacc\tvalidauc\tvalidacc\tvalidmse\tbest_epoch")
+        print(f"{str(fold)}\t{model_name}\t\t{emb_type}\t{str(testauc)}\t{str(testacc)}\t{str(validauc)}\t{str(validacc)}\t{str(validmse)}\t{str(best_epoch)}")
         print('-'*80)
         fold_time = str(timedelta(seconds=time.time() - fold_time))
         print(f"{fold}th fold elapsed time: {fold_time}")

@@ -47,19 +47,20 @@ def model_forward(device, model, dataset_name, data):
     if model_name in ["dkt_forget"]:
         q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
     elif model_name in ["saint", "akt"]:
-        q, c, r, qshft, cshft, rshft, m, sm, qshft_diff, cshft_diff = data
+        q, c, r, qshft, cshft, rshft, m, sm, q_diff, c_diff = data
     elif emb_type != "qid" or dataset_name in ["assist2015", "ednet"]:
-        q, c, r, qshft, cshft, rshft, m, sm, qshft_diff, cshft_diff = data
+        q, c, r, qshft, cshft, rshft, m, sm, q_diff, c_diff = data
     else: 
-        c, q, r, cshft, qshft, rshft, m, sm, cshft_diff, qshft_diff = data
+        c, q, r, cshft, qshft, rshft, m, sm, c_diff, q_diff = data
 
     ys, preloss = [], []
     cq = torch.cat((q[:,0:1], qshft), dim=1)
     cc = torch.cat((c[:,0:1], cshft), dim=1)
     cr = torch.cat((r[:,0:1], rshft), dim=1)
+    mm = torch.cat([torch.ones((m.shape[0], 1), dtype=torch.bool).to(device), m], dim=1)
 
     if model_name in ["dkt"]:
-        y = model(c.long(), r.long(), cshft_diff.long())
+        y = model(c.long(), r.long(), c_diff.long())
         y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
         ys.append(y) # first: yshft
     elif model_name == "dkt+":
@@ -102,8 +103,8 @@ def model_forward(device, model, dataset_name, data):
         ys.append(y)  
     elif model_name == "emb":
         mse_loss = nn.MSELoss()
-        y = model(cshft.long())
-        loss = mse_loss(torch.masked_select(y, sm), torch.masked_select(cshft_diff, sm))
+        y = model(cc.long())
+        loss = mse_loss(torch.masked_select(y, mm), torch.masked_select(c_diff, mm))
     # cal loss
     if model_name not in ["atkt", "atktfix", "emb"]:
         loss = cal_loss(model, ys, r, rshft, sm, preloss)

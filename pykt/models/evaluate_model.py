@@ -55,14 +55,14 @@ def evaluate(local_device, model, dataset_name, test_loader, model_name, save_pa
             if model_name in ["dkt_forget"]:
                 q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
             elif model_name in ["saint", "akt"]:
-                q, c, r, qshft, cshft, rshft, m, sm, qshft_diff, cshft_diff = data
+                q, c, r, qshft, cshft, rshft, m, sm, q_diff, c_diff = data
             elif emb_type != "qid" or dataset_name in ["assist2015", "ednet"]:
-                q, c, r, qshft, cshft, rshft, m, sm, qshft_diff, cshft_diff = data
+                q, c, r, qshft, cshft, rshft, m, sm, q_diff, c_diff = data
             else: 
-                c, q, r, cshft, qshft, rshft, m, sm, cshft_diff, qshft_diff = data
+                c, q, r, cshft, qshft, rshft, m, sm, c_diff, q_diff = data
             
             q, c, r, qshft, cshft, rshft, m, sm = q.to(local_device), c.to(local_device), r.to(local_device), qshft.to(local_device), cshft.to(local_device), rshft.to(local_device), m.to(local_device), sm.to(local_device)
-            qshft_diff, cshft_diff =  qshft_diff.to(local_device), cshft_diff.to(local_device) 
+            q_diff, c_diff =  q_diff.to(local_device), c_diff.to(local_device) 
 
             model.eval()
 
@@ -70,8 +70,10 @@ def evaluate(local_device, model, dataset_name, test_loader, model_name, save_pa
             cq = torch.cat((q[:,0:1], qshft), dim=1)
             cc = torch.cat((c[:,0:1], cshft), dim=1)
             cr = torch.cat((r[:,0:1], rshft), dim=1)
+            mm = torch.cat([torch.ones((m.shape[0], 1), dtype=torch.bool).to(local_device), m], dim=1)
+
             if model_name in ["dkt", "dkt+"]:
-                y = model(c.long(), r.long(), cshft_diff.long())
+                y = model(c.long(), r.long(), c_diff.long())
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
             elif model_name in ["dkt_forget"]:
                 y = model(c.long(), r.long(), d, dshft)
@@ -94,8 +96,8 @@ def evaluate(local_device, model, dataset_name, test_loader, model_name, save_pa
                 y = model(cc.long(), cr.long())
             elif model_name == "emb":
                 mse_loss = nn.MSELoss()
-                y = model(cshft.long())
-                loss = mse_loss(torch.masked_select(y, sm), torch.masked_select(cshft_diff, sm))
+                y = model(cc.long())
+                loss = mse_loss(torch.masked_select(y, mm), torch.masked_select(c_diff, mm))
                 mse_scores.append(loss.cpu().numpy())
             # print(f"after y: {y.shape}")
             # save predict result
