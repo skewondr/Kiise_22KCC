@@ -109,26 +109,27 @@ def model_forward(device, model, dataset_name, data):
     # cal loss
     if model_name not in ["atkt", "atktfix", "emb"] :
         loss = cal_loss(model, ys, r, rshft, sm, preloss)
-    if emb_type.startswith("qid_"):
-        emb_model = EMB(model.num_c, 512, 0.5, emb_type="qid").to(device) 
-        mse_loss = nn.MSELoss()
-        y = emb_model(cc.long())
-        loss2 = mse_loss(torch.masked_select(y, mm), torch.masked_select(c_diff, mm))
-        lambda_ = float(emb_type.split("_")[-1])
-        assert lambda_ >= 0, "set proper lambda"
-        loss = loss + lambda_*loss2 
+    
     return loss
     
 
 def train_model(device, fold, model, dataset_name, train_loader, valid_loader, num_epochs, opt, ckpt_path, early_stopping, test_loader=None, test_window_loader=None, save_model=False):
     max_auc, best_epoch, min_loss = 0, -1, 100
     train_step = 0
+    emb_model = EMB(model.num_c, 512, 0.5, emb_type="qid").to(device) 
+    emb_type = model.emb_type
+
     for i in range(1, num_epochs + 1):
         loss_mean = []
         for data in train_loader:
             train_step+=1
             model.train()
             loss = model_forward(device, model, dataset_name, data)
+            if emb_type.startswith("qid_"):
+                loss2 = model_forward(device, emb_model, dataset_name, data)
+                lambda_ = float(emb_type.split("_")[-1])
+                assert lambda_ >= 0, "set proper lambda"
+                loss = loss + lambda_*loss2 
             opt.zero_grad()
             loss.backward()
             opt.step()
@@ -148,6 +149,7 @@ def train_model(device, fold, model, dataset_name, train_loader, valid_loader, n
             if mse < min_loss:
                 if save_model:
                     torch.save(model.state_dict(), os.path.join(ckpt_path, model.emb_type+f"_model_{fold}.ckpt"))
+
                 min_loss = mse
                 best_epoch = i
                 testauc, testacc = -1, -1

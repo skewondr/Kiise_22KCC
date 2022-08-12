@@ -18,11 +18,10 @@ from .gkt_utils import get_gkt_graph
 # device = "cpu" if not torch.cuda.is_available() else "cuda"
 
 def init_model(device, model_name, model_config, data_config, emb_type):
-    if emb_type == "qid" and data_config["num_q"] > 0:
+    if emb_type.startswith("qid") and data_config["num_q"] > 0:
         emb_num = data_config["num_q"] 
     else:
         emb_num = data_config["num_c"]
-
     if model_name == "dkt":
         model = DKT(device, emb_num, **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "dkt+":

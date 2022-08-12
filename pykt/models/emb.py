@@ -4,6 +4,7 @@ import numpy as np
 import torch
 
 from torch.nn import Module, Embedding, LSTM, Linear, Dropout
+from IPython import embed 
 
 class EMB(Module):
     def __init__(self, num_c, emb_size, dropout=0.1, emb_type="qid"):
