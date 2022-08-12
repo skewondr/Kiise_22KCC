@@ -9,6 +9,7 @@ from .atkt import _l2_normalize_adv
 from ..utils.utils import debug_print
 from IPython import embed
 from .emb import EMB
+from torch.optim import SGD, Adam
 
 # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -49,7 +50,7 @@ def model_forward(device, model, dataset_name, data):
         q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
     elif model_name in ["saint", "akt"]:
         q, c, r, qshft, cshft, rshft, m, sm, q_diff, c_diff = data
-    elif emb_type != "qid" or dataset_name in ["assist2015", "ednet"]:
+    elif not emb_type.startswith("qid") or dataset_name in ["assist2015", "ednet"]:
         q, c, r, qshft, cshft, rshft, m, sm, q_diff, c_diff = data
     else: 
         c, q, r, cshft, qshft, rshft, m, sm, c_diff, q_diff = data
@@ -106,6 +107,7 @@ def model_forward(device, model, dataset_name, data):
         mse_loss = nn.MSELoss()
         y = model(cc.long())
         loss = mse_loss(torch.masked_select(y, mm), torch.masked_select(c_diff, mm))
+
     # cal loss
     if model_name not in ["atkt", "atktfix", "emb"] :
         loss = cal_loss(model, ys, r, rshft, sm, preloss)
@@ -116,8 +118,12 @@ def model_forward(device, model, dataset_name, data):
 def train_model(device, fold, model, dataset_name, train_loader, valid_loader, num_epochs, opt, ckpt_path, early_stopping, test_loader=None, test_window_loader=None, save_model=False):
     max_auc, best_epoch, min_loss = 0, -1, 100
     train_step = 0
-    emb_model = EMB(model.num_c, 512, 0.5, emb_type="qid").to(device) 
     emb_type = model.emb_type
+
+    if emb_type.startswith("qid_"):
+        emb_model = EMB(model.num_c, 512, 0.5, emb_type="qid").to(device) 
+        emb_opt = Adam(emb_model.parameters(), 5e-2)
+        model.interaction_emb = nn.Embedding.from_pretrained(emb_model.input_emb.weight) 
 
     for i in range(1, num_epochs + 1):
         loss_mean = []
@@ -129,14 +135,24 @@ def train_model(device, fold, model, dataset_name, train_loader, valid_loader, n
                 loss2 = model_forward(device, emb_model, dataset_name, data)
                 lambda_ = float(emb_type.split("_")[-1])
                 assert lambda_ >= 0, "set proper lambda"
-                loss = loss + lambda_*loss2 
-            opt.zero_grad()
-            loss.backward()
-            opt.step()
+                total_loss = (1-lambda_)*loss + lambda_*loss2 
+                # print(f"model loss:{loss}")
+                # print(f"emb model loss:{loss2}")
+                # print(f"total loss:{total_loss}")
+                opt.zero_grad()
+                emb_opt.zero_grad()
+                total_loss.backward()
+                opt.step()
+                emb_opt.step()
+            else: 
+                total_loss = loss
+                opt.zero_grad()
+                total_loss.backward()
+                opt.step()
 
-            loss_mean.append(loss.detach().cpu().numpy())
+            loss_mean.append(total_loss.detach().cpu().numpy())
             if model.model_name == "gkt" and train_step%10==0:
-                text = f"Total train step is {train_step}, the loss is {loss.item():.5}"
+                text = f"Total train step is {train_step}, the loss is {total_loss.item():.5}"
                 debug_print(text = text,fuc_name="train_model")
 
 

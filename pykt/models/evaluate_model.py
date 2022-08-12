@@ -56,7 +56,7 @@ def evaluate(local_device, model, dataset_name, test_loader, model_name, save_pa
                 q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
             elif model_name in ["saint", "akt"]:
                 q, c, r, qshft, cshft, rshft, m, sm, q_diff, c_diff = data
-            elif emb_type != "qid" or dataset_name in ["assist2015", "ednet"]:
+            elif not emb_type.startswith("qid") or dataset_name in ["assist2015", "ednet"]:
                 q, c, r, qshft, cshft, rshft, m, sm, q_diff, c_diff = data
             else: 
                 c, q, r, cshft, qshft, rshft, m, sm, c_diff, q_diff = data

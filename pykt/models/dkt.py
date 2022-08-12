@@ -17,8 +17,13 @@ class DKT(Module):
         self.emb_path = emb_path
         self.fix_dim = 512
 
-        if emb_type.startswith("qid"):
+        if emb_type == "qid":
             self.interaction_emb = Embedding(self.num_c * 2, self.emb_size)
+
+        elif emb_type.startswith("qid_"):
+            self.interaction_emb = Embedding(self.num_c, self.fix_dim)
+            self.emb_layer = Linear(self.fix_dim, self.emb_size) #
+            self.emb_layer2 = Linear(self.emb_size*2, self.emb_size) #
 
         elif emb_type == "Q_pretrain":
             net = torch.load(emb_path)
@@ -52,11 +57,11 @@ class DKT(Module):
 
     def forward(self, q, r, diff):
         emb_type = self.emb_type
-        if emb_type.startswith("qid"):
+        if emb_type == "qid":
             x = q + self.num_c * r
             xemb = self.interaction_emb(x)
             
-        elif emb_type == "Q_pretrain":
+        elif emb_type == "Q_pretrain" or emb_type.startswith("qid_"):
             xemb = self.emb_layer(self.interaction_emb(q))
             z = torch.zeros_like(xemb)
             xemb_o = torch.cat([z, xemb], dim=-1)
