@@ -27,7 +27,7 @@ def init_model(device, model_name, model_config, data_config, emb_type):
     elif model_name == "dkt+":
         model = DKTPlus(emb_num, **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "dkvmn":
-        model = DKVMN(emb_num, **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+        model = DKVMN(device, emb_num, **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "sakt":
         model = SAKT(device, emb_num,  **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "saint":
@@ -35,7 +35,7 @@ def init_model(device, model_name, model_config, data_config, emb_type):
     elif model_name == "dkt_forget":
         model = DKTForget(device, emb_num, data_config["num_rgap"], data_config["num_sgap"], data_config["num_pcount"], **model_config).to(device)
     elif model_name == "akt":
-        model = AKT(device, emb_num, data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
+        model = AKT(device, data_config["num_c"], data_config["num_q"], **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "kqn":
         model = KQN(device, emb_num, **model_config, emb_type=emb_type, emb_path=data_config["emb_path"]).to(device)
     elif model_name == "atkt":

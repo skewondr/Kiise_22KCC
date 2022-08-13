@@ -69,8 +69,8 @@ class KTDataset(Dataset):
         q_[q_ == 0] = np.nan
         c_ = self.c_diff.astype('float')
         c_[c_ == 0] = np.nan
-        if len(q_)>0: print(f"average of question accuracy:{np.nanmean(q_):.2f}") 
-        if len(c_)>0: print(f"average of concept accuracy:{np.nanmean(c_):.2f}") 
+        if self.q_num>0: print(f"average of question accuracy:{np.nanmean(q_):.2f}") 
+        if self.c_num>0: print(f"average of concept accuracy:{np.nanmean(c_):.2f}") 
 
     def __len__(self):
         """return the dataset length

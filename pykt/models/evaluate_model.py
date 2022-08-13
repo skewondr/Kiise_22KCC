@@ -79,7 +79,7 @@ def evaluate(local_device, model, dataset_name, test_loader, model_name, save_pa
                 y = model(c.long(), r.long(), d, dshft)
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
             elif model_name in ["dkvmn"]:
-                y = model(cc.long(), cr.long())
+                y = model(cc.long(), cr.long(), c_diff.long())
                 y = y[:,1:]
             elif model_name in ["kqn", "sakt"]:
                 y = model(c.long(), r.long(), cshft.long())
