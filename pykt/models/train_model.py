@@ -48,7 +48,7 @@ def model_forward(device, model, dataset_name, data):
     emb_type = model.emb_type
     if model_name in ["dkt_forget"]:
         q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
-    elif model_name in ["saint", "akt"]:
+    elif model_name in ["saint", "akt"] or model_name.startswith("emb_"):
         q, c, r, qshft, cshft, rshft, m, sm, q_diff, c_diff = data
     elif not emb_type.startswith("qid") or dataset_name in ["assist2015", "ednet"]:
         q, c, r, qshft, cshft, rshft, m, sm, q_diff, c_diff = data
@@ -84,7 +84,7 @@ def model_forward(device, model, dataset_name, data):
         y = model(cq.long(), cc.long(), r.long())
         ys.append(y[:, 1:])
     elif model_name == "akt":               
-        y, reg_loss = model(cc.long(), cr.long(), cq.long())
+        y, reg_loss = model(c_diff.long(), cc.long(), cr.long(), cq.long())
         ys.append(y[:,1:])
         preloss.append(reg_loss)
     elif model_name in ["atkt", "atktfix"]:
@@ -103,13 +103,12 @@ def model_forward(device, model, dataset_name, data):
     elif model_name == "gkt":
         y = model(cc.long(), cr.long())
         ys.append(y)  
-    elif model_name == "emb":
+    elif model_name.startswith("emb"):
         mse_loss = nn.MSELoss()
         y = model(cc.long())
         loss = mse_loss(torch.masked_select(y, mm), torch.masked_select(c_diff, mm))
-
     # cal loss
-    if model_name not in ["atkt", "atktfix", "emb"] :
+    if model_name not in ["atkt", "atktfix"] and not model_name.startswith("emb"):
         loss = cal_loss(model, ys, r, rshft, sm, preloss)
     
     return loss
@@ -123,7 +122,9 @@ def train_model(device, fold, model, dataset_name, train_loader, valid_loader, n
     if emb_type.startswith("qid_"):
         emb_model = EMB(model.num_c, 512, 0.5, emb_type="qid").to(device) 
         emb_opt = Adam(emb_model.parameters(), 5e-2)
-        model.interaction_emb = nn.Embedding.from_pretrained(emb_model.input_emb.weight) 
+        model.interaction_emb = nn.Embedding.from_pretrained(emb_model.input_emb.weight)
+        if model.model_name in ["saint", "akt"]:
+            emb_model.model_name = "emb_qc"
 
     for i in range(1, num_epochs + 1):
         loss_mean = []

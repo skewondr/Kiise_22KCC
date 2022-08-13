@@ -46,10 +46,27 @@ class AKT(nn.Module):
         if emb_type == "qid":
             # num_c+1 ,d_model
             self.q_embed = nn.Embedding(self.num_c, self.emb_size)
-            if self.separate_qa: 
-                self.qa_embed = nn.Embedding(2*self.num_c+1, self.emb_size) # interaction emb
-            else: # false default
-                self.qa_embed = nn.Embedding(2, self.emb_size)
+            
+        elif emb_type.startswith("qid_"):
+            self.interaction_emb = nn.Embedding(self.num_c, self.fix_dim)
+            self.emb_layer = nn.Linear(self.fix_dim, self.emb_size) #
+
+        elif emb_type == "Q_pretrain":
+            net = torch.load(emb_path)
+            self.interaction_emb = nn.Embedding.from_pretrained(net["input_emb.weight"]) #
+            self.emb_layer = nn.Linear(self.fix_dim, self.emb_size) #
+
+        elif emb_type.startswith("D_sinusoid"):
+            self.interaction_emb = nn.Embedding(self.num_c, self.emb_size) #
+            self.emb_layer2 = nn.Linear(self.emb_size*2, self.emb_size) #
+            self.n_diff = int(emb_type.split("_")[-1])
+            diff_vec = torch.from_numpy(self.get_sinusoid_encoding_table(self.n_diff+1, self.emb_size)).to(device)
+            self.diff_emb = nn.Embedding.from_pretrained(diff_vec)
+
+        if self.separate_qa: 
+            self.qa_embed = nn.Embedding(2*self.num_c+1, self.emb_size) # interaction emb
+        else: # false default
+            self.qa_embed = nn.Embedding(2, self.emb_size)
         # Architecture Object. It contains stack of attention block
         self.model = Architecture(device, num_c=num_c, n_blocks=n_blocks, n_heads=num_attn_heads, dropout=dropout,
                                     d_model=d_model, d_feature=d_model / num_attn_heads, d_ff=d_ff,  kq_same=self.kq_same, model_type=self.model_type)
@@ -63,13 +80,34 @@ class AKT(nn.Module):
         )
         self.reset()
 
+    def get_sinusoid_encoding_table(self, n_seq, d_hidn):
+        def cal_angle(position, i_hidn):
+            return position / np.power(10000, 2 * (i_hidn // 2) / d_hidn)
+        def get_posi_angle_vec(position):
+            return [cal_angle(position, i_hidn) for i_hidn in range(d_hidn)]
+
+        sinusoid_table = np.array([get_posi_angle_vec(i_seq) for i_seq in range(n_seq)])
+        sinusoid_table[:, 0::2] = np.sin(sinusoid_table[:, 0::2])  # even index sin 
+        sinusoid_table[:, 1::2] = np.cos(sinusoid_table[:, 1::2])  # odd index cos
+
+        return sinusoid_table
+
     def reset(self):
         for p in self.parameters():
             if p.size(0) == self.num_q+1 and self.num_q > 0:
                 torch.nn.init.constant_(p, 0.)
 
-    def base_emb(self, c, r):
-        q_embed_data = self.q_embed(c)  # BS, seqlen,  d_model# c_ct
+    def base_emb(self, c, r, diff):
+        if self.emb_type == "qid":
+            q_embed_data = self.q_embed(c)  # BS, seqlen,  d_model# c_ct
+        elif self.emb_type == "Q_pretrain" or self.emb_type.startswith("qid_"):
+            q_embed_data = self.emb_layer(self.interaction_emb(c))
+        elif self.emb_type.startswith("D_sinusoid"):
+            xemb = self.interaction_emb(c) 
+            diff = torch.ceil(diff.float()*self.n_diff)
+            demb = self.diff_emb(diff.long()).float()
+            xemb = torch.cat([xemb, demb], dim=-1)
+            q_embed_data = self.emb_layer2(xemb)
         if self.separate_qa:
             qa_data = c + self.num_c * r
             qa_embed_data = self.qa_embed(qa_data)
@@ -78,11 +116,9 @@ class AKT(nn.Module):
             qa_embed_data = self.qa_embed(r)+q_embed_data
         return q_embed_data, qa_embed_data
 
-    def forward(self, c, r, q=None, qtest=False):
-        emb_type = self.emb_type
+    def forward(self, diff, c, r, q=None, qtest=False):
         # Batch First
-        if emb_type == "qid":
-            q_embed_data, qa_embed_data = self.base_emb(c, r)
+        q_embed_data, qa_embed_data = self.base_emb(c, r, diff)
 
         if self.num_q > 0: # have problem id
             q_embed_diff_data = self.q_embed_diff(c)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化

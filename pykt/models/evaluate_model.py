@@ -54,7 +54,7 @@ def evaluate(local_device, model, dataset_name, test_loader, model_name, save_pa
         for data in test_loader:
             if model_name in ["dkt_forget"]:
                 q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
-            elif model_name in ["saint", "akt"]:
+            elif model_name in ["saint", "akt"] or model_name.startswith("emb_"):
                 q, c, r, qshft, cshft, rshft, m, sm, q_diff, c_diff = data
             elif not emb_type.startswith("qid") or dataset_name in ["assist2015", "ednet"]:
                 q, c, r, qshft, cshft, rshft, m, sm, q_diff, c_diff = data
@@ -87,14 +87,14 @@ def evaluate(local_device, model, dataset_name, test_loader, model_name, save_pa
                 y = model(cq.long(), cc.long(), r.long())
                 y = y[:, 1:]
             elif model_name == "akt":                                
-                y, reg_loss = model(cc.long(), cr.long(), cq.long())
+                y, reg_loss = model(c_diff.long(), cc.long(), cr.long(), cq.long())
                 y = y[:,1:]
             elif model_name in ["atkt", "atktfix"]:
                 y, _ = model(c.long(), r.long())
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
             elif model_name == "gkt":
                 y = model(cc.long(), cr.long())
-            elif model_name == "emb":
+            elif model_name.startswith("emb"):
                 mse_loss = nn.MSELoss()
                 y = model(cc.long())
                 loss = mse_loss(torch.masked_select(y, mm), torch.masked_select(c_diff, mm))
