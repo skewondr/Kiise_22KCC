@@ -35,6 +35,7 @@ class AKT(nn.Module):
         self.l2 = l2
         self.model_type = self.model_name
         self.separate_qa = separate_qa
+        self.fix_dim = 512
         self.emb_type = emb_type
         self.emb_size = d_model
         if self.num_q > 0:
@@ -42,7 +43,7 @@ class AKT(nn.Module):
             self.q_embed_diff = nn.Embedding(self.num_c+1, self.emb_size) # question emb, 总结了包含当前question（concept）的problems（questions）的变化
             self.qa_embed_diff = nn.Embedding(2 * self.num_c + 1, self.emb_size) # interaction emb, 同上
         
-        if emb_type.startswith("qid"):
+        if emb_type == "qid":
             # num_c+1 ,d_model
             self.q_embed = nn.Embedding(self.num_c, self.emb_size)
             if self.separate_qa: 
@@ -67,30 +68,30 @@ class AKT(nn.Module):
             if p.size(0) == self.num_q+1 and self.num_q > 0:
                 torch.nn.init.constant_(p, 0.)
 
-    def base_emb(self, q_data, target):
-        q_embed_data = self.q_embed(q_data)  # BS, seqlen,  d_model# c_ct
+    def base_emb(self, c, r):
+        q_embed_data = self.q_embed(c)  # BS, seqlen,  d_model# c_ct
         if self.separate_qa:
-            qa_data = q_data + self.num_c * target
+            qa_data = c + self.num_c * r
             qa_embed_data = self.qa_embed(qa_data)
         else:
             # BS, seqlen, d_model # c_ct+ g_rt =e_(ct,rt)
-            qa_embed_data = self.qa_embed(target)+q_embed_data
+            qa_embed_data = self.qa_embed(r)+q_embed_data
         return q_embed_data, qa_embed_data
 
-    def forward(self, q_data, target, pid_data=None, qtest=False):
+    def forward(self, c, r, q=None, qtest=False):
         emb_type = self.emb_type
         # Batch First
         if emb_type == "qid":
-            q_embed_data, qa_embed_data = self.base_emb(q_data, target)
+            q_embed_data, qa_embed_data = self.base_emb(c, r)
 
         if self.num_q > 0: # have problem id
-            q_embed_diff_data = self.q_embed_diff(q_data)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化
-            pid_embed_data = self.difficult_param(pid_data)  # uq 当前problem的难度
+            q_embed_diff_data = self.q_embed_diff(c)  # d_ct 总结了包含当前question（concept）的problems（questions）的变化
+            pid_embed_data = self.difficult_param(q)  # uq 当前problem的难度
             q_embed_data = q_embed_data + pid_embed_data * \
                 q_embed_diff_data  # uq *d_ct + c_ct # question encoder
 
             qa_embed_diff_data = self.qa_embed_diff(
-                target)  # f_(ct,rt) or #h_rt (qt, rt)差异向量
+                r)  # f_(ct,rt) or #h_rt (qt, rt)差异向量
             if self.separate_qa:
                 qa_embed_data = qa_embed_data + pid_embed_data * \
                     qa_embed_diff_data  # uq* f_(ct,rt) + e_(ct,rt)
@@ -142,7 +143,7 @@ class Architecture(nn.Module):
             ])
 
     def forward(self, q_embed_data, qa_embed_data):
-        # target shape  bs, seqlen
+        # r shape  bs, seqlen
         seqlen, batch_size = q_embed_data.size(1), q_embed_data.size(0)
 
         qa_pos_embed = qa_embed_data
