@@ -50,18 +50,20 @@ class AKT(nn.Module):
         elif emb_type.startswith("qid_"):
             self.interaction_emb = nn.Embedding(self.num_c, self.fix_dim)
             self.emb_layer = nn.Linear(self.fix_dim, self.emb_size) #
+            self.emb_layer2 = nn.Linear(self.emb_size*2, self.emb_size) #
 
         elif emb_type == "Q_pretrain":
             net = torch.load(emb_path)
             self.interaction_emb = nn.Embedding.from_pretrained(net["input_emb.weight"]) #
             self.emb_layer = nn.Linear(self.fix_dim, self.emb_size) #
-
-        elif emb_type.startswith("D_sinusoid"):
-            self.interaction_emb = nn.Embedding(self.num_c, self.emb_size) #
             self.emb_layer2 = nn.Linear(self.emb_size*2, self.emb_size) #
-            self.n_diff = int(emb_type.split("_")[-1])
-            diff_vec = torch.from_numpy(self.get_sinusoid_encoding_table(self.n_diff+1, self.emb_size)).to(device)
-            self.diff_emb = nn.Embedding.from_pretrained(diff_vec)
+
+        elif emb_type.startswith("R_quantized"):
+            self.token_num = int(emb_type.split("_")[-1])
+            self.interaction_emb = nn.Embedding(self.num_c, self.fix_dim)
+            self.diff_emb = nn.Embedding(self.token_num*2, self.emb_size)
+            self.emb_layer = nn.Linear(self.fix_dim, self.emb_size) #
+            self.emb_layer2 = nn.Linear(self.emb_size*2, self.emb_size) #
 
         if self.separate_qa: 
             self.qa_embed = nn.Embedding(2*self.num_c+1, self.emb_size) # interaction emb
@@ -100,20 +102,26 @@ class AKT(nn.Module):
     def base_emb(self, c, r, diff):
         if self.emb_type == "qid":
             q_embed_data = self.q_embed(c)  # BS, seqlen,  d_model# c_ct
+            qa_embed_data = self.qa_embed(r)+q_embed_data
         elif self.emb_type == "Q_pretrain" or self.emb_type.startswith("qid_"):
             q_embed_data = self.emb_layer(self.interaction_emb(c))
-        elif self.emb_type.startswith("D_sinusoid"):
-            xemb = self.interaction_emb(c) 
-            diff = torch.ceil(diff.float()*self.n_diff)
-            demb = self.diff_emb(diff.long()).float()
-            xemb = torch.cat([xemb, demb], dim=-1)
-            q_embed_data = self.emb_layer2(xemb)
-        if self.separate_qa:
-            qa_data = c + self.num_c * r
-            qa_embed_data = self.qa_embed(qa_data)
-        else:
+            z = torch.zeros_like(q_embed_data)
+            xemb_o = torch.cat([z, q_embed_data], dim=-1)
+            xemb_x = torch.cat([q_embed_data, z], dim=-1)
+            xemb = torch.where(r.unsqueeze(-1).repeat(1, 1, self.emb_size*2) == 1 , xemb_o, xemb_x)
+            qa_embed_data = self.emb_layer2(xemb)
+        elif self.emb_type.startswith("R_quantized"):
+            q_embed_data = self.emb_layer(self.interaction_emb(c))
+            diff_x = diff + self.token_num
+            remb = torch.where(r.unsqueeze(-1).repeat(1, 1, self.emb_size) == 1 , self.diff_emb(diff.long()).float(), self.diff_emb(diff_x.long()).float()) #
+            xemb = torch.cat([q_embed_data, remb], dim=-1)
+            qa_embed_data = self.emb_layer2(xemb)
+
+        # if self.separate_qa:
+        #     qa_data = c + self.num_c * r
+        #     qa_embed_data = self.qa_embed(qa_data)
+        # else:
             # BS, seqlen, d_model # c_ct+ g_rt =e_(ct,rt)
-            qa_embed_data = self.qa_embed(r)+q_embed_data
         return q_embed_data, qa_embed_data
 
     def forward(self, diff, c, r, q=None, qtest=False):
