@@ -40,6 +40,12 @@ class DKVMN(Module):
             diff_vec = torch.from_numpy(self.get_sinusoid_encoding_table(self.n_diff+1, self.emb_size)).to(device)
             self.diff_emb = Embedding.from_pretrained(diff_vec)
 
+        elif emb_type.startswith("R_quantized"):
+            self.token_num = int(emb_type.split("_")[-1])
+            self.interaction_emb = Embedding(self.num_c, self.emb_size)
+            self.diff_emb = Embedding(self.token_num*2, self.emb_size)
+            self.emb_layer2 = Linear(self.emb_size*2, self.emb_size) #
+
         self.Mk = Parameter(torch.Tensor(self.size_m, self.dim_s))
         self.Mv0 = Parameter(torch.Tensor(self.size_m, self.dim_s))
 
@@ -89,6 +95,12 @@ class DKVMN(Module):
             diff = torch.ceil(diff.float()*self.n_diff)
             demb = self.diff_emb(diff.long()).float()
             xemb = torch.cat([xemb, demb], dim=-1)
+            v = self.emb_layer2(xemb)
+        elif emb_type.startswith("R_quantized"):
+            k = self.interaction_emb(q) 
+            diff_x = diff + self.token_num
+            remb = torch.where(r.unsqueeze(-1).repeat(1, 1, self.emb_size) == 1 , self.diff_emb(diff.long()).float(), self.diff_emb(diff_x.long()).float()) #
+            xemb = torch.cat([k, remb], dim=-1)
             v = self.emb_layer2(xemb)
         
         Mvt = self.Mv0.unsqueeze(0).repeat(batch_size, 1, 1)

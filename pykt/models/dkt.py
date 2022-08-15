@@ -45,7 +45,6 @@ class DKT(Module):
             self.diff_emb = Embedding(self.token_num*2, self.emb_size)
             self.emb_layer2 = Linear(self.emb_size*2, self.emb_size) #
 
-        
         self.lstm_layer = LSTM(self.emb_size, self.hidden_size, batch_first=True)
         self.dropout_layer = Dropout(dropout)
         self.out_layer = Linear(self.hidden_size, self.num_c)
