@@ -37,7 +37,7 @@ def update_gap(max_rgap, max_sgap, max_pcount, cur):
     max_pcount = cur.max_pcount if cur.max_pcount > max_pcount else max_pcount
     return max_rgap, max_sgap, max_pcount
 
-def init_dataset4train(device, dataset_name, model_name, data_config, i, batch_size):
+def init_dataset4train(device, emb_type, dataset_name, model_name, data_config, i, batch_size):
     data_config = data_config[dataset_name]
     all_folds = set(data_config["folds"])
     if model_name == "dkt_forget":
@@ -49,6 +49,15 @@ def init_dataset4train(device, dataset_name, model_name, data_config, i, batch_s
     else:
         curvalid = KTDataset(device, os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config, {i})
         curtrain = KTDataset(device, os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config, all_folds - {i})
+
+    if emb_type.startswith("R"):
+        curtrain.emb_type = emb_type
+        curvalid.emb_type = emb_type
+
+        n_tokens = int(emb_type.split("_")[-1])
+        curtrain.get_quantiles(n_tokens)
+        curvalid.get_quantiles(n_tokens)
+
     train_loader = DataLoader(curtrain, batch_size=batch_size)
     valid_loader = DataLoader(curvalid, batch_size=batch_size)
     
@@ -66,7 +75,14 @@ def init_dataset4train(device, dataset_name, model_name, data_config, i, batch_s
         data_config["num_sgap"] = max_sgap + 1
         data_config["num_pcount"] = max_pcount + 1
 
+    if emb_type.startswith("R"):
+        test_dataset.emb_type = emb_type
+
+        n_tokens = int(emb_type.split("_")[-1])
+        test_dataset.get_quantiles(n_tokens)
+
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
     test_window_loader = DataLoader(test_window_dataset, batch_size=batch_size, shuffle=False)
     test_window_loader = None
+
     return train_loader, valid_loader, test_loader, test_window_loader

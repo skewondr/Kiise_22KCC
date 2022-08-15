@@ -121,7 +121,7 @@ def main(train_params, model_params):
         # print(dataset_name, model_name, data_config, fold, batch_size)
         
         debug_print(text="init_dataset",fuc_name="main")
-        train_loader, valid_loader, test_loader, test_window_loader = init_dataset4train(device, dataset_name, model_name, data_config, fold, batch_size)
+        train_loader, valid_loader, test_loader, test_window_loader = init_dataset4train(device, emb_type, dataset_name, model_name, data_config, fold, batch_size)
 
         if model_config['add_uuid'] == 1:
             import uuid

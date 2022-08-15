@@ -29,6 +29,7 @@ class KTDataset(Dataset):
         self.q_num = data_config["num_q"]
         self.c_num = data_config["num_c"]
         self.qtest = qtest
+        self.emb_type = ""
         folds = sorted(list(folds))
         folds_str = "_" + "_".join([str(_) for _ in folds])
         if self.qtest:
@@ -105,12 +106,16 @@ class KTDataset(Dataset):
             qshft_seqs = self.q_seqs[index][1:] * self.mask_seqs[index].to(self.device)
             _ = torch.where(self.q_seqs[index].long() <=0, self.q_num, self.q_seqs[index].long()) 
             _ = self.q_diff[_.cpu().int()]
+            if self.emb_type.startswith("R"):
+                _ = np.digitize(_, self.q_quantiles)-1
             q_diffs = torch.from_numpy(_).float().to(self.device)
         if "concepts" in self.input_type:
             c_seqs = self.c_seqs[index][:-1] * self.mask_seqs[index].to(self.device)
             cshft_seqs = self.c_seqs[index][1:] * self.mask_seqs[index].to(self.device)
             _ = torch.where(self.c_seqs[index].long() <=0, self.c_num, self.c_seqs[index].long()) 
             _ = self.c_diff[_.cpu().int()]
+            if self.emb_type.startswith("R"):
+                _ = np.digitize(_, self.c_quantiles)-1
             c_diffs = torch.from_numpy(_).float().to(self.device)
 
         r_seqs = self.r_seqs[index][:-1] * self.mask_seqs[index].to(self.device)
@@ -209,3 +214,17 @@ class KTDataset(Dataset):
         c_diff = c_crt_cnt/c_total_cnt
 
         return q_diff, c_diff
+
+    def get_quantiles(self, num_token):
+        q_df = pd.Series(self.q_diff)
+        c_df = pd.Series(self.c_diff)
+        span = 1/num_token
+        bins = np.arange(0, 1, span)
+        q_quantiles = [q_df.quantile(i) for i in bins]+[1] if self.q_num>0 else [0]
+        c_quantiles = [c_df.quantile(i) for i in bins]+[1] if self.c_num>0 else [0]
+            
+        self.q_quantiles = q_quantiles
+        self.c_quantiles = c_quantiles
+
+        print(f"q_quantiles:{self.q_quantiles}, c_quantiles:{self.c_quantiles}")
+        return 
