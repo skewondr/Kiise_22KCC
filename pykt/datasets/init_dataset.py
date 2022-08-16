@@ -4,6 +4,7 @@ from torch.utils.data import DataLoader
 import numpy as np
 from .data_loader import KTDataset
 from .dkt_forget_dataloader import DktForgetDataset
+from IPython import embed
 
 def init_test_datasets(data_config, model_name, batch_size):
     test_question_loader, test_question_window_loader = None, None
@@ -50,13 +51,13 @@ def init_dataset4train(device, emb_type, dataset_name, model_name, data_config, 
         curvalid = KTDataset(device, os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config, {i})
         curtrain = KTDataset(device, os.path.join(data_config["dpath"], data_config["train_valid_file"]), data_config, all_folds - {i})
 
-    if emb_type.startswith("R"):
-        curtrain.emb_type = emb_type
-        curvalid.emb_type = emb_type
+    # if emb_type.startswith("R"):
+    curtrain.emb_type = emb_type
+    curvalid.emb_type = emb_type
 
-        n_tokens = int(emb_type.split("_")[-1])
-        curtrain.get_quantiles(n_tokens)
-        curvalid.get_quantiles(n_tokens)
+    n_tokens = int(emb_type.split("_")[-1]) if emb_type.startswith("R_quantized") else 5
+    curtrain.get_quantiles(n_tokens)
+    curvalid.get_quantiles(n_tokens)
 
     train_loader = DataLoader(curtrain, batch_size=batch_size)
     valid_loader = DataLoader(curvalid, batch_size=batch_size)
@@ -75,11 +76,10 @@ def init_dataset4train(device, emb_type, dataset_name, model_name, data_config, 
         data_config["num_sgap"] = max_sgap + 1
         data_config["num_pcount"] = max_pcount + 1
 
-    if emb_type.startswith("R"):
-        test_dataset.emb_type = emb_type
-
-        n_tokens = int(emb_type.split("_")[-1])
-        test_dataset.get_quantiles(n_tokens)
+    # if emb_type.startswith("R"):
+    test_dataset.emb_type = emb_type
+    n_tokens = int(emb_type.split("_")[-1]) if emb_type.startswith("R_quantized") else 5
+    test_dataset.get_quantiles(n_tokens)
 
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
     test_window_loader = DataLoader(test_window_dataset, batch_size=batch_size, shuffle=False)

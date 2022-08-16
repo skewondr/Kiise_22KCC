@@ -114,6 +114,7 @@ def main(train_params, model_params):
 
         batch_size, num_epochs, optimizer = train_config["batch_size"], train_config["num_epochs"], train_config["optimizer"]
         seq_len = train_config["seq_len"]
+        # num_epochs = 1
 
         with open("../configs/data_config.json") as fin:
             data_config = json.load(fin)
@@ -180,10 +181,10 @@ def main(train_params, model_params):
             
             if test_loader != None:
                 save_test_path = os.path.join(ckpt_path, emb_type+"_test_predictions.txt")
-                testauc, testacc, test_mse = evaluate(device, best_model, dataset_name, test_loader, model_name)#, save_test_path)
+                testauc, testacc, test_mse = evaluate(device, best_model, dataset_name, test_loader, model_name, save_path=ckpt_path, test=True)#, save_test_path)
             if test_window_loader != None:
                 save_test_path = os.path.join(ckpt_path, emb_type+"_test_window_predictions.txt")
-                window_testauc, window_testacc, window_testmse = evaluate(device, best_model, dataset_name, test_window_loader, model_name)#, save_test_path)
+                window_testauc, window_testacc, window_testmse = evaluate(device, best_model, dataset_name, test_window_loader, model_name, save_path=ckpt_path, test=True)#, save_test_path)
             # window_testauc, window_testacc = -1, -1
             # trainauc, trainacc = self.evaluate(train_loader, emb_type)
             testauc, testacc, window_testauc, window_testacc = round(testauc, 4), round(testacc, 4), round(window_testauc, 4), round(window_testacc, 4)

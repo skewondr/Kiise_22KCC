@@ -5,6 +5,11 @@ from torch.nn.functional import one_hot
 from sklearn import metrics
 
 import pandas as pd
+from sklearn.metrics import confusion_matrix
+from collections import Counter
+import pickle 
+import os
+from IPython import embed
 
 device = "cpu" if not torch.cuda.is_available() else "cuda"
 
@@ -42,11 +47,12 @@ def save_cur_predict_result(dres, q, r, d, t, m, sm, p):
         results.append(str([qs, rs, ds, ts, ps, prelabels, auc, acc]))
     return "\n".join(results)
 
-def evaluate(local_device, model, dataset_name, test_loader, model_name, save_path=""):
+def evaluate(local_device, model, dataset_name, test_loader, model_name, save_path="", test=False):
     emb_type = model.emb_type
-    if save_path != "":
-        fout = open(save_path, "w", encoding="utf8")
+    # if save_path != "":
+    #     fout = open(save_path, "w", encoding="utf8")
     with torch.no_grad():
+        d_trues = []
         y_trues = []
         y_scores = []
         mse_scores = []
@@ -100,17 +106,26 @@ def evaluate(local_device, model, dataset_name, test_loader, model_name, save_pa
                 loss = mse_loss(torch.masked_select(y, mm), torch.masked_select(c_diff, mm))
                 mse_scores.append(loss.cpu().numpy())
                 return -1, -1, np.mean(mse_scores)
+
+            token_num = int(emb_type.split("_")[-1]) if emb_type.startswith("R_quantized") else 5
+            diff_x = c_diff + token_num
+            diff_ox = torch.where(cr == 1 , c_diff.long(), diff_x.long()) #
+            diff_ox = diff_ox[:,1:]
+
             # print(f"after y: {y.shape}")
             # save predict result
-            if save_path != "":
-                result = save_cur_predict_result(dres, c, r, cshft, rshft, m, sm, y)
-                fout.write(result+"\n")
+            # if save_path != "":
+            #     result = save_cur_predict_result(dres, c, r, cshft, rshft, m, sm, y)
+            #     fout.write(result+"\n")
 
+            d = torch.masked_select(diff_ox, sm).detach().cpu()
             y = torch.masked_select(y, sm).detach().cpu()
             t = torch.masked_select(rshft, sm).detach().cpu()
-
+            
+            d_trues.append(d.numpy())
             y_trues.append(t.numpy())
             y_scores.append(y.numpy())
+        td = np.concatenate(d_trues, axis=0)
         ts = np.concatenate(y_trues, axis=0)
         ps = np.concatenate(y_scores, axis=0)
         # print(f"ts.shape: {ts.shape}, ps.shape: {ps.shape}")
@@ -118,6 +133,21 @@ def evaluate(local_device, model, dataset_name, test_loader, model_name, save_pa
 
         prelabels = [1 if p >= 0.5 else 0 for p in ps]
         acc = metrics.accuracy_score(ts, prelabels)
+
+        if test:
+            lcrts_o = td[prelabels == ts]
+            lcrts_x = td[prelabels != ts]
+            tn, fp, fn, tp = confusion_matrix(ts, prelabels).ravel()
+            print(f"model prediction: tn: fp: fn: tp = {tn}: {fp}: {fn}: {tp}")
+            print(f"correct : {sorted(Counter(lcrts_o).items())}")
+            save_name = os.path.join(save_path, 'lcrts_o.pickle')
+            with open(save_name, 'wb') as f: 
+                pickle.dump(lcrts_o, f)
+            print(f"incorrect : {sorted(Counter(lcrts_x).items())}")
+            save_name = os.path.join(save_path, 'lcrts_x.pickle')
+            with open(save_name, 'wb') as f: 
+                pickle.dump(lcrts_x, f)
+
     # if save_path != "":
     #     pd.to_pickle(dres, save_path+".pkl")
   
