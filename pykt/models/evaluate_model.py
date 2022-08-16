@@ -140,12 +140,12 @@ def evaluate(local_device, model, dataset_name, test_loader, model_name, save_pa
             print(f"correct : {sorted(Counter(lcrts_o).items())}")
             save_name = os.path.join(save_path, 'lcrts_o.pickle')
             with open(save_name, 'wb') as f: 
-                lcrts_o = sorted(Counter(lcrts_o).items())
+                # lcrts_o = sorted(Counter(lcrts_o).items())
                 pickle.dump(lcrts_o, f)
             print(f"incorrect : {sorted(Counter(lcrts_x).items())}")
             save_name = os.path.join(save_path, 'lcrts_x.pickle')
             with open(save_name, 'wb') as f: 
-                lcrts_x = sorted(Counter(lcrts_x).items())
+                # lcrts_x = sorted(Counter(lcrts_x).items())
                 pickle.dump(lcrts_x, f)
 
     # if save_path != "":
