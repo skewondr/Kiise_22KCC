@@ -103,17 +103,25 @@ class AKT(nn.Module):
         if self.emb_type == "qid":
             q_embed_data = self.q_embed(c)  # BS, seqlen,  d_model# c_ct
             qa_embed_data = self.qa_embed(r)+q_embed_data
+
         elif self.emb_type == "Q_pretrain" or self.emb_type.startswith("qid_"):
             q_embed_data = self.emb_layer(self.interaction_emb(c))
-            z = torch.zeros_like(q_embed_data)
-            xemb_o = torch.cat([z, q_embed_data], dim=-1)
-            xemb_x = torch.cat([q_embed_data, z], dim=-1)
-            xemb = torch.where(r.unsqueeze(-1).repeat(1, 1, self.emb_size*2) == 1 , xemb_o, xemb_x)
+            # z = torch.zeros_like(q_embed_data)
+            # xemb_o = torch.cat([z, q_embed_data], dim=-1)
+            # xemb_x = torch.cat([q_embed_data, z], dim=-1)
+            # xemb = torch.where(r.unsqueeze(-1).repeat(1, 1, self.emb_size*2) == 1 , xemb_o, xemb_x)
+            # qa_embed_data = self.emb_layer2(xemb)
+            z = self.qa_embed(r)
+            xemb = torch.cat([q_embed_data, z], dim=-1)
             qa_embed_data = self.emb_layer2(xemb)
+
         elif self.emb_type.startswith("R_quantized"):
             q_embed_data = self.emb_layer(self.interaction_emb(c))
             diff_x = diff + self.token_num
-            remb = torch.where(r.unsqueeze(-1).repeat(1, 1, self.emb_size) == 1 , self.diff_emb(diff.long()).float(), self.diff_emb(diff_x.long()).float()) #
+            # remb = torch.where(r.unsqueeze(-1).repeat(1, 1, self.emb_size) == 1 , self.diff_emb(diff.long()).float(), self.diff_emb(diff_x.long()).float()) #
+            # xemb = torch.cat([q_embed_data, remb], dim=-1)
+            diff_ox = torch.where(r == 1 , diff.long(), diff_x.long()) #
+            remb = self.diff_emb(diff_ox)
             xemb = torch.cat([q_embed_data, remb], dim=-1)
             qa_embed_data = self.emb_layer2(xemb)
 

@@ -38,7 +38,8 @@ class DKVMN(Module):
             self.diff_emb = Embedding(self.token_num*2, self.emb_size)
             self.emb_layer = Linear(self.fix_dim, self.emb_size) #
             self.emb_layer2 = Linear(self.emb_size*2, self.emb_size) #
-
+        
+        self.qa_embed = Embedding(2, self.emb_size)
         self.Mk = Parameter(torch.Tensor(self.size_m, self.dim_s))
         self.Mv0 = Parameter(torch.Tensor(self.size_m, self.dim_s))
 
@@ -73,15 +74,22 @@ class DKVMN(Module):
             v = self.v_emb_layer(x)
         elif emb_type == "Q_pretrain" or emb_type.startswith("qid_"):
             k = self.emb_layer(self.interaction_emb(q))
-            z = torch.zeros_like(k)
-            xemb_o = torch.cat([z, k], dim=-1)
-            xemb_x = torch.cat([k, z], dim=-1)
-            xemb = torch.where(r.unsqueeze(-1).repeat(1, 1, self.emb_size*2) == 1 , xemb_o, xemb_x)
+            # z = torch.zeros_like(k)
+            # xemb_o = torch.cat([z, k], dim=-1)
+            # xemb_x = torch.cat([k, z], dim=-1)
+            # xemb = torch.where(r.unsqueeze(-1).repeat(1, 1, self.emb_size*2) == 1 , xemb_o, xemb_x)
+            # v = self.emb_layer2(xemb)
+            z = self.qa_embed(r)
+            xemb = torch.cat([k, z], dim=-1)
             v = self.emb_layer2(xemb)
+
         elif emb_type.startswith("R_quantized"):
             k = self.emb_layer(self.interaction_emb(q))
             diff_x = diff + self.token_num
-            remb = torch.where(r.unsqueeze(-1).repeat(1, 1, self.emb_size) == 1 , self.diff_emb(diff.long()).float(), self.diff_emb(diff_x.long()).float()) #
+            # remb = torch.where(r.unsqueeze(-1).repeat(1, 1, self.emb_size) == 1 , self.diff_emb(diff.long()).float(), self.diff_emb(diff_x.long()).float()) #
+            # xemb = torch.cat([k, remb], dim=-1)
+            diff_ox = torch.where(r == 1 , diff.long(), diff_x.long()) # [batch, length]
+            remb = self.diff_emb(diff_ox)
             xemb = torch.cat([k, remb], dim=-1)
             v = self.emb_layer2(xemb)
         

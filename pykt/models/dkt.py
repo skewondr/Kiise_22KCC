@@ -41,6 +41,7 @@ class DKT(Module):
         self.lstm_layer = LSTM(self.emb_size, self.hidden_size, batch_first=True)
         self.dropout_layer = Dropout(dropout)
         self.out_layer = Linear(self.hidden_size, self.num_c)
+        self.qa_embed = Embedding(2, self.emb_size)
 
     def get_sinusoid_encoding_table(self, n_seq, d_hidn):
         def cal_angle(position, i_hidn):
@@ -62,16 +63,22 @@ class DKT(Module):
             
         elif emb_type == "Q_pretrain" or emb_type.startswith("qid_"):
             xemb = self.emb_layer(self.interaction_emb(q))
-            z = torch.zeros_like(xemb)
-            xemb_o = torch.cat([z, xemb], dim=-1)
-            xemb_x = torch.cat([xemb, z], dim=-1)
-            xemb = torch.where(r.unsqueeze(-1).repeat(1, 1, self.emb_size*2) == 1 , xemb_o, xemb_x)
+            # z = torch.zeros_like(xemb)
+            # xemb_o = torch.cat([z, xemb], dim=-1)
+            # xemb_x = torch.cat([xemb, z], dim=-1)
+            # xemb = torch.where(r.unsqueeze(-1).repeat(1, 1, self.emb_size*2) == 1 , xemb_o, xemb_x)
+            # xemb = self.emb_layer2(xemb)
+            z = self.qa_embed(r)
+            xemb = torch.cat([xemb, z], dim=-1)
             xemb = self.emb_layer2(xemb)
 
         elif emb_type.startswith("R_quantized"):
             xemb = self.emb_layer(self.interaction_emb(q))
             diff_x = diff + self.token_num
-            remb = torch.where(r.unsqueeze(-1).repeat(1, 1, self.emb_size) == 1 , self.diff_emb(diff.long()).float(), self.diff_emb(diff_x.long()).float()) #
+            # remb = torch.where(r.unsqueeze(-1).repeat(1, 1, self.emb_size) == 1 , self.diff_emb(diff.long()).float(), self.diff_emb(diff_x.long()).float()) #
+            # xemb = torch.cat([xemb, remb], dim=-1)
+            diff_ox = torch.where(r == 1 , diff.long(), diff_x.long()) # [batch, length]
+            remb = self.diff_emb(diff_ox)
             xemb = torch.cat([xemb, remb], dim=-1)
             xemb = self.emb_layer2(xemb)
         
