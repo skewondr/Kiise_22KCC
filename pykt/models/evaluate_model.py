@@ -60,9 +60,7 @@ def evaluate(local_device, model, dataset_name, test_loader, model_name, save_pa
         for data in test_loader:
             if model_name in ["dkt_forget"]:
                 q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
-            elif model_name in ["saint", "akt"] or model_name.startswith("emb_"):
-                q, c, r, qshft, cshft, rshft, m, sm, q_diff, c_diff = data
-            elif not emb_type.startswith("qid") or dataset_name in ["assist2015", "ednet"]:
+            elif model_name in ["saint", "akt", "emb_qc"] or dataset_name in ["assist2015", "ednet"]:
                 q, c, r, qshft, cshft, rshft, m, sm, q_diff, c_diff = data
             else: 
                 c, q, r, cshft, qshft, rshft, m, sm, c_diff, q_diff = data
@@ -107,7 +105,8 @@ def evaluate(local_device, model, dataset_name, test_loader, model_name, save_pa
                 mse_scores.append(loss.cpu().numpy())
                 return -1, -1, np.mean(mse_scores)
 
-            token_num = int(emb_type.split("_")[-1]) if emb_type.startswith("R_quantized") else 5
+            embed()
+            token_num = int(emb_type.split("_")[-1]) if emb_type.startswith("R_quantized") else 5 #
             diff_x = c_diff + token_num
             diff_ox = torch.where(cr == 1 , c_diff.long(), diff_x.long()) #
             diff_ox = diff_ox[:,1:]
@@ -135,17 +134,19 @@ def evaluate(local_device, model, dataset_name, test_loader, model_name, save_pa
         acc = metrics.accuracy_score(ts, prelabels)
 
         if test:
-            lcrts_o = td[prelabels == ts]
-            lcrts_x = td[prelabels != ts]
+            lcrts_o = td[np.array(prelabels) == ts] #tn + tp 
+            lcrts_x = td[np.array(prelabels) != ts] #fn + fp 
             tn, fp, fn, tp = confusion_matrix(ts, prelabels).ravel()
             print(f"model prediction: tn: fp: fn: tp = {tn}: {fp}: {fn}: {tp}")
             print(f"correct : {sorted(Counter(lcrts_o).items())}")
             save_name = os.path.join(save_path, 'lcrts_o.pickle')
             with open(save_name, 'wb') as f: 
+                lcrts_o = sorted(Counter(lcrts_o).items())
                 pickle.dump(lcrts_o, f)
             print(f"incorrect : {sorted(Counter(lcrts_x).items())}")
             save_name = os.path.join(save_path, 'lcrts_x.pickle')
             with open(save_name, 'wb') as f: 
+                lcrts_x = sorted(Counter(lcrts_x).items())
                 pickle.dump(lcrts_x, f)
 
     # if save_path != "":
