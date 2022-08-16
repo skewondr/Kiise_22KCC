@@ -97,7 +97,7 @@
         }
     },
     "emb": {
-        "learning_rate": 5e-3,
+        "learning_rate": 5e-2,
         "emb_size": 512,
         "dropout": 0.5
     },
