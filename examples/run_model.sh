@@ -2,8 +2,8 @@
 
 #!/usr/bin/env bash
 
-dataset=(assist2009)
-embtype=(Q_pretrain D_sinusoid_10)
+dataset=(assist2009 ednet)
+embtype=(qid Q_pretrain)
 seed=(42 224 3407)
 for d in ${dataset[@]}; do
     for m in ${embtype[@]}; do

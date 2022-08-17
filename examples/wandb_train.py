@@ -135,9 +135,9 @@ def main(train_params, model_params):
 
         if emb_type == "Q_pretrain":
             pre_trained_emb = {
-                "assist2009":"assist2009_emb_42_5_119423",
+                "assist2009":"assist2009_emb_42_5_16195455",
                 # "assist2015":"assist2015_emb_42_5_1195853",
-                "ednet":"ednet_emb_42_5_1645040",
+                "ednet":"ednet_emb_42_5_1619554",
             }
             data_config[dataset_name]["emb_path"] = os.path.join(data_config[dataset_name]["dpath"], pre_trained_emb[dataset_name]+f"/qid_model_{fold}.ckpt")
 
