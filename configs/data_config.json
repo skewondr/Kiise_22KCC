@@ -71,7 +71,7 @@
     "ednet": {
         "dpath": "../data/EdNet/EdNet-KT1/sub1_fold5",
         "num_q": 0,
-        "num_c": 12183,
+        "num_c": 12284,
         "input_type": [
             "concepts"
         ],
