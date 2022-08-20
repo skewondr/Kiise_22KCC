@@ -45,9 +45,9 @@
         },
         "ednet":{
             "learning_rate": 1e-3,
-            "dim_s": 100,
-            "size_m": 20,
-            "dropout": 0.5
+            "dim_s": 300,
+            "size_m": 50,
+            "dropout": 0.2
         }
     },
     "sakt": {
