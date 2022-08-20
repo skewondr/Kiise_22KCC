@@ -19,8 +19,8 @@
         },
         "ednet":{
             "learning_rate": 1e-3,
-            "emb_size": 200,
-            "dropout": 0.2
+            "emb_size": 100,
+            "dropout": 0.5
         }
     },
     "dkt+": {
@@ -122,7 +122,7 @@
             "learning_rate": 1e-4,
             "d_model":256,
             "n_blocks":4,
-            "dropout":0.05,
+            "dropout":0.2,
             "d_ff":2048,
             "num_attn_heads":4
         }

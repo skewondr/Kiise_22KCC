@@ -70,9 +70,10 @@
     },
     "ednet": {
         "dpath": "../data/EdNet/EdNet-KT1/sub1_fold5",
-        "num_q": 0,
-        "num_c": 12284,
+        "num_q": 12124,
+        "num_c": 118,
         "input_type": [
+            "questions",
             "concepts"
         ],
         "emb_path": "",
@@ -87,6 +88,8 @@
         ],
         "test_original_file": "test.csv",
         "test_file": "test_sequences.csv",
-        "test_window_file": "test_window_sequences.csv"
+        "test_window_file": "test_window_sequences.csv",
+        "test_question_file": "test_question_sequences.csv",
+        "test_question_window_file": "test_question_window_sequences.csv"
     }
 }
