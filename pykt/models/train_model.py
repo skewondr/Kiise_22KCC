@@ -48,7 +48,7 @@ def model_forward(device, model, dataset_name, data):
     emb_type = model.emb_type
     if model_name in ["dkt_forget"]:
         q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
-    elif model_name in ["saint", "akt", "emb_qc"] or dataset_name in ["assist2015", "ednet"]:
+    elif model_name in ["saint", "akt", "emb_qc"] or dataset_name in ["assist2015"]:
         q, c, r, qshft, cshft, rshft, m, sm, q_diff, c_diff = data
     else: 
         c, q, r, cshft, qshft, rshft, m, sm, c_diff, q_diff = data

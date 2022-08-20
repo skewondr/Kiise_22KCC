@@ -60,7 +60,7 @@ def evaluate(local_device, model, dataset_name, test_loader, model_name, save_pa
         for data in test_loader:
             if model_name in ["dkt_forget"]:
                 q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
-            elif model_name in ["saint", "akt", "emb_qc"] or dataset_name in ["assist2015", "ednet"]:
+            elif model_name in ["saint", "akt", "emb_qc"] or dataset_name in ["assist2015"]:
                 q, c, r, qshft, cshft, rshft, m, sm, q_diff, c_diff = data
             else: 
                 c, q, r, cshft, qshft, rshft, m, sm, c_diff, q_diff = data
