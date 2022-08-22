@@ -67,7 +67,7 @@
         },
         "ednet":{
             "learning_rate": 1e-3,
-            "emb_size": 200,
+            "emb_size": 100,
             "num_attn_heads": 4,
             "dropout": 0.5,
             "num_en": 1
