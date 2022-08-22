@@ -82,7 +82,7 @@ def main(train_params, model_params):
     val_acc_list = []
     val_auc_list = []
     val_mse_list = []
-    ckpt_name_list = ['dataset_name', 'model_name', 'seed', 'fold']
+    ckpt_name_list = ['dataset_name', 'model_name', 'seed', 'fold', 'emb_type']
     params_str = "_".join([str(train_params[_]) for _ in ckpt_name_list]) 
     tm = localtime(time.time())
     params_str += f'_{tm.tm_mday}{tm.tm_hour}{tm.tm_min}{tm.tm_sec}'
