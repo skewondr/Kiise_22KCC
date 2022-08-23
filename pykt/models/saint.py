@@ -9,7 +9,7 @@ from IPython import embed
 # device = "cpu" if not torch.cuda.is_available() else "cuda"
 
 class SAINT(nn.Module):
-    def __init__(self, device, num_q, num_c, seq_len, emb_size, num_attn_heads, dropout, n_blocks=1, emb_type="qid", emb_path="", pretrain_dim=768):
+    def __init__(self, device, num_q, num_c, seq_len, emb_size, num_attn_heads, dropout, n_blocks=1, emb_type="qid", emb_path=""):
         super().__init__()
         # print(f"num_q: {num_q}, num_c: {num_c}")
         if num_q == num_c and num_q == 0:
@@ -20,20 +20,20 @@ class SAINT(nn.Module):
         self.num_en = n_blocks
         self.num_de = n_blocks
         self.emb_type = emb_type
+        self.fix_dim = 512
 
         self.embd_pos = nn.Embedding(seq_len, embedding_dim = emb_size) 
         # self.embd_pos = Parameter(torch.Tensor(seq_len-1, emb_size))
         # kaiming_normal_(self.embd_pos)
         self.device = device
-        if emb_type.startswith("qid"):
-            self.encoder = get_clones(Encoder_block(device, emb_size, num_attn_heads, num_q, num_c, seq_len, dropout), self.num_en)
-        
-        self.decoder = get_clones(Decoder_block(device, emb_size, 2, num_attn_heads, seq_len, dropout), self.num_de)
+       
+        self.encoder = get_clones(Encoder_block(device, emb_size, num_attn_heads, num_q, num_c, seq_len, dropout, emb_type, emb_path, self.fix_dim), self.num_en)
+        self.decoder = get_clones(Decoder_block(device, emb_size, 2, num_attn_heads, seq_len, dropout, emb_type), self.num_de)
 
         self.dropout = Dropout(dropout)
         self.out = nn.Linear(in_features=emb_size, out_features=1)
     
-    def forward(self, in_ex, in_cat, in_res, qtest=False):
+    def forward(self, diff, in_ex, in_cat, in_res, qtest=False):
         emb_type = self.emb_type        
 
         if self.num_q > 0:
@@ -47,8 +47,7 @@ class SAINT(nn.Module):
         for i in range(self.num_en):
             if i >= 1:
                 first_block = False
-            if emb_type == "qid": # same to qid in saint
-                in_ex = self.encoder[i](in_ex, in_cat, in_pos, first_block=first_block)
+            in_ex = self.encoder[i](in_ex, in_cat, in_pos, first_block=first_block)
             in_cat = in_ex
         ## pass through each decoder blocks in sequence
         start_token = torch.tensor([[2]]).repeat(in_res.shape[0], 1).to(self.device)
@@ -58,7 +57,7 @@ class SAINT(nn.Module):
         for i in range(self.num_de):
             if i >= 1:
                 first_block = False
-            in_res = self.decoder[i](in_res, in_pos, en_out=in_ex, first_block=first_block)
+            in_res = self.decoder[i](diff, in_res, in_pos, en_out=in_ex, first_block=first_block)
         
         ## Output layer
 
@@ -76,22 +75,29 @@ class Encoder_block(nn.Module):
     O = SkipConct(FFN(LayerNorm(M)))
     """
 
-    def __init__(self, device, dim_model, heads_en, total_ex, total_cat, seq_len, dropout, emb_path="", pretrain_dim=768):
+    def __init__(self, device, dim_model, heads_en, num_q, num_c, seq_len, dropout, emb_type, emb_path="", pretrain_dim=768):
         super().__init__()
         self.seq_len = seq_len
         self.emb_path = emb_path
-        self.total_cat = total_cat
-        self.total_ex = total_ex
+        self.num_c = num_c
+        self.num_q = num_q
         self.device = device
-        if total_ex > 0:
-            if emb_path == "":
-                self.embd_ex = nn.Embedding(total_ex, embedding_dim = dim_model)                   # embedings  q,k,v = E = exercise ID embedding, category embedding, and positionembedding.
-            else:
-                embs = pd.read_pickle(emb_path)
-                self.exercise_embed = Embedding.from_pretrained(embs)
-                self.linear = Linear(pretrain_dim, dim_model)
-        if total_cat > 0:
-            self.emb_cat = nn.Embedding(total_cat, embedding_dim = dim_model)
+        self.emb_type = emb_type
+        self.emb_size = dim_model
+
+        if num_q > 0:
+            if emb_type == "qid":
+                self.interaction_emb = Embedding(self.num_q, self.emb_size)
+            else: 
+                if emb_type == "Q_pretrain":
+                    net = torch.load(emb_path)
+                    self.interaction_emb = Embedding.from_pretrained(net["input_emb.weight"]) #
+                else: 
+                    self.interaction_emb = Embedding(self.num_q, pretrain_dim)
+                self.emb_layer = Linear(pretrain_dim, self.emb_size) #
+            
+        if num_c > 0:
+            self.emb_cat = nn.Embedding(num_c, embedding_dim = dim_model)
         # self.embd_pos   = nn.Embedding(seq_len, embedding_dim = dim_model)                  #positional embedding
 
         self.multi_en = nn.MultiheadAttention(embed_dim = dim_model, num_heads = heads_en, dropout = dropout)
@@ -103,17 +109,18 @@ class Encoder_block(nn.Module):
         self.dropout2 = Dropout(dropout)
 
     def forward(self, in_ex, in_cat, in_pos, first_block=True):
-
+        emb_type = self.emb_type
+        
         ## todo create a positional encoding (two options numeric, sine)
         if first_block:
             embs = []
-            if self.total_ex > 0:
-                if self.emb_path == "":
-                    in_ex = self.embd_ex(in_ex)
-                else:
-                    in_ex = self.linear(self.exercise_embed(in_ex))
+            if self.num_q > 0:
+                if emb_type == "qid":
+                    in_ex = self.interaction_emb(in_ex)
+                else: 
+                    in_ex = self.emb_layer(self.interaction_emb(in_ex))
                 embs.append(in_ex)
-            if self.total_cat > 0:
+            if self.num_c > 0:
                 in_cat = self.emb_cat(in_cat)
                 embs.append(in_cat)
             out = embs[0]
@@ -157,10 +164,9 @@ class Decoder_block(nn.Module):
     L = SkipConct(FFN(LayerNorm(M2)))
     """
 
-    def __init__(self, device, dim_model, total_res, heads_de, seq_len, dropout):
+    def __init__(self, device, dim_model, total_res, heads_de, seq_len, dropout, emb_type):
         super().__init__()
         self.seq_len    = seq_len
-        self.embd_res    = nn.Embedding(total_res+1, embedding_dim = dim_model)                  #response embedding, include a start token
         # self.embd_pos   = nn.Embedding(seq_len, embedding_dim = dim_model)                  #positional embedding
         self.multi_de1  = nn.MultiheadAttention(embed_dim= dim_model, num_heads= heads_de, dropout=dropout)  # M1 multihead for interaction embedding as q k v
         self.multi_de2  = nn.MultiheadAttention(embed_dim= dim_model, num_heads= heads_de, dropout=dropout)  # M2 multihead for M1 out, encoder out, encoder out as q k v
@@ -175,14 +181,27 @@ class Decoder_block(nn.Module):
         self.dropout3 = Dropout(dropout)
 
         self.device = device 
+        self.emb_type = emb_type
+        self.emb_size = dim_model
+
+        if emb_type.startswith("R_quantized"):
+            self.token_num = int(emb_type.split("_")[-1])
+            self.embd_res = Embedding(self.token_num*2, self.emb_size)
+        else:
+            self.embd_res = nn.Embedding(total_res+1, self.emb_size) #response embedding, include a start token
 
 
-    def forward(self, in_res, in_pos, en_out,first_block=True):
+    def forward(self, diff, in_res, in_pos, en_out, first_block=True):
+        emb_type = self.emb_type
 
          ## todo create a positional encoding (two options numeric, sine)
         if first_block:
-            in_in = self.embd_res(in_res)
-
+            if emb_type.startswith("R_quantized"):
+                diff_x = diff + self.token_num
+                diff_ox = torch.where(in_res == 1 , diff.long(), diff_x.long()) # [batch, length]
+                in_in = self.embd_res(diff_ox)
+            else: 
+                in_in = self.embd_res(in_res)
             #combining the embedings
             out = in_in + in_pos                         # (b,n,d)
         else:

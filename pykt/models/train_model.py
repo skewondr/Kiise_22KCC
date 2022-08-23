@@ -48,7 +48,7 @@ def model_forward(device, model, dataset_name, data):
     emb_type = model.emb_type
     if model_name in ["dkt_forget"]:
         q, c, r, qshft, cshft, rshft, m, sm, d, dshft = data
-    elif model_name in ["saint", "akt", "emb_qc"] or dataset_name in ["assist2015"]:
+    elif model_name in ["saint", "akt"] or dataset_name in ["assist2015"]:
         q, c, r, qshft, cshft, rshft, m, sm, q_diff, c_diff = data
     else: 
         c, q, r, cshft, qshft, rshft, m, sm, c_diff, q_diff = data
@@ -79,7 +79,7 @@ def model_forward(device, model, dataset_name, data):
         y = model(c.long(), r.long(), cshft.long())
         ys.append(y)
     elif model_name in ["saint"]:
-        y = model(cq.long(), cc.long(), r.long())
+        y = model(c_diff.long(), cq.long(), cc.long(), r.long())
         ys.append(y[:, 1:])
     elif model_name == "akt":               
         y, reg_loss = model(c_diff.long(), cc.long(), cr.long(), cq.long())
@@ -118,11 +118,14 @@ def train_model(device, fold, model, dataset_name, train_loader, valid_loader, n
     emb_type = model.emb_type
 
     if emb_type.startswith("qid_"):
-        emb_model = EMB(model.num_c, 512, 0.5, emb_type="qid").to(device) 
+        try:
+            emb_num = model.num_q
+        except: 
+            emb_num = model.num_c
+        emb_model = EMB(emb_num, 512, 0.5, emb_type="qid").to(device) 
         emb_opt = Adam(emb_model.parameters(), 5e-2)
         model.interaction_emb = nn.Embedding.from_pretrained(emb_model.input_emb.weight)
-        if model.model_name in ["saint", "akt"]:
-            emb_model.model_name = "emb_qc"
+
 
     for i in range(1, num_epochs + 1):
         loss_mean = []
