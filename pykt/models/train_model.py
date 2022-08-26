@@ -124,6 +124,7 @@ def train_model(device, fold, model, dataset_name, train_loader, valid_loader, n
 
     for i in range(1, num_epochs + 1):
         loss_mean = []
+        # print("model:", model.state_dict()["interaction_emb.weight"][0][:10])
         for data in train_loader:
             train_step+=1
             model.train()
@@ -135,11 +136,8 @@ def train_model(device, fold, model, dataset_name, train_loader, valid_loader, n
                 bf_emb = model.emb_type
                 model.emb_type = "qid_emb"
                 loss2 = model_forward(device, model, dataset_name, data)
-                total_loss = loss + lambda_*loss2 
+                total_loss = (1-lambda_)*loss + lambda_*loss2 
                 model.emb_type = bf_emb
-                # print(f"model loss:{loss}")
-                # print(f"emb model loss:{loss2}")
-                # print(f"total loss:{total_loss}")
             opt.zero_grad()
             total_loss.backward()
             opt.step()
