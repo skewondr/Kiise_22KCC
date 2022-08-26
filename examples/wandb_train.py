@@ -93,7 +93,7 @@ def main(train_params, model_params):
             model_params['use_wandb'] = 1
 
         if model_params['use_wandb']==1:
-            wandb.init(project="emb-experiment", entity="pykt-framework")
+            wandb.init(project="kiise", entity="pykt-framework")
             wandb.run.name = params_str
             wandb.run.save()
 

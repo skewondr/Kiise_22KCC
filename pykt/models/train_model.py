@@ -76,7 +76,7 @@ def model_forward(device, model, dataset_name, data):
         y = model(cc.long(), cr.long(), c_diff.long())
         ys.append(y[:,1:])
     elif model_name in ["kqn", "sakt"]:
-        y = model(c.long(), r.long(), cshft.long())
+        y = model(c_diff[:,:-1].long(), c.long(), r.long(), cshft.long())
         ys.append(y)
     elif model_name in ["saint"]:
         y = model(c_diff.long(), cq.long(), cc.long(), r.long())

@@ -55,7 +55,7 @@ def init_dataset4train(device, emb_type, dataset_name, model_name, data_config, 
     curtrain.emb_type = emb_type
     curvalid.emb_type = emb_type
 
-    n_tokens = int(emb_type.split("_")[-1]) if emb_type.startswith("R_quantized") else 5
+    n_tokens = int(emb_type.split("_")[-1]) if emb_type.startswith("R_") else 5
     curtrain.get_quantiles(n_tokens)
     curvalid.get_quantiles(n_tokens)
 
@@ -78,7 +78,7 @@ def init_dataset4train(device, emb_type, dataset_name, model_name, data_config, 
 
     # if emb_type.startswith("R"):
     test_dataset.emb_type = emb_type
-    n_tokens = int(emb_type.split("_")[-1]) if emb_type.startswith("R_quantized") else 5
+    n_tokens = int(emb_type.split("_")[-1]) if emb_type.startswith("R_") else 5
     test_dataset.get_quantiles(n_tokens)
 
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)

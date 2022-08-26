@@ -86,7 +86,7 @@ def evaluate(local_device, model, dataset_name, test_loader, model_name, save_pa
                 y = model(cc.long(), cr.long(), c_diff.long())
                 y = y[:,1:]
             elif model_name in ["kqn", "sakt"]:
-                y = model(c.long(), r.long(), cshft.long())
+                y = model(c_diff[:,:-1].long(), c.long(), r.long(), cshft.long())
             elif model_name == "saint":
                 y = model(c_diff.long(), cq.long(), cc.long(), r.long())
                 y = y[:, 1:]
