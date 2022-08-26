@@ -94,6 +94,8 @@ class Encoder_block(nn.Module):
                     self.interaction_emb = Embedding.from_pretrained(net["input_emb.weight"]) #
                 else: 
                     self.interaction_emb = Embedding(self.num_q, pretrain_dim)
+                    self.emb_predict = Linear(self.emb_size, 1)
+                    self.drop = Dropout(0.2)
                 self.emb_layer = Linear(pretrain_dim, self.emb_size) #
             
         if num_c > 0:
@@ -117,6 +119,8 @@ class Encoder_block(nn.Module):
             if self.num_q > 0:
                 if emb_type == "qid":
                     in_ex = self.interaction_emb(in_ex)
+                elif emb_type == "qid_emb":
+                    return self.emb_predict(self.drop(in_ex))
                 else: 
                     in_ex = self.emb_layer(self.interaction_emb(in_ex))
                 embs.append(in_ex)

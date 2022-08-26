@@ -24,6 +24,8 @@ class DKT(Module):
             self.interaction_emb = Embedding(self.num_c, self.fix_dim)
             self.emb_layer = Linear(self.fix_dim, self.emb_size) #
             self.emb_layer2 = Linear(self.emb_size*2, self.emb_size) #
+            self.emb_predict = Linear(self.emb_size, 1)
+            self.drop = Dropout(0.2)
 
         elif emb_type == "Q_pretrain":
             net = torch.load(emb_path)
@@ -55,7 +57,7 @@ class DKT(Module):
 
         return sinusoid_table
 
-    def forward(self, q, r, diff):
+    def forward(self, diff, q, r, cshft):
         emb_type = self.emb_type
         if emb_type == "qid":
             x = q + self.num_c * r
@@ -63,6 +65,8 @@ class DKT(Module):
             
         elif emb_type == "Q_pretrain" or emb_type.startswith("qid_"):
             xemb = self.emb_layer(self.interaction_emb(q))
+            if emb_type == "qid_emb":
+                return self.emb_predict(self.drop(xemb))
             # z = torch.zeros_like(xemb)
             # xemb_o = torch.cat([z, xemb], dim=-1)
             # xemb_x = torch.cat([xemb, z], dim=-1)
@@ -86,5 +90,9 @@ class DKT(Module):
         h = self.dropout_layer(h)
         y = self.out_layer(h)
         y = torch.sigmoid(y)
+        
+        y_idx = cshft.unsqueeze(-1).type(torch.int64)-1
+        y_idx = torch.where(y_idx==-1, 0, y_idx)
+        y = torch.gather(y, -1, y_idx).squeeze()
 
         return y

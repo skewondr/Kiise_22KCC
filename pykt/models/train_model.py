@@ -60,8 +60,8 @@ def model_forward(device, model, dataset_name, data):
     mm = torch.cat([torch.ones((m.shape[0], 1), dtype=torch.bool).to(device), m], dim=1)
 
     if model_name in ["dkt"]:
-        y = model(c.long(), r.long(), c_diff[:,:-1].long())
-        y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
+        y = model(c_diff[:,:-1].long(), c.long(), r.long(), cshft)
+        # y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
         ys.append(y) # first: yshft
     elif model_name == "dkt+":
         y = model(c.long(), r.long())
@@ -102,30 +102,25 @@ def model_forward(device, model, dataset_name, data):
         y = model(cc.long(), cr.long())
         ys.append(y)  
     elif model_name.startswith("emb"):
-        mse_loss = nn.MSELoss()
         y = model(cc.long())
-        loss = mse_loss(torch.masked_select(y, mm), torch.masked_select(c_diff, mm))
-    # cal loss
-    if model_name not in ["atkt", "atktfix"] and not model_name.startswith("emb"):
-        loss = cal_loss(model, ys, r, rshft, sm, preloss)
     
+    # cal loss
+    if model_name in ["emb"] or emb_type == "qid_emb": 
+        mse_loss = nn.MSELoss()
+        if y.squeeze().shape[-1] == c_diff.shape[-1]:
+            loss = mse_loss(torch.masked_select(y.squeeze(), mm), torch.masked_select(c_diff, mm))
+        else : 
+            loss = mse_loss(torch.masked_select(y.squeeze(), m), torch.masked_select(c_diff[:,:-1], m))
+
+    elif model_name not in ["atkt", "atktfix"]:
+        loss = cal_loss(model, ys, r, rshft, sm, preloss)
+
     return loss
     
 
 def train_model(device, fold, model, dataset_name, train_loader, valid_loader, num_epochs, opt, ckpt_path, early_stopping, test_loader=None, test_window_loader=None, save_model=False):
     max_auc, best_epoch, min_loss = 0, -1, 100
     train_step = 0
-    emb_type = model.emb_type
-
-    if emb_type.startswith("qid_"):
-        try:
-            emb_num = model.num_q
-        except: 
-            emb_num = model.num_c
-        emb_model = EMB(emb_num, 512, 0.5, emb_type="qid").to(device) 
-        emb_opt = Adam(emb_model.parameters(), 5e-2)
-        model.interaction_emb = nn.Embedding.from_pretrained(emb_model.input_emb.weight)
-
 
     for i in range(1, num_epochs + 1):
         loss_mean = []
@@ -133,24 +128,21 @@ def train_model(device, fold, model, dataset_name, train_loader, valid_loader, n
             train_step+=1
             model.train()
             loss = model_forward(device, model, dataset_name, data)
-            if emb_type.startswith("qid_"):
-                loss2 = model_forward(device, emb_model, dataset_name, data)
-                lambda_ = float(emb_type.split("_")[-1])
+            total_loss = loss
+            if model.emb_type.startswith("qid_"):
+                lambda_ = float(model.emb_type.split("_")[-1])
                 assert lambda_ >= 0, "set proper lambda"
-                total_loss = (1-lambda_)*loss + lambda_*loss2 
+                bf_emb = model.emb_type
+                model.emb_type = "qid_emb"
+                loss2 = model_forward(device, model, dataset_name, data)
+                total_loss = loss + lambda_*loss2 
+                model.emb_type = bf_emb
                 # print(f"model loss:{loss}")
                 # print(f"emb model loss:{loss2}")
                 # print(f"total loss:{total_loss}")
-                opt.zero_grad()
-                emb_opt.zero_grad()
-                total_loss.backward()
-                opt.step()
-                emb_opt.step()
-            else: 
-                total_loss = loss
-                opt.zero_grad()
-                total_loss.backward()
-                opt.step()
+            opt.zero_grad()
+            total_loss.backward()
+            opt.step()
 
             loss_mean.append(total_loss.detach().cpu().numpy())
             if model.model_name == "gkt" and train_step%10==0:

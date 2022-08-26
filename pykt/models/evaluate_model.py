@@ -77,8 +77,8 @@ def evaluate(local_device, model, dataset_name, test_loader, model_name, save_pa
             mm = torch.cat([torch.ones((m.shape[0], 1), dtype=torch.bool).to(local_device), m], dim=1)
 
             if model_name in ["dkt", "dkt+"]:
-                y = model(c.long(), r.long(), c_diff[:,:-1].long())
-                y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
+                y = model(c_diff[:,:-1].long(), c.long(), r.long(), cshft)
+                # y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)
             elif model_name in ["dkt_forget"]:
                 y = model(c.long(), r.long(), d, dshft)
                 y = (y * one_hot(cshft.long(), model.num_c)).sum(-1)

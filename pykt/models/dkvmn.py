@@ -25,6 +25,8 @@ class DKVMN(Module):
             self.interaction_emb = Embedding(self.num_c, self.fix_dim)
             self.emb_layer = Linear(self.fix_dim, self.emb_size) #
             self.emb_layer2 = Linear(self.emb_size*2, self.emb_size) #
+            self.emb_predict = Linear(self.emb_size, 1)
+            self.drop = Dropout(0.2)
 
         elif emb_type == "Q_pretrain":
             net = torch.load(emb_path)
@@ -74,6 +76,8 @@ class DKVMN(Module):
             v = self.v_emb_layer(x)
         elif emb_type == "Q_pretrain" or emb_type.startswith("qid_"):
             k = self.emb_layer(self.interaction_emb(q))
+            if emb_type == "qid_emb":
+                return self.emb_predict(self.drop(k))
             # z = torch.zeros_like(k)
             # xemb_o = torch.cat([z, k], dim=-1)
             # xemb_x = torch.cat([k, z], dim=-1)
