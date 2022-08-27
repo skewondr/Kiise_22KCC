@@ -34,12 +34,20 @@ class DKVMN(Module):
             self.emb_layer = Linear(self.fix_dim, self.emb_size) #
             self.emb_layer2 = Linear(self.emb_size*2, self.emb_size) #
 
-        elif emb_type.startswith("R_quantized"):
+        elif emb_type.startswith("R_"):
             self.token_num = int(emb_type.split("_")[-1])
             self.interaction_emb = Embedding(self.num_c, self.fix_dim)
-            self.diff_emb = Embedding(self.token_num*2, self.emb_size)
             self.emb_layer = Linear(self.fix_dim, self.emb_size) #
-            self.emb_layer2 = Linear(self.emb_size*2, self.emb_size) #
+            if emb_type.startswith("R_dadd"):
+                self.diff_emb = Embedding(self.token_num, self.emb_size)
+                self.r_emb = Embedding(2+1, self.emb_size) #
+            elif emb_type.startswith("R_sinu"): 
+                diff_vec = torch.from_numpy(self.get_sinusoid_encoding_table(self.token_num*2, self.emb_size)).to(device)
+                self.diff_emb = Embedding.from_pretrained(diff_vec, freeze=False)
+                self.emb_layer2 = Linear(self.emb_size*2, self.emb_size) #
+            else:
+                self.diff_emb = Embedding(self.token_num*2, self.emb_size)
+                self.emb_layer2 = Linear(self.emb_size*2, self.emb_size) #
         
         self.qa_embed = Embedding(2, self.emb_size)
         self.Mk = Parameter(torch.Tensor(self.size_m, self.dim_s))
@@ -87,15 +95,21 @@ class DKVMN(Module):
             xemb = torch.cat([k, z], dim=-1)
             v = self.emb_layer2(xemb)
 
-        elif emb_type.startswith("R_quantized"):
+        elif emb_type.startswith("R_"):
             k = self.emb_layer(self.interaction_emb(q))
-            diff_x = diff + self.token_num
-            # remb = torch.where(r.unsqueeze(-1).repeat(1, 1, self.emb_size) == 1 , self.diff_emb(diff.long()).float(), self.diff_emb(diff_x.long()).float()) #
-            # xemb = torch.cat([k, remb], dim=-1)
-            diff_ox = torch.where(r == 1 , diff.long(), diff_x.long()) # [batch, length]
-            remb = self.diff_emb(diff_ox)
-            xemb = torch.cat([k, remb], dim=-1)
-            v = self.emb_layer2(xemb)
+            if emb_type.startswith("R_dadd"):
+                demb = self.diff_emb(diff)
+                remb = self.r_emb(r)
+                v = k + remb + demb
+            else:
+                diff_x = diff + self.token_num
+                diff_ox = torch.where(r == 1 , diff.long(), diff_x.long()) # [batch, length]
+                remb = self.diff_emb(diff_ox).float()
+                if emb_type.startswith("R_add"):
+                    v = k + remb
+                else:  
+                    xemb = torch.cat([k, remb], dim=-1)
+                    v = self.emb_layer2(xemb)
         
         Mvt = self.Mv0.unsqueeze(0).repeat(batch_size, 1, 1)
 

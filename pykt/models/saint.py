@@ -5,6 +5,7 @@ import pandas as pd
 from .utils import transformer_FFN, get_clones, ut_mask, pos_encode
 from torch.nn import Embedding, Linear
 from IPython import embed 
+import numpy as np
 
 # device = "cpu" if not torch.cuda.is_available() else "cuda"
 
@@ -188,22 +189,54 @@ class Decoder_block(nn.Module):
         self.emb_type = emb_type
         self.emb_size = dim_model
 
-        if emb_type.startswith("R_quantized"):
+        if emb_type.startswith("R_"):
             self.token_num = int(emb_type.split("_")[-1])
-            self.embd_res = Embedding(self.token_num*2, self.emb_size)
+            self.embd_res = Embedding(self.token_num*2+1, self.emb_size)
         else:
             self.embd_res = nn.Embedding(total_res+1, self.emb_size) #response embedding, include a start token
+        
+        if emb_type.startswith("R_"):
+            self.token_num = int(emb_type.split("_")[-1])
+            if emb_type.startswith("R_dadd"):
+                self.diff_emb = Embedding(self.token_num+1, self.emb_size)
+                self.embd_res = Embedding(2+1, self.emb_size) #
+            elif emb_type.startswith("R_sinu"): 
+                diff_vec = torch.from_numpy(self.get_sinusoid_encoding_table(self.token_num*2+1, self.emb_size)).to(device)
+                self.embd_res = Embedding.from_pretrained(diff_vec, freeze=False)
+            else:
+                self.embd_res = Embedding(self.token_num*2+1, self.emb_size)
+
+    def get_sinusoid_encoding_table(self, n_seq, d_hidn):
+        def cal_angle(position, i_hidn):
+            return position / np.power(10000, 2 * (i_hidn // 2) / d_hidn)
+        def get_posi_angle_vec(position):
+            return [cal_angle(position, i_hidn) for i_hidn in range(d_hidn)]
+
+        sinusoid_table = np.array([get_posi_angle_vec(i_seq) for i_seq in range(n_seq)])
+        sinusoid_table[:, 0::2] = np.sin(sinusoid_table[:, 0::2])  # even index sin 
+        sinusoid_table[:, 1::2] = np.cos(sinusoid_table[:, 1::2])  # odd index cos
+
+        return sinusoid_table
 
 
     def forward(self, diff, in_res, in_pos, en_out, first_block=True):
         emb_type = self.emb_type
-
          ## todo create a positional encoding (two options numeric, sine)
         if first_block:
-            if emb_type.startswith("R_quantized"):
-                diff_x = diff + self.token_num
-                diff_ox = torch.where(in_res == 1 , diff.long(), diff_x.long()) # [batch, length]
-                in_in = self.embd_res(diff_ox)
+            if emb_type.startswith("R_"):
+                if emb_type.startswith("R_dadd"):
+                    start_token = torch.tensor([[self.token_num]]).repeat(in_res.shape[0], 1).to(self.device)
+                    diff = torch.cat((start_token, diff), dim=-1)
+                    demb = self.diff_emb(diff)
+                    in_in = self.embd_res(in_res)
+                    in_in = in_in + demb
+                else: 
+                    start_token = torch.tensor([[self.token_num*2]]).repeat(in_res.shape[0], 1).to(self.device)
+                    diff = torch.cat((start_token, diff), dim=-1)
+                    diff_x = diff + self.token_num
+                    diff_ox = torch.where(in_res == 1 , diff.long(), diff_x.long()) # [batch, length]
+                    diff_ox = torch.where(in_res == 2 , diff.long(), diff_ox.long()) # [batch, length]
+                    in_in = self.embd_res(diff_ox).float()
             else: 
                 in_in = self.embd_res(in_res)
             #combining the embedings
