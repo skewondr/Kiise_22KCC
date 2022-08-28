@@ -21,7 +21,7 @@
         "test_window_file": "test_window_sequences.csv"
     },
     "algebra2005": {
-        "dpath": "../data/algebra2005",
+        "dpath": "../data/algebra2005/sub100_fold5",
         "num_q": 173113,
         "num_c": 112,
         "input_type": [

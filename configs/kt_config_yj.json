@@ -21,6 +21,11 @@
             "learning_rate": 1e-3,
             "emb_size": 100,
             "dropout": 0.5
+        },
+        "algebra2005":{
+            "learning_rate": 1e-3,
+            "emb_size": 300,
+            "dropout": 0.05
         }
     },
     "dkt+": {
@@ -48,6 +53,12 @@
             "dim_s": 300,
             "size_m": 10,
             "dropout": 0.5
+        },
+        "algebra2005":{
+            "learning_rate": 1e-3,
+            "dim_s": 300,
+            "size_m": 10,
+            "dropout": 0.2
         }
     },
     "sakt": {
@@ -68,6 +79,13 @@
         "ednet":{
             "learning_rate": 1e-3,
             "emb_size": 100,
+            "num_attn_heads": 4,
+            "dropout": 0.5,
+            "num_en": 1
+        },
+        "algebra2005":{
+            "learning_rate": 1e-3,
+            "emb_size": 200,
             "num_attn_heads": 4,
             "dropout": 0.5,
             "num_en": 1
@@ -93,6 +111,13 @@
             "emb_size": 256,
             "num_attn_heads": 4,
             "dropout": 0.05,
+            "n_blocks": 2
+        },
+        "algebra2005":{
+            "learning_rate": 1e-3,
+            "emb_size": 256,
+            "num_attn_heads": 4,
+            "dropout": 0.5,
             "n_blocks": 2
         }
     },
