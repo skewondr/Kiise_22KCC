@@ -50,7 +50,7 @@ class DKT(Module):
 
         self.lstm_layer = LSTM(self.emb_size, self.hidden_size, batch_first=True)
         self.dropout_layer = Dropout(dropout)
-        self.out_layer = Linear(self.hidden_size, self.num_c)
+        self.out_layer = Linear(self.hidden_size, 1)
         self.qa_embed = Embedding(2, self.emb_size)
 
     def get_sinusoid_encoding_table(self, n_seq, d_hidn):
@@ -102,11 +102,16 @@ class DKT(Module):
         
         h, _ = self.lstm_layer(xemb)
         h = self.dropout_layer(h)
+        if emb_type == "qid":
+            h = h+self.interaction_emb(cshft) #
+        else:
+            h = h+self.emb_layer(self.interaction_emb(cshft)) #
         y = self.out_layer(h)
         y = torch.sigmoid(y)
-        
-        y_idx = cshft.unsqueeze(-1).type(torch.int64)-1
-        y_idx = torch.where(y_idx==-1, 0, y_idx)
-        y = torch.gather(y, -1, y_idx).squeeze()
 
-        return y
+        return y.squeeze(-1) #
+        # y_idx = cshft.unsqueeze(-1).type(torch.int64)-1
+        # y_idx = torch.where(y_idx==-1, 0, y_idx)
+        # y = torch.gather(y, -1, y_idx).squeeze()
+
+        # return y

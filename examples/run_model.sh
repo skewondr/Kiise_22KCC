@@ -2,10 +2,10 @@
 
 #!/usr/bin/env bash
 
-dataset=(assist2009)
-embtype=(R_add_1 R_add_2 R_add_5 R_add_25 R_sinu_1 R_sinu_2 R_sinu_5 R_sinu_25)
+dataset=(algebra2005)
+embtype=(R_sinu_1 R_sinu_2 R_sinu_5 R_sinu_25)
 seed=(42 224 3407)
-model=(saint dkvmn)
+model=(dkt)
 
 for d in ${dataset[@]}; do
     for m in ${embtype[@]}; do
@@ -20,7 +20,7 @@ for d in ${dataset[@]}; do
                     # --use_wandb 0
                     # --fold 1
                 )
-                echo `PYTHONPATH=/workspace/pykt-yj python wandb_${e}_train.py ${args[@]}`
+                echo `PYTHONPATH=/workspace/pykt-toolkit python wandb_${e}_train.py ${args[@]}`
                 # echo `PYTHONPATH=/home/tako/yoonjin/pykt-toolkit python wandb_${m}_train.py ${args[@]}`
             done
         done
