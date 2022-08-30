@@ -106,10 +106,7 @@ class DKT(Module):
         
         h, _ = self.lstm_layer(xemb)
         h = self.dropout_layer(h)
-        if emb_type == "qid":
-            h = h+self.question_emb(cshft) #
-        else:
-            h = h+self.emb_layer(self.question_emb(cshft)) #
+        h = h+self.question_emb(cshft) #
         y = self.out_layer(h)
         y = torch.sigmoid(y)
 
