@@ -98,7 +98,7 @@ class DKT(Module):
                 diff_x = diff + self.token_num
                 diff_ox = torch.where(r == 1 , diff.long(), diff_x.long()) # [batch, length]
                 remb = self.diff_emb(diff_ox).float()
-                if emb_type.startswith("R_add"):
+                if emb_type.startswith("R_add") or self.emb_type.startswith("R_sinu_a"):
                     xemb = xemb + remb
                 else:  
                     xemb = torch.cat([xemb, remb], dim=-1)
