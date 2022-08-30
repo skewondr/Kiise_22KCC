@@ -41,13 +41,16 @@ class DKT(Module):
                 self.diff_emb = Embedding(self.token_num, self.emb_size)
                 self.r_emb = Embedding(2+1, self.emb_size) #
             elif emb_type.startswith("R_sinu"): 
+                self.gap = int(emb_type.split("_")[-2])
+                print("gap:", self.gap)
                 diff_vec = torch.from_numpy(self.get_sinusoid_encoding_table(self.token_num*2, self.emb_size)).to(device)
                 self.diff_emb = Embedding.from_pretrained(diff_vec, freeze=False)
                 self.emb_layer2 = Linear(self.emb_size*2, self.emb_size) #
             else:
                 self.diff_emb = Embedding(self.token_num*2, self.emb_size)
                 self.emb_layer2 = Linear(self.emb_size*2, self.emb_size) #
-
+        
+        self.question_emb = Embedding(self.num_c, self.emb_size)
         self.lstm_layer = LSTM(self.emb_size, self.hidden_size, batch_first=True)
         self.dropout_layer = Dropout(dropout)
         self.out_layer = Linear(self.hidden_size, 1)
@@ -58,8 +61,9 @@ class DKT(Module):
             return position / np.power(10000, 2 * (i_hidn // 2) / d_hidn)
         def get_posi_angle_vec(position):
             return [cal_angle(position, i_hidn) for i_hidn in range(d_hidn)]
-
-        sinusoid_table = np.array([get_posi_angle_vec(i_seq) for i_seq in range(n_seq)])
+        ran = np.arange(n_seq)
+        ran[self.token_num:] = ran[self.token_num:] + self.gap
+        sinusoid_table = np.array([get_posi_angle_vec(i_seq) for i_seq in ran])
         sinusoid_table[:, 0::2] = np.sin(sinusoid_table[:, 0::2])  # even index sin 
         sinusoid_table[:, 1::2] = np.cos(sinusoid_table[:, 1::2])  # odd index cos
 
@@ -103,9 +107,9 @@ class DKT(Module):
         h, _ = self.lstm_layer(xemb)
         h = self.dropout_layer(h)
         if emb_type == "qid":
-            h = h+self.interaction_emb(cshft) #
+            h = h+self.question_emb(cshft) #
         else:
-            h = h+self.emb_layer(self.interaction_emb(cshft)) #
+            h = h+self.emb_layer(self.question_emb(cshft)) #
         y = self.out_layer(h)
         y = torch.sigmoid(y)
 

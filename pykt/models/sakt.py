@@ -34,6 +34,8 @@ class SAKT(Module):
                 self.diff_emb = Embedding(self.token_num, self.emb_size)
                 self.r_emb = Embedding(2+1, self.emb_size) #
             elif emb_type.startswith("R_sinu"): 
+                self.gap = int(emb_type.split("_")[-2])
+                print("gap:", self.gap)
                 diff_vec = torch.from_numpy(self.get_sinusoid_encoding_table(self.token_num*2, self.emb_size)).to(device)
                 self.diff_emb = Embedding.from_pretrained(diff_vec, freeze=False)
                 self.emb_layer2 = Linear(self.emb_size*2, self.emb_size) #
@@ -53,8 +55,9 @@ class SAKT(Module):
             return position / np.power(10000, 2 * (i_hidn // 2) / d_hidn)
         def get_posi_angle_vec(position):
             return [cal_angle(position, i_hidn) for i_hidn in range(d_hidn)]
-
-        sinusoid_table = np.array([get_posi_angle_vec(i_seq) for i_seq in range(n_seq)])
+        ran = np.arange(n_seq)
+        ran[self.token_num:] = ran[self.token_num:] + self.gap
+        sinusoid_table = np.array([get_posi_angle_vec(i_seq) for i_seq in ran])
         sinusoid_table[:, 0::2] = np.sin(sinusoid_table[:, 0::2])  # even index sin 
         sinusoid_table[:, 1::2] = np.cos(sinusoid_table[:, 1::2])  # odd index cos
 
@@ -76,7 +79,7 @@ class SAKT(Module):
                 diff_x = diff + self.token_num
                 diff_ox = torch.where(r == 1 , diff.long(), diff_x.long()) # [batch, length]
                 remb = self.diff_emb(diff_ox).float()
-                if self.emb_type.startswith("R_add"):
+                if self.emb_type.startswith("R_add") or self.emb_type.startswith("R_sinu"):
                     xemb = xemb + remb
                 else: 
                     xemb = torch.cat([xemb, remb], dim=-1)
