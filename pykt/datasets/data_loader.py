@@ -8,6 +8,7 @@ from torch.utils.data import Dataset
 from torch.cuda import FloatTensor, LongTensor
 import numpy as np
 from IPython import embed 
+from itertools import accumulate
 
 class KTDataset(Dataset):
     """Dataset for KT
@@ -120,6 +121,13 @@ class KTDataset(Dataset):
 
         r_seqs = self.r_seqs[index][:-1] * self.mask_seqs[index].to(self.device)
         rshft_seqs = self.r_seqs[index][1:] * self.mask_seqs[index].to(self.device)
+        if self.emb_type.startswith("L_sinu"):
+            lr = np.array(list(accumulate(self.r_seqs[index].cpu().int())))/np.arange(1, len(self.r_seqs[index])+1)
+            lr = np.digitize(lr, np.arange(0, 1+1/self.num_token, 1/self.num_token))-1
+            lr = torch.from_numpy(lr).to(self.device)
+            lr = lr * torch.cat([torch.ones(1, dtype=torch.bool).to(self.device), self.mask_seqs[index].to(self.device)], -1)
+            lr = torch.where(lr>=self.num_token, lr-1, lr)
+            q_diffs, c_diffs = lr, lr
 
         mask_seqs = self.mask_seqs[index].to(self.device)
         select_masks = self.select_masks[index].to(self.device)
@@ -225,6 +233,7 @@ class KTDataset(Dataset):
             
         self.q_quantiles = q_quantiles
         self.c_quantiles = c_quantiles
+        self.num_token = num_token
 
         print(f"q_quantiles:{self.q_quantiles}, c_quantiles:{self.c_quantiles}")
         return 

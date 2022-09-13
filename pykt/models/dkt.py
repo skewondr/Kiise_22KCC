@@ -34,14 +34,14 @@ class DKT(Module):
             self.emb_layer = Linear(self.fix_dim, self.emb_size) #
             self.emb_layer2 = Linear(self.emb_size*2, self.emb_size) #
 
-        elif emb_type.startswith("R_"):
+        elif emb_type.startswith(("R_", "L_")):
             self.token_num = int(emb_type.split("_")[-1])
             self.interaction_emb = Embedding(self.num_c, self.fix_dim)
             self.emb_layer = Linear(self.fix_dim, self.emb_size) #
             if emb_type.startswith("R_dadd"):
                 self.diff_emb = Embedding(self.token_num, self.emb_size)
                 self.r_emb = Embedding(2+1, self.emb_size) #
-            elif emb_type.startswith("R_sinu"): 
+            elif emb_type.startswith(("R_sinu", "L_sinu")): 
                 self.gap = int(emb_type.split("_")[-2])
                 print("gap:", self.gap)
                 diff_vec = torch.from_numpy(self.get_sinusoid_encoding_table(self.token_num*2, self.emb_size)).to(device)
@@ -89,7 +89,7 @@ class DKT(Module):
             xemb = torch.cat([xemb, z], dim=-1)
             xemb = self.emb_layer2(xemb)
 
-        elif emb_type.startswith("R_"):
+        elif emb_type.startswith(("R_", "L_")):
             xemb = self.emb_layer(self.interaction_emb(q))
             if emb_type.startswith("R_dadd"):
                 demb = self.diff_emb(diff)
@@ -99,7 +99,7 @@ class DKT(Module):
                 diff_x = diff + self.token_num
                 diff_ox = torch.where(r == 1 , diff.long(), diff_x.long()) # [batch, length]
                 remb = self.diff_emb(diff_ox).float()
-                if emb_type.startswith("R_add") or self.emb_type.startswith("R_sinu_a"):
+                if emb_type.startswith(("R_add", "R_sinu_a", "L_sinu_a")):
                     xemb = xemb + remb
                 else:  
                     xemb = torch.cat([xemb, remb], dim=-1)

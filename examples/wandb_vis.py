@@ -135,24 +135,27 @@ def viz4(save_dict):
       ylbx = ya_ori11_o[2:] + ya_ori11_x[2:]
       print(xa_ori11_o, xa_ori11_x)
       print(f"key[{save_dir}] label 0 : {ylbx}, {np.sum(ylbx)}, label 1: {ylbo}, {np.sum(ylbo)} = {np.sum(ylbx)+ np.sum(ylbo)}")
-      print(f"key[{save_dir}] TP : {ya_ori11_o[:2]}, TF: {ya_ori11_o[2:]}")
+      # print(f"key[{save_dir}] TP : {ya_ori11_o[:2]}, TF: {ya_ori11_o[2:]}")
+      print(f"key[{save_dir}] TP : {np.sum(ya_ori11_o[:2])}, TN: {np.sum(ya_ori11_o[2:])}, FP: {np.sum(ya_ori11_x[:2])}, FN: {np.sum(ya_ori11_x[2:])}")
       # print(f"same? {np.sum(ya_ori11_x) + np.sum(ya_ori11_o)}")
-      print()
+      print("-"*80)
 
 ednet = {
 # "1": "ednet_dkvmn_42_5_R_sinu_a_150_2_83144356",#7 x
 "2": "ednet_dkt_42_5_qid_91220588",#8 ok
 "3": "ednet_dkvmn_42_5_qid_912205815",
-# "4": "ednet_sakt_42_5_qid_912205550",
+"4": "ednet_dkt_42_5_R_sinu_a_200_2_83112314",
+"5": "ednet_dkvmn_42_5_R_sinu_a_150_2_83144356",
 }
 as09 = {
 # "1": "assist2009_dkvmn_42_5_R_sinu_c_150_2_830213228",#7 x
 # "2": "assist2009_dkt_42_5_R_sinu_c_100_2_830175430",#8 ok
 "3": "assist2009_dkt_42_5_qid_912213447",
 "4": "assist2009_dkvmn_42_5_qid_912213931",
-# "5": "assist2009_sakt_42_5_qid_912205547",
+"5": "assist2009_dkt_42_5_R_sinu_c_100_2_830175430",
+"6": "assist2009_dkvmn_42_5_R_sinu_c_150_2_830213228",
 
 }
 
-viz4(ednet)
-# viz4(as09)
+# viz4(ednet)
+viz4(as09)
