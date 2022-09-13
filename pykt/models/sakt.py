@@ -24,6 +24,8 @@ class SAKT(Module):
             # num_c, seq_len, emb_size, num_attn_heads, dropout, emb_path="")
             self.interaction_emb = Embedding(num_c * 2, emb_size)
             self.exercise_emb = Embedding(num_c, emb_size)
+            self.emb_layer = Linear(self.fix_dim, self.emb_size) #
+            self.emb_layer2 = Linear(self.fix_dim, self.emb_size) #
             # self.P = Parameter(torch.Tensor(self.seq_len, self.emb_size))
 
         elif emb_type.startswith("R_"):
@@ -66,7 +68,7 @@ class SAKT(Module):
     def base_emb(self, diff, q, r, qry):
         if self.emb_type == "qid":
             x = q + self.num_c * r
-            qshftemb, xemb = self.exercise_emb(qry), self.interaction_emb(x)
+            qshftemb, xemb = self.emb_layer(self.exercise_emb(qry)), self.emb_layer2(self.interaction_emb(x))
         
         elif self.emb_type.startswith("R_"):
             qshftemb = self.emb_layer(self.interaction_emb(qry))

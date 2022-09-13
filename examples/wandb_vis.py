@@ -9,7 +9,7 @@ from IPython import embed
 def load_p (name):
   with open(name, 'rb') as f:
     cnt = sorted(Counter(pickle.load(f)).items())
-    # print(cnt)
+    print(cnt)
     x = [i[0] for i in cnt]
     y = [i[1] for i in cnt]
     return np.array(x), np.array(y)
@@ -87,12 +87,15 @@ def viz3(save_dict):
 
             xa_ori11_o, ya_ori11_o = load_p(os.path.join("saved_model/"+save_dir, "lcrts_o.pickle"))
             xa_ori11_x, ya_ori11_x = load_p(os.path.join("saved_model/"+save_dir, "lcrts_x.pickle"))
-            ylbo =  ya_ori11_o[:5] + ya_ori11_x[:5]
-            ylbx = ya_ori11_o[5:] + ya_ori11_x[5:]
+            k_num = int(save_dir.split("_")[-2])
+            print(f"K = {k_num}")
+            ylbo =  ya_ori11_o[:k_num] + ya_ori11_x[:k_num]
+            ylbx = ya_ori11_o[k_num:] + ya_ori11_x[k_num:]
             print(save_dir)
             print(f"label 0 : {ylbx}, {np.sum(ylbx)}, label 1: {ylbo}, {np.sum(ylbo)} = {np.sum(ylbx)+ np.sum(ylbo)}")
+            print(f"0:1 = {np.sum(ylbx)/(np.sum(ylbx)+ np.sum(ylbo)):.2f} : {np.sum(ylbo)/(np.sum(ylbx)+ np.sum(ylbo)):.2f}")
             # print(f"same? {np.sum(ya_ori11_x) + np.sum(ya_ori11_o)}")
-            print()
+            print("-"*80)
             sns.set_palette("Accent", 6)
             figsize = (6, 8)
             if cnt == 0: 
@@ -121,50 +124,35 @@ def viz3(save_dict):
             print(f"{save_dir} not in server 7")
 
 
+def viz4(save_dict):
+    for key, save_dir in save_dict.items():
+      dataset_name = save_dir.split("_")[0]
+      model_name = save_dir.split("_")[1]
+
+      xa_ori11_o, ya_ori11_o = load_p(os.path.join("saved_model/"+save_dir, "lcrts_o.pickle"))
+      xa_ori11_x, ya_ori11_x = load_p(os.path.join("saved_model/"+save_dir, "lcrts_x.pickle"))
+      ylbo =  ya_ori11_o[:2] + ya_ori11_x[:2]
+      ylbx = ya_ori11_o[2:] + ya_ori11_x[2:]
+      print(xa_ori11_o, xa_ori11_x)
+      print(f"key[{save_dir}] label 0 : {ylbx}, {np.sum(ylbx)}, label 1: {ylbo}, {np.sum(ylbo)} = {np.sum(ylbx)+ np.sum(ylbo)}")
+      print(f"key[{save_dir}] TP : {ya_ori11_o[:2]}, TF: {ya_ori11_o[2:]}")
+      # print(f"same? {np.sum(ya_ori11_x) + np.sum(ya_ori11_o)}")
+      print()
+
 ednet = {
-# "1": "ednet_saint_42_5_R_sinu_5_828165147",#7 x
-"2": "ednet_sakt_42_5_R_sinu_5_82611443",#8 ok
-# "3": "ednet_dkvmn_42_5_R_sinu_5_828175429",#7 ok
-# "4": "ednet_dkt_42_5_R_sinu_5_826115140",#7 ok re
-
-# "5": "ednet_dkvmn_42_5_R_add_5_828101915",#7 ok
-# "6": "ednet_sakt_42_5_R_add_5_82764238",#7 ok
-# "7": "ednet_saint_42_5_R_add_5_82891914",#7 x
-# "8": "ednet_dkt_42_5_R_add_5_82755354",#7 ok re
-
-"9": "ednet_sakt_42_5_R_quantized_5_826105935",#8 ok
+# "1": "ednet_dkvmn_42_5_R_sinu_a_150_2_83144356",#7 x
+"2": "ednet_dkt_42_5_qid_91220588",#8 ok
+"3": "ednet_dkvmn_42_5_qid_912205815",
+# "4": "ednet_sakt_42_5_qid_912205550",
 }
-
-
 as09 = {
-"1": "assist2009_dkt_42_5_R_sinu_5_827173527",#8 ok 
-# "2": "assist2009_dkvmn_42_5_R_sinu_5_828205856",#7 ok 
-# "3": "assist2009_saint_42_5_R_sinu_5_828192619",#7 x
-"4": "assist2009_sakt_42_5_R_sinu_5_82717330",#8 ok 
+# "1": "assist2009_dkvmn_42_5_R_sinu_c_150_2_830213228",#7 x
+# "2": "assist2009_dkt_42_5_R_sinu_c_100_2_830175430",#8 ok
+"3": "assist2009_dkt_42_5_qid_912213447",
+"4": "assist2009_dkvmn_42_5_qid_912213931",
+# "5": "assist2009_sakt_42_5_qid_912205547",
 
-# "5": "assist2009_dkvmn_42_5_R_add_5_828121558",#7 ok 
-# "6": "assist2009_saint_42_5_R_add_5_828105358",#7 x
-"7": "assist2009_sakt_42_5_R_add_5_82773336",#8 ok 
-"8": "assist2009_dkt_42_5_R_add_5_8277017",#8 ok 
-
-"9": "assist2009_sakt_42_5_R_quantized_5_827143449",#8 ok 
 }
 
-# save_dict = {
-# "base": "ednet_sakt_3407_5_qid_82961526",
-# "sinu@5": "ednet_sakt_224_5_R_sinu_5_826111535",
-# }
-
-# save_dict = {
-# "base": "ednet_saint_3407_5_qid_8297044",
-# }
-
-# save_dict = {
-# # "qid": "assist2009_dkt_42_5_16223023",
-# "pre-trained": "assist2009_dkt_42_5_1732635",
-# # "qid_0": "assist2009_dkvmn_42_5_1623286"
-# # "qid": "ednet_dkt_42_5_20171956",
-# # "pre-trained": "ednet_dkt_42_5_2018366",
-# # "qid_0": "ednet_dkt_42_5_2019231"
-# }
-viz3(as09)
+viz4(ednet)
+# viz4(as09)

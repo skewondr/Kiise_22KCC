@@ -18,7 +18,8 @@ class DKT(Module):
         self.fix_dim = 512
 
         if emb_type == "qid":
-            self.interaction_emb = Embedding(self.num_c * 2, self.emb_size)
+            self.interaction_emb = Embedding(self.num_c * 2, self.fix_dim)
+            self.emb_layer = Linear(self.fix_dim, self.emb_size) #
 
         elif emb_type.startswith("qid_"):
             self.interaction_emb = Embedding(self.num_c, self.fix_dim)
@@ -73,7 +74,7 @@ class DKT(Module):
         emb_type = self.emb_type
         if emb_type == "qid":
             x = q + self.num_c * r
-            xemb = self.interaction_emb(x)
+            xemb = self.emb_layer(self.interaction_emb(x))
             
         elif emb_type == "Q_pretrain" or emb_type.startswith("qid_"):
             xemb = self.emb_layer(self.interaction_emb(q))

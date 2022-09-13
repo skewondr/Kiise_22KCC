@@ -18,8 +18,10 @@ class DKVMN(Module):
         self.emb_size = dim_s
 
         if emb_type == "qid":
-            self.k_emb_layer = Embedding(self.num_c, self.dim_s)
-            self.v_emb_layer = Embedding(self.num_c * 2, self.dim_s)
+            self.k_emb_layer = Embedding(self.num_c, self.fix_dim)
+            self.v_emb_layer = Embedding(self.num_c * 2, self.fix_dim)
+            self.emb_layer = Linear(self.fix_dim, self.emb_size) #
+            self.emb_layer2 = Linear(self.fix_dim, self.emb_size) #
 
         elif emb_type.startswith("qid_"):
             self.interaction_emb = Embedding(self.num_c, self.fix_dim)
@@ -83,8 +85,8 @@ class DKVMN(Module):
         batch_size = q.shape[0]
         if emb_type == "qid":
             x = q + self.num_c * r
-            k = self.k_emb_layer(q)
-            v = self.v_emb_layer(x)
+            k = self.emb_layer(self.k_emb_layer(q))
+            v = self.emb_layer2(self.v_emb_layer(x))
         elif emb_type == "Q_pretrain" or emb_type.startswith("qid_"):
             k = self.emb_layer(self.interaction_emb(q))
             if emb_type == "qid_emb":
