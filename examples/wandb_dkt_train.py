@@ -9,6 +9,7 @@ if __name__ == "__main__":
     train_args.add_argument("--model_name", type=str, default="dkt")
     train_args.add_argument("--emb_type", type=str, default="qid")
     train_args.add_argument("--save_dir", type=str, default="saved_model")
+    train_args.add_argument("--test_only", type=str, default="0")
     # parser.add_argument("--learning_rate", type=float, default=1e-5)
     train_args.add_argument("--seed", type=int, default=42)
     train_args.add_argument("--fold", type=int, default=5) #

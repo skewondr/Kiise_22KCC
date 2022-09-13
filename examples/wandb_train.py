@@ -126,9 +126,15 @@ def main(train_params, model_params):
 
         if model_config['add_uuid'] == 1:
             import uuid
-        ckpt_path = os.path.join(save_dir, params_str)
-        if not os.path.isdir(ckpt_path):
-            os.makedirs(ckpt_path)
+        
+        test_only = int(train_params["test_only"])
+
+        if test_only: 
+            ckpt_path = save_dir
+        else:
+            ckpt_path = os.path.join(save_dir, params_str)
+            if not os.path.isdir(ckpt_path):
+                os.makedirs(ckpt_path)
         print(f"Start training model: {model_name}, embtype: {emb_type}, save_dir: {ckpt_path}, dataset_name: {dataset_name}")
         print(f"model_config: {model_config}")
         print(f"train_config: {train_config}")
@@ -141,7 +147,7 @@ def main(train_params, model_params):
             }
             data_config[dataset_name]["emb_path"] = os.path.join(data_config[dataset_name]["dpath"], pre_trained_emb[dataset_name]+f"/qid_model_{fold}.ckpt")
 
-        save_config(train_config, model_config, data_config[dataset_name], ckpt_path)
+        if not test_only: save_config(train_config, model_config, data_config[dataset_name], ckpt_path)
         learning_rate = model_config["learning_rate"]
         for remove_item in ['use_wandb','learning_rate','add_uuid']:
             if remove_item in model_config:
@@ -167,11 +173,12 @@ def main(train_params, model_params):
         
         early_stopping = EarlyStopping(patience=train_config["es_patience"], verbose=True, path=ckpt_path)   
         fold_time = time.time()
-        testauc, testacc, window_testauc, window_testacc, validauc, validacc, validmse, best_epoch = train_model(device, fold, model, dataset_name, train_loader, valid_loader, num_epochs, opt, ckpt_path, early_stopping, test_loader, test_window_loader, save_model)
-        
-        val_acc_list.append(validacc)
-        val_auc_list.append(validauc)
-        val_mse_list.append(validmse)
+
+        if not test_only:
+            testauc, testacc, window_testauc, window_testacc, validauc, validacc, validmse, best_epoch = train_model(device, fold, model, dataset_name, train_loader, valid_loader, num_epochs, opt, ckpt_path, early_stopping, test_loader, test_window_loader, save_model)
+            val_acc_list.append(validacc)
+            val_auc_list.append(validauc)
+            val_mse_list.append(validmse)
 
         if save_model:
             best_model = init_model(device, model_name, model_config, data_config[dataset_name], emb_type)
@@ -204,8 +211,23 @@ def main(train_params, model_params):
         #     wandb.log({"testauc": testauc, "testacc": testacc, "window_testauc": window_testauc, "window_testacc": window_testacc, 
         #                 "validauc": validauc, "validacc": validacc, "best_epoch": best_epoch,"model_save_path":model_save_path})
     total_time = str(timedelta(seconds=time.time() - total_time))
-
-    print_result = {
+    if not test_only:
+        print_result = {
+                "dataset":train_params['dataset_name'],
+                "model":train_params['model_name'],
+                "emb type":train_params['emb_type'],
+                "seed":train_params['seed'],
+                "kfolds":train_params['fold'],
+                "elapsed time": total_time,
+                "mean testauc": np.array(tst_auc_list).mean(),
+                "mean testacc": np.array(tst_acc_list).mean(),
+                "mean testmse": np.array(tst_mse_list).mean(),
+                "mean validauc": np.array(val_auc_list).mean(),
+                "mean validacc": np.array(val_acc_list).mean(),
+                "mean validmse": np.array(val_mse_list).mean(),
+                "best_fold(auc)": tst_auc_list.index(max(tst_auc_list))}
+    else:
+        print_result = {
             "dataset":train_params['dataset_name'],
             "model":train_params['model_name'],
             "emb type":train_params['emb_type'],
@@ -215,9 +237,6 @@ def main(train_params, model_params):
             "mean testauc": np.array(tst_auc_list).mean(),
             "mean testacc": np.array(tst_acc_list).mean(),
             "mean testmse": np.array(tst_mse_list).mean(),
-            "mean validauc": np.array(val_auc_list).mean(),
-            "mean validacc": np.array(val_acc_list).mean(),
-            "mean validmse": np.array(val_mse_list).mean(),
             "best_fold(auc)": tst_auc_list.index(max(tst_auc_list))}
     print(print_result)
     if model_params['use_wandb']==1:
