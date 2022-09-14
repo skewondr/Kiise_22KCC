@@ -105,7 +105,7 @@ def evaluate(local_device, model, dataset_name, test_loader, model_name, save_pa
                 mse_scores.append(loss.cpu().numpy())
                 return -1, -1, np.mean(mse_scores)
 
-            token_num = int(emb_type.split("_")[-1]) if emb_type.startswith("R_") else 2 #
+            token_num = int(emb_type.split("_")[-1]) if emb_type.startswith(("R_", "L_")) else 2 #
             diff_x = c_diff + token_num
             diff_ox = torch.where(cr == 1 , c_diff.long(), diff_x.long()) #
             diff_ox = diff_ox[:,1:]

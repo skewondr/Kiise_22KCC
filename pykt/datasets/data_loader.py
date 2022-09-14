@@ -9,6 +9,8 @@ from torch.cuda import FloatTensor, LongTensor
 import numpy as np
 from IPython import embed 
 from itertools import accumulate
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import normalize
 
 class KTDataset(Dataset):
     """Dataset for KT
@@ -64,6 +66,7 @@ class KTDataset(Dataset):
             np.savez(qc_diff_data, q_diff=self.q_diff, c_diff=self.c_diff)
         else: 
             print(f"Read diff from processed file:{qc_diff_data}")
+            # self.q_diff, self.c_diff = self.__load_diff__(sequence_path)
             diff_data = np.load(qc_diff_data)
             self.q_diff, self.c_diff = diff_data['q_diff'], diff_data['c_diff']
       
@@ -220,6 +223,16 @@ class KTDataset(Dataset):
         
         q_diff = q_crt_cnt/q_total_cnt
         c_diff = c_crt_cnt/c_total_cnt
+
+        sort_total = sorted(q_total_cnt, reverse=True)
+        sort_diff = [x for _, x in sorted(zip(q_total_cnt, q_diff), reverse=True)]
+        plt.plot(np.arange(len(sort_total)), normalize([sort_total], norm='max')[0], label='frequency', color='b')
+        plt.scatter(np.arange(len(sort_total)), sort_diff, label='correct answer rate', color='g', s=3)
+        plt.legend(bbox_to_anchor=(1.04, 1), loc="upper left")
+        data_name = sequence_path.split("/")[2]
+        plt.title(data_name)
+        plt.tight_layout()
+        # plt.savefig(f"{data_name}_diff_cnt_sparsity.png", dpi=300)
 
         return q_diff, c_diff
 
